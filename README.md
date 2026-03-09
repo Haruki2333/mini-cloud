@@ -6,17 +6,26 @@
 
 ```
 .
-├── backend/                  # 后端服务（Express.js + MySQL）
-│   ├── index.js              # 项目入口，实现主要的读写 API
-│   ├── db.js                 # 数据库相关实现，使用 sequelize 作为 ORM
-│   ├── index.html            # 首页代码
-│   ├── package.json          # 后端依赖定义
-│   ├── Dockerfile            # 容器配置文件
-│   └── container.config.json # 模板部署「服务设置」初始化配置
-├── miniprogs/                # 小程序前端项目（每个子目录为一个独立小程序）
-├── packages/                 # 共享包（按需创建）
-├── package.json              # Monorepo 根配置
-└── pnpm-workspace.yaml       # pnpm workspace 配置
+├── backend/                          # 后端服务（Express.js + MySQL）
+│   ├── index.js                      # Express 主入口
+│   ├── db.js                         # 数据库连接，使用 Sequelize 作为 ORM
+│   ├── routes/
+│   │   └── recognize.js              # AI 食物识别 API
+│   ├── demo/
+│   │   └── food-tracker/             # 食物记录 H5 Demo
+│   │       ├── index.html            # 主页（时间线）
+│   │       ├── add.html              # 新增记录页
+│   │       ├── detail.html           # 详情页
+│   │       ├── settings.html         # 设置页
+│   │       ├── css/style.css         # 样式
+│   │       └── js/                   # 前端逻辑
+│   ├── package.json                  # 后端依赖定义
+│   ├── Dockerfile                    # 容器配置文件
+│   └── container.config.json         # 模板部署「服务设置」初始化配置
+├── miniprogs/                        # 小程序前端项目（每个子目录为一个独立小程序）
+├── packages/                         # 共享包（按需创建）
+├── package.json                      # Monorepo 根配置
+└── pnpm-workspace.yaml               # pnpm workspace 配置
 ```
 
 ## 快速开始
@@ -46,32 +55,52 @@ pnpm docker:run
 
 ## 后端 API 文档
 
-### `GET /api/count`
+### `POST /api/recognize`
 
-获取当前计数
+AI 食物识别 —— 接收食物照片，返回识别结果（菜名、食材、烹饪方式等）。
+
+**请求头：**
+
+- `Content-Type: application/json`
+- `X-Api-Key: <对应 AI 提供商的 API Key>`
+
+**请求参数：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `imageBase64` | string | 图片的 base64 编码（不含 `data:image/...;base64,` 前缀） |
+| `tier` | number | 识别等级：`1` 体验版（智谱）、`2` 标准版（Gemini）、`3` 高级版（OpenAI） |
 
 **响应示例：**
 
 ```json
 {
-  "code": 0,
-  "data": 42
+  "name": "番茄炒蛋",
+  "ingredients": ["番茄", "鸡蛋", "葱花"],
+  "cookingMethod": "炒",
+  "tags": ["家常菜", "快手菜"],
+  "description": "经典家常菜，番茄的酸甜搭配鸡蛋的嫩滑...",
+  "model": "glm-4v-flash"
 }
 ```
 
-### `POST /api/count`
+### `GET /api/wx_openid`
 
-更新计数，自增或清零
+获取微信 Open ID（仅在微信云托管环境下，通过小程序调用时有效）。
 
-**请求参数：**
+## Demo 页面
 
-- `action`：`"inc"` 计数加一，`"clear"` 计数清零
+后端同时托管 H5 Demo 页面，访问根路径 `/` 会重定向到默认 Demo。
 
-**请求示例：**
+### 食物记录（Food Tracker）
 
-```bash
-curl -X POST -H 'content-type: application/json' -d '{"action": "inc"}' https://<云托管服务域名>/api/count
-```
+访问路径：`/demo/food-tracker/`
+
+功能：
+- 拍照或上传食物图片，AI 自动识别菜名、食材、烹饪方式
+- 支持三个 AI 等级：体验版（智谱 GLM-4V）、标准版（Gemini 2.0 Flash）、高级版（GPT-4o）
+- 记录以时间线形式展示，数据存储在浏览器 localStorage 中
+- 支持在设置页配置各 AI 提供商的 API Key
 
 ## 使用注意
 
