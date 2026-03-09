@@ -34,6 +34,7 @@ mini-cloud/
 - 新增小程序：在 `miniprogs/` 下创建子目录，用微信开发者工具打开
 - 小程序不纳入 pnpm workspace，它们由微信开发者工具独立管理
 - H5 Demo 页面放在 `backend/demo/` 下，由 Express 静态文件中间件提供服务
+- 对于较为重大的更新，需同步变更 CLAUDE.md 和 README.md
 
 ## 后端 API
 

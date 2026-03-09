@@ -53,40 +53,10 @@ pnpm docker:run
 
 在 `miniprogs/` 下创建新目录，使用微信开发者工具打开该目录即可。每个小程序通过 `wx.request()` 调用共享的后端 API。
 
-## 后端 API 文档
+## 后端 API
 
-### `POST /api/recognize`
-
-AI 食物识别 —— 接收食物照片，返回识别结果（菜名、食材、烹饪方式等）。
-
-**请求头：**
-
-- `Content-Type: application/json`
-- `X-Api-Key: <对应 AI 提供商的 API Key>`
-
-**请求参数：**
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `imageBase64` | string | 图片的 base64 编码（不含 `data:image/...;base64,` 前缀） |
-| `tier` | number | 识别等级：`1` 体验版（智谱）、`2` 标准版（Gemini）、`3` 高级版（OpenAI） |
-
-**响应示例：**
-
-```json
-{
-  "name": "番茄炒蛋",
-  "ingredients": ["番茄", "鸡蛋", "葱花"],
-  "cookingMethod": "炒",
-  "tags": ["家常菜", "快手菜"],
-  "description": "经典家常菜，番茄的酸甜搭配鸡蛋的嫩滑...",
-  "model": "glm-4v-flash"
-}
-```
-
-### `GET /api/wx_openid`
-
-获取微信 Open ID（仅在微信云托管环境下，通过小程序调用时有效）。
+- `POST /api/recognize` — AI 食物识别（需要 `X-Api-Key` 请求头，支持智谱/Gemini/OpenAI）
+- `GET /api/wx_openid` — 获取微信 Open ID（小程序专用）
 
 ## Demo 页面
 
