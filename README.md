@@ -6,17 +6,26 @@
 
 ```
 .
-├── backend/                  # 后端服务（Express.js + MySQL）
-│   ├── index.js              # 项目入口，实现主要的读写 API
-│   ├── db.js                 # 数据库相关实现，使用 sequelize 作为 ORM
-│   ├── index.html            # 首页代码
-│   ├── package.json          # 后端依赖定义
-│   ├── Dockerfile            # 容器配置文件
-│   └── container.config.json # 模板部署「服务设置」初始化配置
-├── miniprogs/                # 小程序前端项目（每个子目录为一个独立小程序）
-├── packages/                 # 共享包（按需创建）
-├── package.json              # Monorepo 根配置
-└── pnpm-workspace.yaml       # pnpm workspace 配置
+├── backend/                          # 后端服务（Express.js + MySQL）
+│   ├── index.js                      # Express 主入口
+│   ├── db.js                         # 数据库连接，使用 Sequelize 作为 ORM
+│   ├── routes/
+│   │   └── recognize.js              # AI 食物识别 API
+│   ├── demo/
+│   │   └── food-tracker/             # 食物记录 H5 Demo
+│   │       ├── index.html            # 主页（时间线）
+│   │       ├── add.html              # 新增记录页
+│   │       ├── detail.html           # 详情页
+│   │       ├── settings.html         # 设置页
+│   │       ├── css/style.css         # 样式
+│   │       └── js/                   # 前端逻辑
+│   ├── package.json                  # 后端依赖定义
+│   ├── Dockerfile                    # 容器配置文件
+│   └── container.config.json         # 模板部署「服务设置」初始化配置
+├── miniprogs/                        # 小程序前端项目（每个子目录为一个独立小程序）
+├── packages/                         # 共享包（按需创建）
+├── package.json                      # Monorepo 根配置
+└── pnpm-workspace.yaml               # pnpm workspace 配置
 ```
 
 ## 快速开始
@@ -44,34 +53,24 @@ pnpm docker:run
 
 在 `miniprogs/` 下创建新目录，使用微信开发者工具打开该目录即可。每个小程序通过 `wx.request()` 调用共享的后端 API。
 
-## 后端 API 文档
+## 后端 API
 
-### `GET /api/count`
+- `POST /api/recognize` — AI 食物识别（需要 `X-Api-Key` 请求头，支持智谱/Gemini/OpenAI）
+- `GET /api/wx_openid` — 获取微信 Open ID（小程序专用）
 
-获取当前计数
+## Demo 页面
 
-**响应示例：**
+后端同时托管 H5 Demo 页面，访问根路径 `/` 会重定向到默认 Demo。
 
-```json
-{
-  "code": 0,
-  "data": 42
-}
-```
+### 食物记录（Food Tracker）
 
-### `POST /api/count`
+访问路径：`/demo/food-tracker/`
 
-更新计数，自增或清零
-
-**请求参数：**
-
-- `action`：`"inc"` 计数加一，`"clear"` 计数清零
-
-**请求示例：**
-
-```bash
-curl -X POST -H 'content-type: application/json' -d '{"action": "inc"}' https://<云托管服务域名>/api/count
-```
+功能：
+- 拍照或上传食物图片，AI 自动识别菜名、食材、烹饪方式
+- 支持三个 AI 等级：体验版（智谱 GLM-4V）、标准版（Gemini 2.0 Flash）、高级版（GPT-4o）
+- 记录以时间线形式展示，数据存储在浏览器 localStorage 中
+- 支持在设置页配置各 AI 提供商的 API Key
 
 ## 使用注意
 
