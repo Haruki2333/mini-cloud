@@ -145,6 +145,7 @@ textarea:focus {
   box-shadow: var(--shadow);
   margin-bottom: 16px;
   transition: transform 0.2s;
+  cursor: pointer;
 }
 
 .food-card:active {
