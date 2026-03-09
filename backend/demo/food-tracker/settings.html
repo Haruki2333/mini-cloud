@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>设置 - 食物记录</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="header">
+    <button class="header-back" onclick="history.back()">&#8592; 返回</button>
+    <span class="header-title">设置</span>
+    <div style="width:48px"></div>
+  </header>
+
+  <main class="content">
+    <div class="settings-section">
+      <h2 class="settings-section-title">API Key 配置</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
+        API Key 仅存储在本地浏览器中，不会上传到服务器
+      </p>
+
+      <div class="settings-item">
+        <label class="settings-item-label">智谱 API Key（体验版 · GLM-4V）</label>
+        <input type="password" id="zhipuKey" placeholder="输入智谱 API Key">
+      </div>
+
+      <div class="settings-item">
+        <label class="settings-item-label">Gemini API Key（标准版 · Gemini 2.0 Flash）</label>
+        <input type="password" id="geminiKey" placeholder="输入 Google AI API Key">
+      </div>
+
+      <div class="settings-item">
+        <label class="settings-item-label">OpenAI API Key（高级版 · GPT-4o）</label>
+        <input type="password" id="openaiKey" placeholder="输入 OpenAI API Key">
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="saveBtn">保存设置</button>
+  </main>
+
+  <script src="js/types.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/settings.js"></script>
+</body>
+</html>
