@@ -4,8 +4,8 @@
 	// 复制模板代码自行开发请忽略本配置文件。
   
   "containerPort": 80,
-  "dockerfilePath": "Dockerfile",
-  "buildDir": "",
+  "dockerfilePath": "backend/Dockerfile",
+  "buildDir": "backend",
   "minNum": 0,
   "maxNum": 5,
   "cpu": 1,
