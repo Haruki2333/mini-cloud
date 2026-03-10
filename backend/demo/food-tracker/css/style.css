@@ -416,6 +416,16 @@ textarea:focus {
   cursor: not-allowed;
 }
 
+.btn-secondary {
+  background: var(--card);
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+}
+
+.btn-secondary:hover {
+  background: var(--primary-light);
+}
+
 .btn-danger {
   background: var(--danger-light);
   color: var(--danger);
@@ -789,6 +799,14 @@ textarea:focus {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* 首页按钮组 */
+.home-btn-group {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 /* 拍照按钮 */

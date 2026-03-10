@@ -10,10 +10,7 @@
 
   var speechBubble = document.getElementById("speechBubble");
   var cameraBtn = document.getElementById("cameraBtn");
-  var actionSheet = document.getElementById("actionSheet");
-  var takePhotoBtn = document.getElementById("takePhotoBtn");
-  var choosePhotoBtn = document.getElementById("choosePhotoBtn");
-  var cancelBtn = document.getElementById("cancelBtn");
+  var albumBtn = document.getElementById("albumBtn");
   var cameraInput = document.getElementById("cameraInput");
   var albumInput = document.getElementById("albumInput");
   var loadingOverlay = document.getElementById("loadingOverlay");
@@ -30,34 +27,13 @@
     }
   }, 80);
 
-  // Action Sheet 显示/隐藏
-  function showActionSheet() {
-    actionSheet.classList.add("visible");
-  }
-
-  function hideActionSheet() {
-    actionSheet.classList.remove("visible");
-  }
-
-  cameraBtn.addEventListener("click", showActionSheet);
-  cancelBtn.addEventListener("click", hideActionSheet);
-
-  // 点击遮罩关闭
-  actionSheet.addEventListener("click", function (e) {
-    if (e.target === actionSheet) {
-      hideActionSheet();
-    }
-  });
-
   // 拍照
-  takePhotoBtn.addEventListener("click", function () {
-    hideActionSheet();
+  cameraBtn.addEventListener("click", function () {
     cameraInput.click();
   });
 
   // 从相册选择
-  choosePhotoBtn.addEventListener("click", function () {
-    hideActionSheet();
+  albumBtn.addEventListener("click", function () {
     albumInput.click();
   });
 

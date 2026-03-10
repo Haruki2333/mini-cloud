@@ -1,32 +1,4 @@
 (function () {
-  var currentModel = getSettings().model || DEFAULT_MODEL;
-
-  function renderModelSwitch() {
-    var container = document.getElementById("tierSwitch");
-    var html = "";
-    var models = Object.keys(MODEL_CONFIG);
-    models.forEach(function (id) {
-      var active = id === currentModel ? " active" : "";
-      html +=
-        '<button class="tier-btn' +
-        active +
-        '" data-model="' +
-        escapeHtml(id) +
-        '">' +
-        escapeHtml(MODEL_CONFIG[id].label) +
-        "</button>";
-    });
-    container.innerHTML = html;
-
-    container.querySelectorAll(".tier-btn").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        currentModel = btn.getAttribute("data-model");
-        setModel(currentModel);
-        renderModelSwitch();
-      });
-    });
-  }
-
   function getModelLabel(record) {
     if (record.model && MODEL_CONFIG[record.model]) {
       return MODEL_CONFIG[record.model].label;
@@ -107,6 +79,5 @@
     });
   }
 
-  renderModelSwitch();
   renderRecords();
 })();
