@@ -32,7 +32,7 @@
       return MODEL_CONFIG[record.model].label;
     }
     // 向后兼容旧记录（tier 字段）
-    if (record.tier === 1) return "GLM-4V-Flash";
+    if (record.tier === 1) return "GLM-4.6V-Flash";
     if (record.tier) return "旧模型";
     return "未知";
   }

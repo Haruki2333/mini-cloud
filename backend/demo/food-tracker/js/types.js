@@ -1,10 +1,10 @@
 var MODEL_CONFIG = {
-  "glm-4v-flash": { label: "GLM-4V-Flash", provider: "zhipu" },
-  "glm-4v-flashx": { label: "GLM-4V-FlashX", provider: "zhipu" },
+  "glm-4.6v-flash": { label: "GLM-4.6V-Flash", provider: "zhipu" },
+  "glm-4.6v-flashx": { label: "GLM-4.6V-FlashX", provider: "zhipu" },
   "qwen3.5-flash": { label: "Qwen3.5-Flash", provider: "qwen" },
 };
 
-var DEFAULT_MODEL = "glm-4v-flash";
+var DEFAULT_MODEL = "glm-4.6v-flash";
 
 function escapeHtml(str) {
   var div = document.createElement("div");

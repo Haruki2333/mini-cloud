@@ -21,7 +21,7 @@
   if (record.model && MODEL_CONFIG[record.model]) {
     modelLabel = MODEL_CONFIG[record.model].label;
   } else if (record.tier === 1) {
-    modelLabel = "GLM-4V-Flash";
+    modelLabel = "GLM-4.6V-Flash";
   } else if (record.tier) {
     modelLabel = "旧模型";
   } else {

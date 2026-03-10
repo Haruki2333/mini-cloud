@@ -10,8 +10,8 @@
 
 | 模型 ID | 厂商 | 标签 | API 端点 |
 |---------|------|------|----------|
-| glm-4v-flash | zhipu | 智谱 GLM-4V-Flash | `https://open.bigmodel.cn/api/paas/v4/chat/completions` |
-| glm-4v-flashx | zhipu | 智谱 GLM-4V-FlashX | `https://open.bigmodel.cn/api/paas/v4/chat/completions` |
+| glm-4.6v-flash | zhipu | 智谱 GLM-4.6V-Flash | `https://open.bigmodel.cn/api/paas/v4/chat/completions` |
+| glm-4.6v-flashx | zhipu | 智谱 GLM-4.6V-FlashX | `https://open.bigmodel.cn/api/paas/v4/chat/completions` |
 | qwen3.5-flash | qwen | 千问 Qwen3.5-Flash | `https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions` |
 
 认证方式统一为 `Authorization: Bearer <API_KEY>`。
@@ -57,7 +57,7 @@
 
 ```js
 [
-  { id: "glm-4v-flash", provider: "zhipu", label: "智谱 GLM-4V-Flash" },
+  { id: "glm-4.6v-flash", provider: "zhipu", label: "智谱 GLM-4.6V-Flash" },
   ...
 ]
 ```
@@ -99,7 +99,7 @@ console.log(result.content);
 const { chat } = require("../services/llm");
 
 const result = await chat(
-  "glm-4v-flash",
+  "glm-4.6v-flash",
   [
     {
       role: "user",
