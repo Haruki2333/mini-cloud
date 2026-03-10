@@ -8,7 +8,6 @@
 .
 ├── backend/                          # 后端服务（Express.js + MySQL）
 │   ├── index.js                      # Express 主入口
-│   ├── db.js                         # 数据库连接，使用 Sequelize 作为 ORM
 │   ├── routes/
 │   │   └── recognize.js              # AI 食物识别 API
 │   ├── demo/
@@ -20,8 +19,10 @@
 │   │       ├── css/style.css         # 样式
 │   │       └── js/                   # 前端逻辑
 │   ├── package.json                  # 后端依赖定义
-│   ├── Dockerfile                    # 容器配置文件
-│   └── container.config.json         # 模板部署「服务设置」初始化配置
+│   └── Dockerfile                    # 容器配置文件
+├── docs/                             # 项目文档/知识库
+│   ├── api/                          # 接口文档（按业务域组织）
+│   └── db/                           # 数据库表结构文档
 ├── miniprogs/                        # 小程序前端项目（每个子目录为一个独立小程序）
 ├── packages/                         # 共享包（按需创建）
 ├── package.json                      # Monorepo 根配置
@@ -55,8 +56,10 @@ pnpm docker:run
 
 ## 后端 API
 
-- `POST /api/recognize` — AI 食物识别（需要 `X-Api-Key` 请求头，支持智谱/Gemini/OpenAI）
+- `POST /api/food/recognize` — AI 食物识别（需要 `X-Api-Key` 请求头，支持智谱/Gemini/OpenAI）
 - `GET /api/wx_openid` — 获取微信 Open ID（小程序专用）
+
+完整 API 文档、数据库文档详见 [`docs/`](./docs) 目录。
 
 ## Demo 页面
 
@@ -71,16 +74,6 @@ pnpm docker:run
 - 支持三个 AI 等级：体验版（智谱 GLM-4V）、标准版（Gemini 2.0 Flash）、高级版（GPT-4o）
 - 记录以时间线形式展示，数据存储在浏览器 localStorage 中
 - 支持在设置页配置各 AI 提供商的 API Key
-
-## 使用注意
-
-如果不是通过微信云托管控制台部署模板代码，而是自行复制/下载模板代码后，手动新建一个服务并部署，需要在「服务设置」中补全以下环境变量：
-
-- `MYSQL_ADDRESS`
-- `MYSQL_PASSWORD`
-- `MYSQL_USERNAME`
-
-以上三个变量的值请按实际情况填写。如果使用云托管内 MySQL，可以在控制台 MySQL 页面获取相关信息。
 
 ## License
 
