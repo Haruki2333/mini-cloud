@@ -15,7 +15,18 @@
   }
 
   var dateStr = formatDate(record.createdAt);
-  var tierConfig = TIER_CONFIG[record.tier] || TIER_CONFIG[1];
+
+  // 模型标签（向后兼容旧 tier 记录）
+  var modelLabel = "";
+  if (record.model && MODEL_CONFIG[record.model]) {
+    modelLabel = MODEL_CONFIG[record.model].label;
+  } else if (record.tier === 1) {
+    modelLabel = "GLM-4V-Flash";
+  } else if (record.tier) {
+    modelLabel = "旧模型";
+  } else {
+    modelLabel = "未知";
+  }
 
   var ingredientsHtml = "";
   if (record.ingredients && record.ingredients.length > 0) {
@@ -81,10 +92,8 @@
     "</h1>" +
     '<p class="detail-time">' +
     escapeHtml(dateStr) +
-    '&emsp;&middot; <span class="tier-badge" data-tier="' +
-    record.tier +
-    '">' +
-    escapeHtml(tierConfig.label) +
+    '&emsp;&middot; <span class="tier-badge">' +
+    escapeHtml(modelLabel) +
     "</span>" +
     "</p>" +
     ingredientsHtml +

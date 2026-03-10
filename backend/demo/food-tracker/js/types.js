@@ -1,8 +1,10 @@
-var TIER_CONFIG = {
-  1: { label: "体验版", model: "glm-4v-flash", provider: "zhipu" },
-  2: { label: "标准版", model: "gemini-2.0-flash", provider: "gemini" },
-  3: { label: "高级版", model: "gpt-4o", provider: "openai" },
+var MODEL_CONFIG = {
+  "glm-4v-flash": { label: "GLM-4V-Flash", provider: "zhipu" },
+  "glm-4v-flashx": { label: "GLM-4V-FlashX", provider: "zhipu" },
+  "qwen3.5-flash": { label: "Qwen3.5-Flash", provider: "qwen" },
 };
+
+var DEFAULT_MODEL = "glm-4v-flash";
 
 function escapeHtml(str) {
   var div = document.createElement("div");

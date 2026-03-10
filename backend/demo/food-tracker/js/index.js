@@ -1,29 +1,40 @@
 (function () {
-  var currentTier = getSettings().tier;
+  var currentModel = getSettings().model || DEFAULT_MODEL;
 
-  function renderTierSwitch() {
+  function renderModelSwitch() {
     var container = document.getElementById("tierSwitch");
     var html = "";
-    [1, 2, 3].forEach(function (t) {
-      var active = t === currentTier ? " active" : "";
+    var models = Object.keys(MODEL_CONFIG);
+    models.forEach(function (id) {
+      var active = id === currentModel ? " active" : "";
       html +=
         '<button class="tier-btn' +
         active +
-        '" data-tier="' +
-        t +
+        '" data-model="' +
+        escapeHtml(id) +
         '">' +
-        escapeHtml(TIER_CONFIG[t].label) +
+        escapeHtml(MODEL_CONFIG[id].label) +
         "</button>";
     });
     container.innerHTML = html;
 
     container.querySelectorAll(".tier-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        currentTier = Number(btn.getAttribute("data-tier"));
-        setTier(currentTier);
-        renderTierSwitch();
+        currentModel = btn.getAttribute("data-model");
+        setModel(currentModel);
+        renderModelSwitch();
       });
     });
+  }
+
+  function getModelLabel(record) {
+    if (record.model && MODEL_CONFIG[record.model]) {
+      return MODEL_CONFIG[record.model].label;
+    }
+    // 向后兼容旧记录（tier 字段）
+    if (record.tier === 1) return "GLM-4V-Flash";
+    if (record.tier) return "旧模型";
+    return "未知";
   }
 
   function renderFoodCard(record) {
@@ -40,7 +51,7 @@
         return '<span class="tag">' + escapeHtml(t) + "</span>";
       })
       .join("");
-    var tierConfig = TIER_CONFIG[record.tier] || TIER_CONFIG[1];
+    var modelLabel = getModelLabel(record);
 
     return (
       '<div class="food-card" data-id="' +
@@ -63,10 +74,8 @@
       "<span>" +
       escapeHtml(dateStr) +
       "</span>" +
-      '<span class="tier-badge" data-tier="' +
-      record.tier +
-      '">' +
-      escapeHtml(tierConfig.label) +
+      '<span class="tier-badge">' +
+      escapeHtml(modelLabel) +
       "</span>" +
       "</div>" +
       "</div>" +
@@ -98,6 +107,6 @@
     });
   }
 
-  renderTierSwitch();
+  renderModelSwitch();
   renderRecords();
 })();

@@ -62,8 +62,14 @@
   // AI 识别
   function recognizeFood(base64) {
     var settings = getSettings();
-    var currentTier = settings.tier;
-    var config = TIER_CONFIG[currentTier];
+    var currentModel = settings.model || DEFAULT_MODEL;
+    var config = MODEL_CONFIG[currentModel];
+
+    if (!config) {
+      showAiStatus("error", "&#10007; 不支持的模型");
+      return;
+    }
+
     var apiKey = settings.apiKeys[config.provider];
 
     if (!apiKey) {
@@ -87,7 +93,7 @@
         "Content-Type": "application/json",
         "X-Api-Key": apiKey,
       },
-      body: JSON.stringify({ imageBase64: base64, tier: currentTier }),
+      body: JSON.stringify({ imageBase64: base64, model: currentModel }),
     })
       .then(function (res) {
         if (!res.ok) {
@@ -146,7 +152,7 @@
       cookingMethod: document.getElementById("cookingMethodInput").value.trim(),
       tags: tagsInput.getTags(),
       aiDescription: aiDescription,
-      tier: getSettings().tier,
+      model: getSettings().model || DEFAULT_MODEL,
       createdAt: new Date().toISOString(),
     });
 
