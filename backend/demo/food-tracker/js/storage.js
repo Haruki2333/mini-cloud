@@ -1,6 +1,5 @@
 var RECORDS_KEY = "food-tracker-records";
 var SETTINGS_KEY = "food-tracker-settings";
-var defaultSettings = { tier: 1, apiKeys: {} };
 
 function getRecords() {
   var raw = localStorage.getItem(RECORDS_KEY);
@@ -35,11 +34,18 @@ function deleteRecord(id) {
 
 function getSettings() {
   var raw = localStorage.getItem(SETTINGS_KEY);
-  if (!raw) return { tier: 1, apiKeys: {} };
+  if (!raw) return { model: DEFAULT_MODEL, apiKeys: {} };
   try {
-    return JSON.parse(raw);
+    var s = JSON.parse(raw);
+    // 向后兼容：旧版 tier 数据迁移
+    if (s.tier && !s.model) {
+      s.model = DEFAULT_MODEL;
+      delete s.tier;
+    }
+    if (!s.model) s.model = DEFAULT_MODEL;
+    return s;
   } catch (e) {
-    return { tier: 1, apiKeys: {} };
+    return { model: DEFAULT_MODEL, apiKeys: {} };
   }
 }
 
@@ -47,9 +53,9 @@ function saveSettings(settings) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
-function setTier(tier) {
+function setModel(modelId) {
   var settings = getSettings();
-  settings.tier = tier;
+  settings.model = modelId;
   saveSettings(settings);
 }
 
