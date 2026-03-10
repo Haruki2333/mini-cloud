@@ -35,7 +35,7 @@ router.get("/models", (req, res) => {
 router.post("/recognize", async (req, res) => {
   try {
     const { imageBase64, model: modelId } = req.body;
-    const effectiveModel = modelId || "glm-4v-flash";
+    const effectiveModel = modelId || "glm-4.6v-flash";
 
     if (!imageBase64) {
       return res.status(400).json({ error: "缺少图片数据" });

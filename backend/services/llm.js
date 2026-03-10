@@ -2,14 +2,14 @@ const fetch = require("node-fetch");
 
 // 模型注册表
 const MODEL_REGISTRY = {
-  "glm-4v-flash": {
+  "glm-4.6v-flash": {
     provider: "zhipu",
-    label: "智谱 GLM-4V-Flash",
+    label: "智谱 GLM-4.6V-Flash",
     endpoint: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
   },
-  "glm-4v-flashx": {
+  "glm-4.6v-flashx": {
     provider: "zhipu",
-    label: "智谱 GLM-4V-FlashX",
+    label: "智谱 GLM-4.6V-FlashX",
     endpoint: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
   },
   "qwen3.5-flash": {
@@ -42,7 +42,7 @@ function getModelInfo(modelId) {
  * 智谱和千问均兼容 OpenAI Chat Completions API 格式，
  * 因此使用统一的请求结构。
  *
- * @param {string} modelId - 模型 ID（如 "glm-4v-flash"）
+ * @param {string} modelId - 模型 ID（如 "glm-4.6v-flash"）
  * @param {Array} messages - OpenAI 格式的 messages 数组
  * @param {string} apiKey - 对应厂商的 API Key
  * @param {object} [options] - 可选参数（max_tokens 等）
