@@ -10,17 +10,63 @@
   <header class="header">
     <span class="header-title">食物记录</span>
     <div class="header-actions">
-      <div class="tier-switch" id="tierSwitch"></div>
+      <a href="records.html" class="header-link">历史</a>
       <a href="settings.html" class="settings-icon" aria-label="设置">&#9881;</a>
     </div>
   </header>
 
-  <main class="content" id="recordList"></main>
+  <main class="home-content">
+    <!-- 中华小当家卡通角色 -->
+    <div class="chef-character">
+      <div class="chef-hat">
+        <div class="chef-hat-top"></div>
+        <div class="chef-hat-band"></div>
+        <div class="chef-hat-brim"></div>
+      </div>
+      <div class="chef-face">
+        <div class="chef-eye chef-eye-left"></div>
+        <div class="chef-eye chef-eye-right"></div>
+        <div class="chef-blush chef-blush-left"></div>
+        <div class="chef-blush chef-blush-right"></div>
+        <div class="chef-mouth"></div>
+      </div>
+      <div class="chef-body">
+        <div class="chef-apron"></div>
+        <div class="chef-hand chef-hand-left"></div>
+        <div class="chef-hand chef-hand-right"></div>
+      </div>
+    </div>
 
-  <a href="add.html" class="fab" aria-label="记录新食物">+</a>
+    <!-- 对话气泡 -->
+    <div class="speech-bubble" id="speechBubble"></div>
+
+    <!-- 拍照按钮 -->
+    <button class="btn btn-primary home-camera-btn" id="cameraBtn">&#128247; 开始识别美食</button>
+
+    <!-- 隐藏的文件输入 -->
+    <input type="file" accept="image/*" capture="environment" id="cameraInput" style="display:none">
+    <input type="file" accept="image/*" id="albumInput" style="display:none">
+  </main>
+
+  <!-- 底部 Action Sheet -->
+  <div class="action-sheet-overlay" id="actionSheet">
+    <div class="action-sheet">
+      <button class="action-sheet-btn" id="takePhotoBtn">&#128247; 拍照</button>
+      <button class="action-sheet-btn" id="choosePhotoBtn">&#128444;&#65039; 从相册选择</button>
+      <button class="action-sheet-btn action-sheet-cancel" id="cancelBtn">取消</button>
+    </div>
+  </div>
+
+  <!-- 识别中遮罩 -->
+  <div class="home-loading-overlay" id="loadingOverlay">
+    <div class="home-loading-box">
+      <div class="ai-spinner home-spinner"></div>
+      <p>小当家正在识别中...</p>
+    </div>
+  </div>
 
   <script src="js/types.js"></script>
   <script src="js/storage.js"></script>
-  <script src="js/index.js"></script>
+  <script src="js/home.js"></script>
 </body>
 </html>

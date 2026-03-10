@@ -533,6 +533,376 @@ textarea:focus {
   font-size: 20px;
 }
 
+/* 首页头部链接 */
+.header-link {
+  font-size: 14px;
+  color: var(--primary);
+  font-weight: 500;
+}
+
+/* ========== 首页：中华小当家 ========== */
+
+.home-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 24px 40px;
+  min-height: calc(100dvh - 49px);
+}
+
+/* 卡通角色整体 */
+.chef-character {
+  position: relative;
+  width: 160px;
+  height: 220px;
+  margin-bottom: 8px;
+}
+
+/* 厨师帽 */
+.chef-hat {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.chef-hat-top {
+  width: 70px;
+  height: 50px;
+  background: #fff;
+  border-radius: 35px 35px 8px 8px;
+  border: 2px solid #e8ddd0;
+  margin: 0 auto;
+  position: relative;
+}
+
+.chef-hat-top::before,
+.chef-hat-top::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 2px solid #e8ddd0;
+  border-radius: 50%;
+}
+
+.chef-hat-top::before {
+  left: -6px;
+}
+
+.chef-hat-top::after {
+  right: -6px;
+}
+
+.chef-hat-band {
+  width: 80px;
+  height: 10px;
+  background: var(--primary);
+  border-radius: 2px;
+  margin: -2px auto 0;
+  position: relative;
+  z-index: 1;
+}
+
+.chef-hat-brim {
+  width: 86px;
+  height: 6px;
+  background: #fff;
+  border: 2px solid #e8ddd0;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  margin: 0 auto;
+}
+
+/* 脸部 */
+.chef-face {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 75px;
+  background: #ffe4c9;
+  border-radius: 40px 40px 35px 35px;
+  border: 2px solid #e8c9a8;
+}
+
+.chef-eye {
+  position: absolute;
+  width: 10px;
+  height: 12px;
+  background: #2d1810;
+  border-radius: 50%;
+  top: 24px;
+}
+
+.chef-eye-left {
+  left: 18px;
+}
+
+.chef-eye-right {
+  right: 18px;
+}
+
+.chef-eye::after {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #fff;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+}
+
+.chef-blush {
+  position: absolute;
+  width: 14px;
+  height: 8px;
+  background: #ffb5a0;
+  border-radius: 50%;
+  top: 40px;
+  opacity: 0.6;
+}
+
+.chef-blush-left {
+  left: 8px;
+}
+
+.chef-blush-right {
+  right: 8px;
+}
+
+.chef-mouth {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 10px;
+  border-bottom: 3px solid #c44d1e;
+  border-radius: 0 0 10px 10px;
+}
+
+/* 身体 */
+.chef-body {
+  position: absolute;
+  top: 132px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 80px;
+  background: #fff;
+  border-radius: 20px 20px 12px 12px;
+  border: 2px solid #e8ddd0;
+}
+
+.chef-apron {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 60px;
+  background: var(--primary);
+  border-radius: 4px 4px 12px 12px;
+  opacity: 0.9;
+}
+
+.chef-apron::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 8px;
+  background: var(--primary);
+  border-radius: 4px 4px 0 0;
+}
+
+/* 手 */
+.chef-hand {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: #ffe4c9;
+  border-radius: 50%;
+  border: 2px solid #e8c9a8;
+  top: 20px;
+}
+
+.chef-hand-left {
+  left: -14px;
+}
+
+.chef-hand-right {
+  right: -14px;
+  animation: wave 1.2s ease-in-out 0.5s 3;
+  transform-origin: bottom center;
+}
+
+@keyframes wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-20deg); }
+  75% { transform: rotate(20deg); }
+}
+
+/* 对话气泡 */
+.speech-bubble {
+  position: relative;
+  background: var(--card);
+  border-radius: 16px;
+  padding: 14px 18px;
+  margin-bottom: 32px;
+  box-shadow: var(--shadow);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+  max-width: 280px;
+  min-height: 52px;
+  text-align: center;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.speech-bubble::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid var(--card);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 拍照按钮 */
+.home-camera-btn {
+  font-size: 17px;
+  padding: 14px 40px;
+  border-radius: 28px;
+  box-shadow: 0 4px 16px rgba(232, 93, 38, 0.35);
+  width: auto;
+}
+
+.home-camera-btn:active {
+  transform: scale(0.96);
+}
+
+/* Action Sheet 底部弹出面板 */
+.action-sheet-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+
+.action-sheet-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.action-sheet {
+  background: var(--bg);
+  border-radius: 16px 16px 0 0;
+  padding: 8px 16px 24px;
+  width: 100%;
+  max-width: 480px;
+  transform: translateY(100%);
+  transition: transform 0.3s ease-out;
+}
+
+.action-sheet-overlay.visible .action-sheet {
+  transform: translateY(0);
+}
+
+.action-sheet-btn {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--card);
+  border-radius: var(--radius);
+  margin-top: 8px;
+  transition: background 0.15s;
+}
+
+.action-sheet-btn:active {
+  background: var(--border);
+}
+
+.action-sheet-cancel {
+  color: var(--muted);
+  margin-top: 12px;
+}
+
+/* 识别中全屏遮罩 */
+.home-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(250, 247, 242, 0.92);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.home-loading-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.home-loading-box {
+  text-align: center;
+  color: var(--primary);
+}
+
+.home-loading-box p {
+  margin-top: 16px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.home-spinner {
+  width: 36px;
+  height: 36px;
+  border-width: 3px;
+  margin: 0 auto;
+}
+
 @media (max-width: 480px) {
   body {
     max-width: 100%;
