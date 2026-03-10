@@ -88,8 +88,4 @@ AI 食物识别，根据图片识别菜品信息。
 
 ### LLM 服务层
 
-食物识别的大模型调用委托给通用 LLM 服务层 `backend/services/llm.js`，该服务层：
-
-- 维护模型注册表（模型 ID → 厂商、端点、标签）
-- 提供统一的 `chat(modelId, messages, apiKey, options)` 调用接口
-- 智谱和千问均兼容 OpenAI Chat Completions API 格式，使用统一的请求结构
+食物识别的大模型调用委托给通用 LLM 服务层 `backend/services/llm.js`，详见 [LLM 服务层文档](llm.md)。
