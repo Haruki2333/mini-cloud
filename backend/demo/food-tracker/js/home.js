@@ -55,6 +55,7 @@
     reader.onload = function (ev) {
       var img = new Image();
       img.onload = function () {
+        // 发给 API 的高质量图（800px，0.8 质量）
         var canvas = document.createElement("canvas");
         var maxSize = 800;
         var width = img.width;
@@ -72,11 +73,24 @@
 
         canvas.width = width;
         canvas.height = height;
-        var ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-        var base64 = canvas.toDataURL("image/jpeg", 0.8);
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        var apiBase64 = canvas.toDataURL("image/jpeg", 0.8);
 
-        recognizeFood(base64);
+        // 存入 localStorage 的缩略图（300px，0.5 质量，大幅减少占用）
+        var thumbCanvas = document.createElement("canvas");
+        var maxThumb = 300;
+        var tw = img.width;
+        var th = img.height;
+        if (tw > maxThumb || th > maxThumb) {
+          if (tw > th) { th = (th / tw) * maxThumb; tw = maxThumb; }
+          else { tw = (tw / th) * maxThumb; th = maxThumb; }
+        }
+        thumbCanvas.width = tw;
+        thumbCanvas.height = th;
+        thumbCanvas.getContext("2d").drawImage(img, 0, 0, tw, th);
+        var thumbBase64 = thumbCanvas.toDataURL("image/jpeg", 0.5);
+
+        recognizeFood(apiBase64, thumbBase64);
       };
       img.src = ev.target.result;
     };
@@ -84,7 +98,7 @@
   }
 
   // 调用 AI 识别 API
-  function recognizeFood(base64) {
+  function recognizeFood(base64, thumbBase64) {
     var settings = getSettings();
     var currentModel = settings.model || DEFAULT_MODEL;
     var config = MODEL_CONFIG[currentModel];
@@ -124,7 +138,7 @@
         // 组装记录并保存
         var record = {
           id: generateId(),
-          imageBase64: base64,
+          imageBase64: thumbBase64 || base64,
           name: data.name || "未知菜品",
           ingredients: data.ingredients || [],
           cookingMethod: data.cookingMethod || "",

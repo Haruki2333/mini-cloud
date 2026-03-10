@@ -1,5 +1,6 @@
 (function () {
   var imageBase64 = null;
+  var thumbBase64 = null;
   var aiDescription = "";
   var ingredientsInput = createTagInput("ingredientsContainer", "输入食材后按回车");
   var tagsInput = createTagInput("tagsContainer", "输入标签后按回车");
@@ -41,6 +42,20 @@
         ctx.drawImage(img, 0, 0, width, height);
         var base64 = canvas.toDataURL("image/jpeg", 0.8);
         imageBase64 = base64;
+
+        // 生成缩略图用于存储（300px，0.5 质量）
+        var thumbCanvas = document.createElement("canvas");
+        var maxThumb = 300;
+        var tw = img.width;
+        var th = img.height;
+        if (tw > maxThumb || th > maxThumb) {
+          if (tw > th) { th = (th / tw) * maxThumb; tw = maxThumb; }
+          else { tw = (tw / th) * maxThumb; th = maxThumb; }
+        }
+        thumbCanvas.width = tw;
+        thumbCanvas.height = th;
+        thumbCanvas.getContext("2d").drawImage(img, 0, 0, tw, th);
+        thumbBase64 = thumbCanvas.toDataURL("image/jpeg", 0.5);
 
         // 更新 UI
         uploadArea.classList.add("has-image");
@@ -146,7 +161,7 @@
 
     saveRecord({
       id: generateId(),
-      imageBase64: imageBase64,
+      imageBase64: thumbBase64 || imageBase64,
       name: name,
       ingredients: ingredientsInput.getTags(),
       cookingMethod: document.getElementById("cookingMethodInput").value.trim(),

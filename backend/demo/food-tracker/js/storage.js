@@ -14,7 +14,14 @@ function getRecords() {
 function saveRecord(record) {
   var records = getRecords();
   records.unshift(record);
-  localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+  try {
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+  } catch (e) {
+    if (e.name === "QuotaExceededError" || e.code === 22) {
+      throw new Error("本地存储空间不足，请到历史记录页删除一些旧记录后再试");
+    }
+    throw e;
+  }
 }
 
 function getRecordById(id) {
