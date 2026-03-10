@@ -45,7 +45,7 @@
         // 更新 UI
         uploadArea.classList.add("has-image");
         uploadArea.innerHTML =
-          '<input type="file" accept="image/*" capture="environment" id="fileInput" style="display:none">' +
+          '<input type="file" accept="image/*" id="fileInput" style="display:none">' +
           '<img src="' + escapeHtml(base64) + '" alt="已选择的食物照片">';
         // 重新绑定 fileInput
         var newFileInput = document.getElementById("fileInput");
