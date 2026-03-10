@@ -64,7 +64,17 @@ router.post("/recognize", async (req, res) => {
     ];
 
     const result = await chat(effectiveModel, messages, apiKey);
-    const parsed = parseAiResponse(result.content);
+
+    let parsed;
+    try {
+      parsed = parseAiResponse(result.content);
+    } catch (parseErr) {
+      console.error(`AI 返回内容解析失败 - 模型: ${effectiveModel}, 原始内容:`, result.content);
+      throw parseErr;
+    }
+
+    const usageStr = result.usage ? `, tokens: ${result.usage.total_tokens}` : "";
+    console.log(`食物识别完成 - 模型: ${info.label}, 菜名: ${parsed.name || "未知"}${usageStr}`);
 
     res.json({
       name: parsed.name || "未知菜品",
@@ -75,7 +85,7 @@ router.post("/recognize", async (req, res) => {
       model: effectiveModel,
     });
   } catch (err) {
-    console.error("食物识别错误:", err);
+    console.error(`食物识别失败 - 模型: ${effectiveModel}, 错误: ${err.message}`);
     const message = err instanceof Error ? err.message : "识别失败";
     res.status(500).json({ error: message });
   }

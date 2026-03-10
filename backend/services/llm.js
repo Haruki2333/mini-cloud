@@ -70,9 +70,14 @@ async function chat(modelId, messages, apiKey, options = {}) {
   });
 
   if (!res.ok) {
-    const err = await res.text();
-    console.error(`${model.label} API 错误:`, res.status, err);
-    throw new Error(`${model.label} 调用失败 (${res.status})`);
+    const errText = await res.text();
+    console.error(`${model.label} API 错误 (${res.status}):`, errText);
+    let errDetail = errText;
+    try {
+      const errJson = JSON.parse(errText);
+      errDetail = errJson.error?.message || errJson.message || errText;
+    } catch (_) {}
+    throw new Error(`${model.label} 调用失败 (${res.status}): ${errDetail}`);
   }
 
   const data = await res.json();
