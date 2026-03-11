@@ -10,22 +10,26 @@
   <header class="header">
     <button class="header-back" onclick="history.back()">&#8592; 返回</button>
     <span class="header-title">新增记录</span>
-    <div style="width:48px"></div>
+    <div class="header-spacer"></div>
   </header>
 
   <main class="content">
     <div class="form-group">
+      <!-- fileInput 置于 uploadArea 外部，避免 innerHTML 重置时丢失事件绑定 -->
+      <input type="file" accept="image/*" capture="environment" id="fileInput" style="display:none">
       <div class="upload-area" id="uploadArea">
-        <input type="file" accept="image/*" capture="environment" id="fileInput" style="display:none">
-        <span class="upload-icon">&#128247;</span>
-        <span class="upload-text">点击拍照或选择图片</span>
+        <div class="upload-placeholder" id="uploadPlaceholder">
+          <span class="upload-icon">&#128247;</span>
+          <span class="upload-text">点击拍照或选择图片</span>
+        </div>
+        <img class="upload-preview" id="uploadPreview" alt="已选择的食物照片" style="display:none">
       </div>
     </div>
 
     <div id="aiStatus" style="display:none"></div>
 
     <div class="form-group">
-      <label class="form-label">菜名</label>
+      <label class="form-label" for="nameInput">菜名</label>
       <input id="nameInput" placeholder="输入菜名">
     </div>
 
@@ -35,7 +39,7 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label">烹饪方式</label>
+      <label class="form-label" for="cookingMethodInput">烹饪方式</label>
       <input id="cookingMethodInput" placeholder="如：红烧、清蒸、爆炒">
     </div>
 

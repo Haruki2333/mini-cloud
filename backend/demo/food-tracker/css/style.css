@@ -533,6 +533,34 @@ textarea:focus {
   font-size: 20px;
 }
 
+/* 顶部导航栏占位（用于保持居中对齐） */
+.header-spacer {
+  width: 48px;
+}
+
+/* 设置页面说明文字 */
+.settings-note {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+/* 上传区域占位内容（未选图时显示） */
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+/* 上传区域预览图（选图后显示） */
+.upload-preview {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  display: block;
+}
+
 @media (max-width: 480px) {
   body {
     max-width: 100%;
