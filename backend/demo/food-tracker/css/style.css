@@ -1,12 +1,16 @@
 /**
  * food-tracker demo 完整样式
- *
+ * 主题：光明通讯终端
  */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
 
 :root {
   /* 字体 */
-  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
+  --font-display: 'Space Mono', monospace;
+  --font-body: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI',
     'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-family: var(--font-body);
   --font-size-xs: 11px;
   --font-size-sm: 13px;
   --font-size-base: 15px;
@@ -52,22 +56,26 @@
 
 :root {
   /* 背景 */
-  --color-bg: #faf7f2;
-  --color-bg-secondary: #f5efe6;
+  --color-bg: #f8f7f4;
+  --color-bg-secondary: #f0efec;
   --color-card: #ffffff;
 
   /* 文本 */
-  --color-text: #2d1810;
-  --color-text-secondary: #5a4234;
-  --color-text-muted: #8b7355;
+  --color-text: #2a2a2a;
+  --color-text-secondary: #666666;
+  --color-text-muted: #999999;
 
   /* 边框 */
-  --color-border: #e8ddd0;
+  --color-border: #eeeeee;
 
-  /* 主色（橙色） */
-  --color-primary: #e85d26;
-  --color-primary-dark: #c44d1e;
-  --color-primary-light: #fff0eb;
+  /* 主色（金黄） */
+  --color-primary: #e5a00d;
+  --color-primary-dark: #c88a0a;
+  --color-primary-light: #fdf6e3;
+
+  /* 氛围色（浅粉） */
+  --color-glow: #e8a0b0;
+  --color-glow-light: #fff0f0;
 
   /* 语义色 */
   --color-success: #16a34a;
@@ -78,7 +86,7 @@
   --color-danger-light: #fef2f2;
 
   /* 主色按钮阴影 */
-  --shadow-primary: 0 4px 12px rgba(232, 93, 38, 0.4);
+  --shadow-primary: 0 4px 12px rgba(229, 160, 13, 0.35);
 }
 
 * {
@@ -89,15 +97,17 @@
 }
 
 body {
-  font-family: var(--font-family);
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   line-height: var(--line-height-base);
   color: var(--color-text);
   background: var(--color-bg);
+  background-image: radial-gradient(ellipse at 50% 0%, rgba(232, 160, 176, 0.08) 0%, transparent 60%);
   max-width: 480px;
   margin: 0 auto;
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+  animation: page-enter 0.8s ease-out;
 }
 
 a {
@@ -202,7 +212,7 @@ input[type="password"]:focus,
 input:not([type]):focus,
 textarea:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(232, 93, 38, 0.12);
+  box-shadow: 0 0 0 3px rgba(229, 160, 13, 0.15);
 }
 
 input::placeholder,
@@ -218,7 +228,7 @@ textarea::placeholder {
   font-size: var(--font-size-sm);
   border-radius: var(--radius-full);
   background: var(--color-primary-light);
-  color: var(--color-primary);
+  color: var(--color-primary-dark);
   font-weight: var(--font-weight-medium);
 }
 
@@ -248,13 +258,14 @@ textarea::placeholder {
   justify-content: space-between;
   height: 52px;
   padding: 0 var(--spacing-base);
-  background: rgba(250, 247, 242, 0.85);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(232, 221, 208, 0.6);
+  border-bottom: 1px solid rgba(238, 238, 238, 0.6);
 }
 
 .header-title {
+  font-family: var(--font-display);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   color: var(--color-text);
@@ -401,17 +412,18 @@ textarea::placeholder {
    五、食物记录 — 页面组件
    ============================================================ */
 
-/* ----- 食物卡片（杂志卡片风格） ----- */
+/* ----- 食物卡片 ----- */
 
 .food-card {
   position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(45, 24, 16, 0.10), 0 1px 3px rgba(45, 24, 16, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
   margin-bottom: var(--spacing-base);
   cursor: pointer;
   transition: transform var(--duration-fast), box-shadow var(--duration-fast);
   background: var(--color-card);
+  border: 1px solid var(--color-border);
 }
 
 .food-card:active {
@@ -439,7 +451,7 @@ textarea::placeholder {
   left: 0;
   right: 0;
   height: 60px;
-  background: linear-gradient(to top, rgba(45, 24, 16, 0.45), transparent);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.3), transparent);
   pointer-events: none;
 }
 
@@ -587,7 +599,7 @@ textarea::placeholder {
 
 .tag-input-container:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(232, 93, 38, 0.12);
+  box-shadow: 0 0 0 3px rgba(229, 160, 13, 0.15);
 }
 
 .tag-removable {
@@ -598,7 +610,7 @@ textarea::placeholder {
   border-radius: var(--radius-full);
   font-size: var(--font-size-sm);
   background: var(--color-primary-light);
-  color: var(--color-primary);
+  color: var(--color-primary-dark);
   font-weight: var(--font-weight-medium);
 }
 
@@ -732,12 +744,12 @@ textarea::placeholder {
   margin-bottom: var(--spacing-sm);
 }
 
-/* AI 点评：带彩色竖线的卡片 */
+/* AI 点评：浅粉色背景 + 金黄色左边线 */
 .detail-description {
   font-size: var(--font-size-base);
   line-height: var(--line-height-relaxed);
   color: var(--color-text-secondary);
-  background: var(--color-primary-light);
+  background: var(--color-glow-light);
   padding: var(--spacing-md) var(--spacing-base);
   border-radius: var(--radius-base);
   border-left: 3px solid var(--color-primary);
@@ -786,244 +798,205 @@ textarea::placeholder {
 }
 
 /* ============================================================
-   八、首页 — 中华小当家
+   八、首页 — 光明通讯终端
    ============================================================ */
 
 .home-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--spacing-xl) var(--spacing-lg) 60px;
+  padding: var(--spacing-lg) var(--spacing-base) 60px;
   min-height: calc(100dvh - 52px);
 }
 
-/* ----- 卡通角色整体 ----- */
+/* ----- 信号状态指示器 ----- */
 
-.chef-character {
+.signal-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
+}
+
+.signal-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+
+.signal-bar {
+  width: 3px;
+  background: var(--color-primary);
+  border-radius: 1px;
+  animation: signal-pulse 2s ease-in-out infinite;
+}
+
+.signal-bar:nth-child(1) { height: 4px; animation-delay: 0s; }
+.signal-bar:nth-child(2) { height: 8px; animation-delay: 0.3s; }
+.signal-bar:nth-child(3) { height: 12px; animation-delay: 0.6s; }
+
+.signal-status {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.signal-freq {
+  color: var(--color-text-muted);
+}
+
+/* ----- 终端对话框 ----- */
+
+.terminal-chat {
   position: relative;
-  width: 160px;
-  height: 220px;
-  margin-bottom: var(--spacing-base);
-  flex-shrink: 0;
-}
-
-/* 厨师帽 */
-.chef-hat {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.chef-hat-top {
-  width: 70px;
-  height: 50px;
-  background: #ffffff;
-  border-radius: 35px 35px 8px 8px;
-  border: 2px solid #e8ddd0;
-  margin: 0 auto;
-  position: relative;
-}
-
-.chef-hat-top::before,
-.chef-hat-top::after {
-  content: '';
-  position: absolute;
-  top: 10px;
-  width: 12px;
-  height: 12px;
-  background: #ffffff;
-  border: 2px solid #e8ddd0;
-  border-radius: 50%;
-}
-
-.chef-hat-top::before { left: -6px; }
-.chef-hat-top::after  { right: -6px; }
-
-.chef-hat-band {
-  width: 80px;
-  height: 10px;
-  background: #e85d26; /* 硬编码兜底，不依赖 CSS 变量 */
-  border-radius: 2px;
-  margin: -2px auto 0;
-  position: relative;
-  z-index: 1;
-}
-
-.chef-hat-brim {
-  width: 86px;
-  height: 6px;
-  background: #ffffff;
-  border: 2px solid #e8ddd0;
-  border-top: none;
-  border-radius: 0 0 6px 6px;
-  margin: 0 auto;
-}
-
-/* 脸部 */
-.chef-face {
-  position: absolute;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 75px;
-  background: #ffe4c9;
-  border-radius: 40px 40px 35px 35px;
-  border: 2px solid #e8c9a8;
-}
-
-.chef-eye {
-  position: absolute;
-  width: 10px;
-  height: 12px;
-  background: #2d1810;
-  border-radius: 50%;
-  top: 24px;
-}
-
-.chef-eye-left  { left: 18px; }
-.chef-eye-right { right: 18px; }
-
-.chef-eye::after {
-  content: '';
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: #fff;
-  border-radius: 50%;
-  top: 2px;
-  left: 2px;
-}
-
-.chef-blush {
-  position: absolute;
-  width: 14px;
-  height: 8px;
-  background: #ffb5a0;
-  border-radius: 50%;
-  top: 40px;
-  opacity: 0.6;
-}
-
-.chef-blush-left  { left: 8px; }
-.chef-blush-right { right: 8px; }
-
-.chef-mouth {
-  position: absolute;
-  bottom: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 10px;
-  border-bottom: 3px solid #c44d1e; /* 硬编码 primary-dark */
-  border-radius: 0 0 10px 10px;
-}
-
-/* 身体 */
-.chef-body {
-  position: absolute;
-  top: 132px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90px;
-  height: 80px;
-  background: #ffffff;
-  border-radius: 20px 20px 12px 12px;
-  border: 2px solid #e8ddd0;
-}
-
-.chef-apron {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 50px;
-  height: 60px;
-  background: #e85d26; /* 硬编码 primary */
-  border-radius: 4px 4px 12px 12px;
-  opacity: 0.9;
-}
-
-.chef-apron::before {
-  content: '';
-  position: absolute;
-  top: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 8px;
-  background: #e85d26;
-  border-radius: 4px 4px 0 0;
-}
-
-/* 手 */
-.chef-hand {
-  position: absolute;
-  width: 24px;
-  height: 24px;
-  background: #ffe4c9;
-  border-radius: 50%;
-  border: 2px solid #e8c9a8;
-  top: 20px;
-}
-
-.chef-hand-left  { left: -14px; }
-.chef-hand-right {
-  right: -14px;
-  animation: wave 1.2s ease-in-out 0.5s 3;
-  transform-origin: bottom center;
-}
-
-@keyframes wave {
-  0%, 100% { transform: rotate(0deg); }
-  25%       { transform: rotate(-20deg); }
-  75%       { transform: rotate(20deg); }
-}
-
-/* ----- 对话气泡 ----- */
-
-.speech-bubble {
-  position: relative;
+  width: 100%;
   background: var(--color-card);
   border-radius: var(--radius-lg);
-  padding: 14px 20px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 0 30px rgba(232, 160, 176, 0.1), var(--shadow-base);
+  overflow: hidden;
   margin-bottom: var(--spacing-xl);
-  box-shadow: 0 4px 20px rgba(45, 24, 16, 0.1);
+}
+
+/* 柔和光晕叠加层 */
+.glow-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(ellipse at 50% 0%, rgba(232, 160, 176, 0.06) 0%, transparent 70%);
+  overflow: hidden;
+}
+
+/* 缓慢移动的粉色光带 */
+.glow-overlay::after {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(232, 160, 176, 0.03) 48%,
+    rgba(232, 160, 176, 0.06) 50%,
+    rgba(232, 160, 176, 0.03) 52%,
+    transparent 100%
+  );
+  animation: glow-move 8s ease-in-out infinite;
+}
+
+/* 终端头部 */
+.terminal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-base);
+  border-bottom: 1px solid var(--color-border);
+  background: rgba(248, 247, 244, 0.5);
+}
+
+.terminal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-glow);
+  box-shadow: 0 0 4px rgba(232, 160, 176, 0.4);
+}
+
+.terminal-label {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.terminal-freq {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+/* 终端消息区域 */
+.terminal-messages {
+  position: relative;
+  z-index: 2;
+  padding: var(--spacing-base);
+  min-height: 180px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* 系统消息 */
+.terminal-msg {
+  margin-bottom: var(--spacing-md);
+  animation: msg-appear 0.4s ease-out;
+}
+
+.terminal-msg--system {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+  padding: var(--spacing-xs) 0;
+}
+
+.terminal-msg--system .msg-prefix {
+  color: var(--color-glow);
+}
+
+/* AI 消息 */
+.terminal-msg--ai {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-left: 2px solid var(--color-primary);
+  color: var(--color-text);
   font-size: var(--font-size-base);
   line-height: var(--line-height-relaxed);
-  color: var(--color-text);
-  max-width: 290px;
-  min-height: 54px;
-  text-align: center;
-  animation: fadeInUp var(--duration-slow) var(--easing-out);
-  border: 1px solid var(--color-border);
 }
 
-.speech-bubble::before {
-  content: '';
-  position: absolute;
-  top: -9px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
-  border-bottom: 9px solid var(--color-border);
+/* 打字光标 */
+.typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--color-primary);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: cursor-blink 0.8s step-end infinite;
 }
 
-.speech-bubble::after {
-  content: '';
-  position: absolute;
-  top: -7px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-bottom: 8px solid #ffffff; /* 与卡片背景色一致 */
+/* 装饰性输入行 */
+.terminal-input-line {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-base);
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  background: rgba(248, 247, 244, 0.5);
+}
+
+.terminal-input-line .prompt-char {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.terminal-input-line .blink-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  animation: dot-blink 1.5s ease-in-out infinite;
 }
 
 /* ----- 首页按钮组 ----- */
@@ -1117,13 +1090,13 @@ textarea::placeholder {
 }
 
 /* ============================================================
-   十、首页识别遮罩
+   十、首页识别遮罩（信号环 + 进度条）
    ============================================================ */
 
 .home-loading-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(250, 247, 242, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   z-index: 300;
   display: flex;
   align-items: center;
@@ -1140,28 +1113,92 @@ textarea::placeholder {
 
 .home-loading-box {
   text-align: center;
-  color: var(--color-primary);
+  width: 240px;
 }
 
-.home-loading-box p {
-  margin-top: var(--spacing-base);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
-}
-
-.home-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(232, 93, 38, 0.2);
-  border-top-color: #e85d26;
+/* 信号环 */
+.signal-ring {
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  margin: 0 auto;
-  animation: spin 0.9s linear infinite;
+  border: 3px solid rgba(232, 160, 176, 0.2);
+  border-top-color: var(--color-glow);
+  border-right-color: var(--color-primary);
+  margin: 0 auto var(--spacing-lg);
+  animation: spin 1.2s linear infinite;
+  box-shadow: 0 0 20px rgba(232, 160, 176, 0.15);
+}
+
+/* 进度条 */
+.loading-progress {
+  width: 100%;
+  height: 3px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--spacing-base);
+}
+
+.loading-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--color-glow), var(--color-primary));
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease-out;
+}
+
+.home-loading-box .loading-text {
+  font-family: var(--font-display);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+.home-loading-box .loading-text-main {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  margin-top: var(--spacing-sm);
+  font-family: var(--font-body);
 }
 
 /* ============================================================
-   十一、响应式兜底
+   十一、动画关键帧
+   ============================================================ */
+
+@keyframes page-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes signal-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+@keyframes glow-move {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(30%); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes dot-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.2; }
+}
+
+@keyframes msg-appear {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+/* ============================================================
+   十二、响应式兜底
    ============================================================ */
 
 @media (max-width: 480px) {

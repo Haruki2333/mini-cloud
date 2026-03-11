@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>食物记录</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -16,29 +19,32 @@
   </header>
 
   <main class="home-content">
-    <!-- 中华小当家卡通角色 -->
-    <div class="chef-character">
-      <div class="chef-hat">
-        <div class="chef-hat-top"></div>
-        <div class="chef-hat-band"></div>
-        <div class="chef-hat-brim"></div>
+    <!-- 信号状态指示器 -->
+    <div class="signal-indicator">
+      <div class="signal-bars">
+        <span class="signal-bar"></span>
+        <span class="signal-bar"></span>
+        <span class="signal-bar"></span>
       </div>
-      <div class="chef-face">
-        <div class="chef-eye chef-eye-left"></div>
-        <div class="chef-eye chef-eye-right"></div>
-        <div class="chef-blush chef-blush-left"></div>
-        <div class="chef-blush chef-blush-right"></div>
-        <div class="chef-mouth"></div>
-      </div>
-      <div class="chef-body">
-        <div class="chef-apron"></div>
-        <div class="chef-hand chef-hand-left"></div>
-        <div class="chef-hand chef-hand-right"></div>
-      </div>
+      <span class="signal-status">CONNECTED</span>
+      <span class="signal-freq" id="signalFreq">47.3 kHz</span>
     </div>
 
-    <!-- 对话气泡 -->
-    <div class="speech-bubble" id="speechBubble"></div>
+    <!-- 终端对话框 -->
+    <div class="terminal-chat">
+      <div class="glow-overlay"></div>
+      <div class="terminal-header">
+        <span class="terminal-dot"></span>
+        <span class="terminal-label">LUMINA TERMINAL</span>
+        <span class="terminal-freq" id="terminalFreq">CH-07</span>
+      </div>
+      <div class="terminal-messages" id="terminalMessages"></div>
+      <div class="terminal-input-line">
+        <span class="prompt-char">&gt;</span>
+        <span>awaiting input</span>
+        <span class="blink-dot"></span>
+      </div>
+    </div>
 
     <!-- 操作按钮 -->
     <div class="home-btn-group">
@@ -54,8 +60,12 @@
   <!-- 识别中遮罩 -->
   <div class="home-loading-overlay" id="loadingOverlay">
     <div class="home-loading-box">
-      <div class="ai-spinner home-spinner"></div>
-      <p>小当家正在识别中...</p>
+      <div class="signal-ring"></div>
+      <div class="loading-progress">
+        <div class="loading-progress-bar" id="loadingProgressBar"></div>
+      </div>
+      <p class="loading-text" id="loadingText">INITIALIZING SCAN...</p>
+      <p class="loading-text-main" id="loadingTextMain">正在解析食物信息</p>
     </div>
   </div>
 
