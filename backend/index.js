@@ -22,6 +22,9 @@ app.get("/api/wx_openid", async (req, res) => {
   }
 });
 
+// 静态文件服务 - 设计令牌（供 demo 页面引用）
+app.use("/design-tokens", express.static(path.join(__dirname, "../packages/design-tokens")));
+
 // 静态文件服务 - food-tracker demo
 app.use("/", express.static(path.join(__dirname, "demo/food-tracker")));
 
