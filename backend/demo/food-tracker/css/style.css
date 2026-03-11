@@ -1,16 +1,117 @@
 /**
- * food-tracker 专属样式
+ * food-tracker demo 完整样式
  *
- * 基础令牌由 /design-tokens/base.css 提供（字体、间距、圆角、阴影、动画）
- * 主题色由 /design-tokens/themes/food-tracker.css 提供（颜色变量）
- * 本文件仅包含 food-tracker 特有的组件和布局样式。
+ * 本文件自包含所有所需的 CSS 变量和组件样式，无需外部依赖。
+ * 设计令牌变量来源于 packages/design-tokens（内联于此以兼容 Docker 部署）。
  */
 
-/* ===== 基础覆盖 ===== */
+/* ============================================================
+   一、设计令牌 — 基础令牌（来自 base.css）
+   ============================================================ */
 
-/* 移动端更精准的视口高度（base.css 用 100vh，这里覆盖为 100dvh） */
+:root {
+  /* 字体 */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-base: 15px;
+  --font-size-lg: 17px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --line-height-tight: 1.25;
+  --line-height-base: 1.5;
+  --line-height-relaxed: 1.75;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 600;
+
+  /* 间距（4px 基数） */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-base: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-base: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
+  --shadow-base: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+
+  /* 动画 */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-in: cubic-bezier(0.4, 0, 1, 1);
+  --easing-out: cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* ============================================================
+   二、设计令牌 — 食物记录主题色（来自 themes/food-tracker.css）
+   ============================================================ */
+
+:root {
+  /* 背景 */
+  --color-bg: #faf7f2;
+  --color-bg-secondary: #f5efe6;
+  --color-card: #ffffff;
+
+  /* 文本 */
+  --color-text: #2d1810;
+  --color-text-secondary: #5a4234;
+  --color-text-muted: #8b7355;
+
+  /* 边框 */
+  --color-border: #e8ddd0;
+
+  /* 主色（橙色） */
+  --color-primary: #e85d26;
+  --color-primary-dark: #c44d1e;
+  --color-primary-light: #fff0eb;
+
+  /* 语义色 */
+  --color-success: #16a34a;
+  --color-success-light: #f0fdf4;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fffbeb;
+  --color-danger: #dc2626;
+  --color-danger-light: #fef2f2;
+
+  /* 主色按钮阴影 */
+  --shadow-primary: 0 4px 12px rgba(232, 93, 38, 0.4);
+}
+
+/* ============================================================
+   三、基础重置（来自 base.css）
+   ============================================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+  background: var(--color-bg);
+  max-width: 480px;
+  margin: 0 auto;
   min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -26,7 +127,156 @@ button {
   font-size: inherit;
 }
 
-/* ===== Header 补充 ===== */
+input,
+textarea {
+  font-family: inherit;
+  font-size: var(--font-size-base);
+}
+
+/* ============================================================
+   四、基础组件（来自 base.css，适配食物主题）
+   ============================================================ */
+
+/* ----- 按钮 ----- */
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 13px 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  border: none;
+  border-radius: var(--radius-base);
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  transition: background var(--duration-fast), transform var(--duration-fast),
+    box-shadow var(--duration-fast);
+  -webkit-appearance: none;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn:disabled:active {
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: var(--shadow-primary);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-dark);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--color-primary-light);
+}
+
+.btn-danger {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  border: 1px solid rgba(220, 38, 38, 0.15);
+}
+
+.btn-danger:hover {
+  background: #fee2e2;
+}
+
+/* ----- 输入框 ----- */
+
+input[type="text"],
+input[type="password"],
+input:not([type]),
+textarea {
+  width: 100%;
+  padding: 11px 14px;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  background: var(--color-card);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-base);
+  outline: none;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input:not([type]):focus,
+textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(232, 93, 38, 0.12);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* ----- 标签 ----- */
+
+.tag {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.tag-success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.tag-warning {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.tag-danger {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+/* ----- Header ----- */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  padding: 0 var(--spacing-base);
+  background: rgba(250, 247, 242, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(232, 221, 208, 0.6);
+}
+
+.header-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
 
 .header-back {
   font-size: var(--font-size-base);
@@ -34,6 +284,7 @@ button {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
+  font-weight: var(--font-weight-medium);
 }
 
 .header-actions {
@@ -42,59 +293,172 @@ button {
   align-items: center;
 }
 
-.settings-icon {
-  color: var(--color-text-muted);
-  font-size: 20px;
-}
-
 .header-link {
   font-size: var(--font-size-sm);
   color: var(--color-primary);
   font-weight: var(--font-weight-medium);
 }
 
-/* ===== FAB 位置（宽屏时对齐容器右边缘） ===== */
+.settings-icon {
+  font-size: 20px;
+  color: var(--color-text-muted);
+}
+
+/* ----- FAB ----- */
 
 .fab {
+  position: fixed;
   right: calc(50% - 220px);
-  bottom: 24px;
+  bottom: 28px;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-primary);
+  cursor: pointer;
+  transition: transform var(--duration-fast), background var(--duration-fast);
+  text-decoration: none;
+  line-height: 1;
+}
+
+.fab:active {
+  transform: scale(0.92);
+  background: var(--color-primary-dark);
 }
 
 @media (max-width: 480px) {
-  .fab {
-    right: 24px;
-  }
+  .fab { right: 24px; }
 }
 
-/* ===== 内容区（覆盖 base.css 以补充底部留白给 FAB） ===== */
+/* ----- Spinner ----- */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  display: inline-block;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner-sm { width: 16px; height: 16px; }
+.spinner-lg { width: 32px; height: 32px; }
+
+/* ----- 加载遮罩 ----- */
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.loading-overlay-content {
+  background: var(--color-card);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+/* ----- 空状态 ----- */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2xl) var(--spacing-base);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: var(--spacing-base);
+}
+
+.empty-state-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* ----- 内容区 ----- */
 
 .content {
   padding: var(--spacing-base);
   padding-bottom: 100px;
 }
 
-/* ===== 食物卡片 ===== */
+/* ----- 动画工具类 ----- */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp var(--duration-slow) var(--easing-out);
+}
+
+/* ============================================================
+   五、食物记录 — 页面组件
+   ============================================================ */
+
+/* ----- 食物卡片（杂志卡片风格） ----- */
 
 .food-card {
-  background: var(--color-card);
+  position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-base);
+  box-shadow: 0 2px 12px rgba(45, 24, 16, 0.10), 0 1px 3px rgba(45, 24, 16, 0.06);
   margin-bottom: var(--spacing-base);
-  transition: transform var(--duration-fast);
   cursor: pointer;
+  transition: transform var(--duration-fast), box-shadow var(--duration-fast);
+  background: var(--color-card);
 }
 
 .food-card:active {
   transform: scale(0.98);
+  box-shadow: var(--shadow-sm);
 }
 
 .food-card-image {
   width: 100%;
-  height: 200px;
+  height: 180px;
   object-fit: cover;
   display: block;
   background: var(--color-border);
+}
+
+/* 图片底部渐变遮罩 */
+.food-card-image-wrap {
+  position: relative;
+}
+
+.food-card-image-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(to top, rgba(45, 24, 16, 0.45), transparent);
+  pointer-events: none;
 }
 
 .food-card-body {
@@ -104,7 +468,8 @@ button {
 .food-card-name {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
-  margin-bottom: 6px;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-xs);
 }
 
 .food-card-tags {
@@ -114,7 +479,6 @@ button {
   margin-bottom: var(--spacing-sm);
 }
 
-/* 食材标签（用成功色区分） */
 .tag.ingredient {
   background: var(--color-success-light);
   color: var(--color-success);
@@ -128,30 +492,31 @@ button {
   color: var(--color-text-muted);
 }
 
-/* ===== 模型标识 ===== */
+/* ----- 模型标识角标 ----- */
 
 .tier-badge {
+  display: inline-block;
   font-size: var(--font-size-xs);
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-full);
   color: #fff;
   font-weight: var(--font-weight-medium);
-  background: #6b7280;
+  background: #8b7355;
 }
 
-/* ===== 模型切换器（设置页） ===== */
+/* ----- 模型切换器 ----- */
 
 .tier-switch {
   display: flex;
-  background: var(--color-bg);
+  background: var(--color-bg-secondary);
   border-radius: var(--radius-xl);
   padding: 3px;
   gap: 2px;
 }
 
 .tier-btn {
-  padding: 4px 12px;
-  border-radius: 18px;
+  padding: 6px 14px;
+  border-radius: var(--radius-xl);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-muted);
@@ -160,11 +525,12 @@ button {
 }
 
 .tier-btn.active {
+  background: var(--color-primary);
   color: #fff;
-  font-weight: var(--font-weight-bold);
+  box-shadow: var(--shadow-sm);
 }
 
-/* ===== 图片上传区 ===== */
+/* ----- 图片上传区 ----- */
 
 .upload-area {
   border: 2px dashed var(--color-border);
@@ -176,6 +542,7 @@ button {
   transition: border-color var(--duration-fast), background var(--duration-fast);
   position: relative;
   overflow: hidden;
+  background: var(--color-card);
 }
 
 .upload-area:hover {
@@ -191,7 +558,7 @@ button {
 
 .upload-area.has-image img {
   width: 100%;
-  max-height: 300px;
+  max-height: 280px;
   object-fit: cover;
   display: block;
 }
@@ -206,7 +573,7 @@ button {
   font-size: var(--font-size-sm);
 }
 
-/* ===== 表单 ===== */
+/* ----- 表单 ----- */
 
 .form-group {
   margin-bottom: var(--spacing-base);
@@ -220,41 +587,44 @@ button {
   margin-bottom: 6px;
 }
 
-/* ===== 标签输入组件 ===== */
+/* ----- 标签输入组件 ----- */
 
 .tag-input-container {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   padding: var(--spacing-sm);
-  border: 1px solid var(--color-border);
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-base);
   background: var(--color-card);
-  min-height: 42px;
+  min-height: 44px;
   align-items: center;
   cursor: text;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
 }
 
 .tag-input-container:focus-within {
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(232, 93, 38, 0.12);
 }
 
 .tag-removable {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
-  padding: 2px 8px;
-  border-radius: var(--radius-xl);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
   font-size: var(--font-size-sm);
   background: var(--color-primary-light);
   color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
 }
 
 .tag-remove-btn {
   font-size: 14px;
   line-height: 1;
   color: var(--color-primary);
-  opacity: 0.6;
+  opacity: 0.5;
   padding: 0 2px;
 }
 
@@ -270,9 +640,11 @@ button {
   min-width: 80px;
   flex: 1;
   background: transparent;
+  color: var(--color-text);
+  box-shadow: none;
 }
 
-/* ===== AI 识别状态条 ===== */
+/* ----- AI 识别状态条 ----- */
 
 .ai-status {
   display: flex;
@@ -282,27 +654,30 @@ button {
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
   margin-bottom: var(--spacing-base);
+  border: 1px solid transparent;
 }
 
 .ai-status.loading {
   background: #eff6ff;
   color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.15);
 }
 
 .ai-status.success {
   background: var(--color-success-light);
   color: var(--color-success);
+  border-color: rgba(22, 163, 74, 0.15);
 }
 
 .ai-status.error {
   background: var(--color-danger-light);
   color: var(--color-danger);
+  border-color: rgba(220, 38, 38, 0.15);
 }
 
-/* AI 状态内的小 spinner（复用 base.css @keyframes spin） */
 .ai-spinner {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border: 2px solid currentColor;
   border-top-color: transparent;
   border-radius: 50%;
@@ -310,70 +685,105 @@ button {
   animation: spin 0.8s linear infinite;
 }
 
-/* ===== 详情页 ===== */
+/* ----- 空状态子元素 ----- */
+
+.empty-icon {
+  font-size: 52px;
+  margin-bottom: var(--spacing-md);
+  display: block;
+}
+
+.empty-text {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.empty-hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* ============================================================
+   六、详情页
+   ============================================================ */
 
 .detail-image {
   width: 100%;
-  max-height: 350px;
+  max-height: 320px;
   object-fit: cover;
   display: block;
 }
 
 .detail-content {
-  padding: 20px var(--spacing-base);
+  padding: var(--spacing-lg) var(--spacing-base) var(--spacing-base);
 }
 
 .detail-name {
   font-size: 22px;
   font-weight: 700;
+  color: var(--color-text);
   margin-bottom: var(--spacing-sm);
+  line-height: var(--line-height-tight);
 }
 
 .detail-time {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-  margin-bottom: var(--spacing-base);
+  margin-bottom: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .detail-section {
-  margin-bottom: var(--spacing-base);
+  margin-bottom: var(--spacing-lg);
 }
 
 .detail-section-title {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   margin-bottom: var(--spacing-sm);
 }
 
+/* AI 点评：带彩色竖线的卡片 */
 .detail-description {
   font-size: var(--font-size-base);
   line-height: var(--line-height-relaxed);
   color: var(--color-text-secondary);
-  background: var(--color-card);
+  background: var(--color-primary-light);
   padding: var(--spacing-md) var(--spacing-base);
   border-radius: var(--radius-base);
   border-left: 3px solid var(--color-primary);
+  position: relative;
 }
 
-/* ===== 设置页面 ===== */
+/* ============================================================
+   七、设置页面
+   ============================================================ */
 
 .settings-section {
   background: var(--color-card);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-base);
+  padding: var(--spacing-lg);
   margin-bottom: var(--spacing-base);
-  box-shadow: var(--shadow-base);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
 }
 
 .settings-section-title {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-bold);
+  color: var(--color-text);
   margin-bottom: var(--spacing-md);
 }
 
 .settings-item {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-base);
 }
 
 .settings-item:last-child {
@@ -381,44 +791,38 @@ button {
 }
 
 .settings-item-label {
+  display: block;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   margin-bottom: var(--spacing-xs);
 }
 
-/* ===== 空状态子元素（.empty-state 容器由 base.css 提供） ===== */
-
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: var(--spacing-md);
-  display: block;
+/* 设置页保存按钮：胶囊形 */
+#saveBtn {
+  border-radius: var(--radius-full);
+  margin-top: var(--spacing-sm);
 }
 
-.empty-text {
-  font-size: var(--font-size-base);
-  margin-bottom: var(--spacing-xs);
-}
-
-.empty-hint {
-  font-size: var(--font-size-sm);
-}
-
-/* ========== 首页：中华小当家 ========== */
+/* ============================================================
+   八、首页 — 中华小当家
+   ============================================================ */
 
 .home-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--spacing-xl) var(--spacing-lg) 40px;
-  min-height: calc(100dvh - 44px);
+  padding: var(--spacing-xl) var(--spacing-lg) 60px;
+  min-height: calc(100dvh - 52px);
 }
 
-/* 卡通角色整体 */
+/* ----- 卡通角色整体 ----- */
+
 .chef-character {
   position: relative;
   width: 160px;
   height: 220px;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-base);
+  flex-shrink: 0;
 }
 
 /* 厨师帽 */
@@ -432,9 +836,9 @@ button {
 .chef-hat-top {
   width: 70px;
   height: 50px;
-  background: #fff;
+  background: #ffffff;
   border-radius: 35px 35px 8px 8px;
-  border: 2px solid var(--color-border);
+  border: 2px solid #e8ddd0;
   margin: 0 auto;
   position: relative;
 }
@@ -446,23 +850,18 @@ button {
   top: 10px;
   width: 12px;
   height: 12px;
-  background: #fff;
-  border: 2px solid var(--color-border);
+  background: #ffffff;
+  border: 2px solid #e8ddd0;
   border-radius: 50%;
 }
 
-.chef-hat-top::before {
-  left: -6px;
-}
-
-.chef-hat-top::after {
-  right: -6px;
-}
+.chef-hat-top::before { left: -6px; }
+.chef-hat-top::after  { right: -6px; }
 
 .chef-hat-band {
   width: 80px;
   height: 10px;
-  background: var(--color-primary);
+  background: #e85d26; /* 硬编码兜底，不依赖 CSS 变量 */
   border-radius: 2px;
   margin: -2px auto 0;
   position: relative;
@@ -472,8 +871,8 @@ button {
 .chef-hat-brim {
   width: 86px;
   height: 6px;
-  background: #fff;
-  border: 2px solid var(--color-border);
+  background: #ffffff;
+  border: 2px solid #e8ddd0;
   border-top: none;
   border-radius: 0 0 6px 6px;
   margin: 0 auto;
@@ -496,18 +895,13 @@ button {
   position: absolute;
   width: 10px;
   height: 12px;
-  background: var(--color-text);
+  background: #2d1810;
   border-radius: 50%;
   top: 24px;
 }
 
-.chef-eye-left {
-  left: 18px;
-}
-
-.chef-eye-right {
-  right: 18px;
-}
+.chef-eye-left  { left: 18px; }
+.chef-eye-right { right: 18px; }
 
 .chef-eye::after {
   content: '';
@@ -530,13 +924,8 @@ button {
   opacity: 0.6;
 }
 
-.chef-blush-left {
-  left: 8px;
-}
-
-.chef-blush-right {
-  right: 8px;
-}
+.chef-blush-left  { left: 8px; }
+.chef-blush-right { right: 8px; }
 
 .chef-mouth {
   position: absolute;
@@ -545,7 +934,7 @@ button {
   transform: translateX(-50%);
   width: 20px;
   height: 10px;
-  border-bottom: 3px solid var(--color-primary-dark);
+  border-bottom: 3px solid #c44d1e; /* 硬编码 primary-dark */
   border-radius: 0 0 10px 10px;
 }
 
@@ -557,9 +946,9 @@ button {
   transform: translateX(-50%);
   width: 90px;
   height: 80px;
-  background: #fff;
+  background: #ffffff;
   border-radius: 20px 20px 12px 12px;
-  border: 2px solid var(--color-border);
+  border: 2px solid #e8ddd0;
 }
 
 .chef-apron {
@@ -569,7 +958,7 @@ button {
   transform: translateX(-50%);
   width: 50px;
   height: 60px;
-  background: var(--color-primary);
+  background: #e85d26; /* 硬编码 primary */
   border-radius: 4px 4px 12px 12px;
   opacity: 0.9;
 }
@@ -582,7 +971,7 @@ button {
   transform: translateX(-50%);
   width: 24px;
   height: 8px;
-  background: var(--color-primary);
+  background: #e85d26;
   border-radius: 4px 4px 0 0;
 }
 
@@ -597,10 +986,7 @@ button {
   top: 20px;
 }
 
-.chef-hand-left {
-  left: -14px;
-}
-
+.chef-hand-left  { left: -14px; }
 .chef-hand-right {
   right: -14px;
   animation: wave 1.2s ease-in-out 0.5s 3;
@@ -609,41 +995,57 @@ button {
 
 @keyframes wave {
   0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-20deg); }
-  75% { transform: rotate(20deg); }
+  25%       { transform: rotate(-20deg); }
+  75%       { transform: rotate(20deg); }
 }
 
-/* 对话气泡 */
+/* ----- 对话气泡 ----- */
+
 .speech-bubble {
   position: relative;
   background: var(--color-card);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-md) 18px;
+  padding: 14px 20px;
   margin-bottom: var(--spacing-xl);
-  box-shadow: var(--shadow-base);
+  box-shadow: 0 4px 20px rgba(45, 24, 16, 0.1);
   font-size: var(--font-size-base);
-  line-height: var(--line-height-base);
+  line-height: var(--line-height-relaxed);
   color: var(--color-text);
-  max-width: 280px;
-  min-height: 52px;
+  max-width: 290px;
+  min-height: 54px;
   text-align: center;
   animation: fadeInUp var(--duration-slow) var(--easing-out);
+  border: 1px solid var(--color-border);
 }
 
 .speech-bubble::before {
   content: '';
   position: absolute;
-  top: -8px;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 9px solid var(--color-border);
+}
+
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  top: -7px;
   left: 50%;
   transform: translateX(-50%);
   width: 0;
   height: 0;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
-  border-bottom: 8px solid var(--color-card);
+  border-bottom: 8px solid #ffffff; /* 与卡片背景色一致 */
 }
 
-/* 首页按钮组 */
+/* ----- 首页按钮组 ----- */
+
 .home-btn-group {
   display: flex;
   gap: var(--spacing-md);
@@ -651,19 +1053,24 @@ button {
   flex-wrap: wrap;
 }
 
+/* 首页拍照/相册按钮 */
 .home-camera-btn {
-  font-size: var(--font-size-lg);
-  padding: 14px 40px;
+  font-size: var(--font-size-base);
+  padding: 12px 28px;
   border-radius: var(--radius-full);
-  box-shadow: var(--shadow-primary);
   width: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .home-camera-btn:active {
   transform: scale(0.96);
 }
 
-/* ===== Action Sheet 底部弹出面板 ===== */
+/* ============================================================
+   九、Action Sheet 底部面板
+   ============================================================ */
 
 .action-sheet-overlay {
   position: fixed;
@@ -689,7 +1096,7 @@ button {
 .action-sheet {
   background: var(--color-bg);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: var(--spacing-sm) var(--spacing-base) var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-base) calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
   width: 100%;
   max-width: 480px;
   transform: translateY(100%);
@@ -711,19 +1118,25 @@ button {
   background: var(--color-card);
   border-radius: var(--radius-lg);
   margin-top: var(--spacing-sm);
+  border: 1px solid var(--color-border);
   transition: background var(--duration-fast);
 }
 
 .action-sheet-btn:active {
-  background: var(--color-border);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
 .action-sheet-cancel {
   color: var(--color-text-muted);
+  background: transparent;
+  border-color: transparent;
   margin-top: var(--spacing-md);
 }
 
-/* ===== 首页识别遮罩 ===== */
+/* ============================================================
+   十、首页识别遮罩
+   ============================================================ */
 
 .home-loading-overlay {
   position: fixed;
@@ -752,12 +1165,23 @@ button {
   margin-top: var(--spacing-base);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
 }
 
-/* 首页识别 spinner（尺寸覆盖） */
 .home-spinner {
-  width: 36px;
-  height: 36px;
-  border-width: 3px;
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(232, 93, 38, 0.2);
+  border-top-color: #e85d26;
+  border-radius: 50%;
   margin: 0 auto;
+  animation: spin 0.9s linear infinite;
+}
+
+/* ============================================================
+   十一、响应式兜底
+   ============================================================ */
+
+@media (max-width: 480px) {
+  body { max-width: 100%; }
 }
