@@ -25,7 +25,6 @@ mini-cloud/
 │   └── ui/                         # 设计文档
 ├── miniprogs/                      # 小程序前端项目，每个子目录为一个独立小程序
 ├── packages/                       # 共享包
-│   └── design-tokens/              # UI 设计令牌（CSS 变量、JSON 配置）
 └── pnpm-workspace.yaml
 ```
 
@@ -66,7 +65,5 @@ mini-cloud/
 
 ### UI 设计规范
 
-- 小程序和 H5 Demo 共用设计规范，详见 `docs/ui/design-spec.md`
-- 设计令牌（CSS 变量、JSON）位于 `packages/design-tokens/`
-- 新建前端页面时需引入设计令牌，遵循规范中的组件和布局约定
-- 每个项目可通过自定义主题文件覆盖颜色变量，基础令牌（间距、圆角等）保持统一
+- 小程序和 H5 Demo 共用设计约定，详见 `docs/ui/design-spec.md`
+- 新建前端页面时遵循规范中的色彩、间距、字号和组件约定

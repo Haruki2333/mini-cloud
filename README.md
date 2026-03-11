@@ -25,8 +25,7 @@
 │   ├── db/                           # 数据库表结构文档（每个表一个文件）
 │   └── ui/                           # 设计文档
 ├── miniprogs/                        # 小程序前端项目（每个子目录为一个独立小程序）
-├── packages/
-│   └── design-tokens/                # UI 设计令牌（CSS 变量、JSON）
+├── packages/                         # 共享包
 ├── package.json                      # Monorepo 根配置
 └── pnpm-workspace.yaml               # pnpm workspace 配置
 ```
