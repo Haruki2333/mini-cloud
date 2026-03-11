@@ -3,16 +3,20 @@ const { chat, getModels, getModelInfo } = require("../services/llm");
 
 const router = express.Router();
 
-const SYSTEM_PROMPT = `你是一个美食识别专家。请分析用户提供的食物照片，以 JSON 格式返回以下信息：
+const SYSTEM_PROMPT = `你是一个美食营养分析专家。请分析用户提供的食物照片，重点评估其营养成分和热量。以 JSON 格式返回：
 {
   "name": "菜名",
-  "ingredients": ["食材1", "食材2", ...],
+  "ingredients": ["食材1", "食材2"],
   "cookingMethod": "烹饪方式",
-  "tags": ["标签1", "标签2", ...],
-  "description": "一段50字左右的美食描述，生动有趣"
+  "nutrition": {
+    "calories": 预估热量（千卡/份，数字）,
+    "protein": 蛋白质（克，数字）,
+    "fat": 脂肪（克，数字）,
+    "carbs": 碳水化合物（克，数字）,
+    "fiber": 膳食纤维（克，数字）
+  }
 }
-标签可以包含菜系（川菜、粤菜等）、口味（辣、清淡等）、类型（家常菜、甜品等）。
-只返回合法 JSON，不要包含 markdown 代码块标记或其他内容。`;
+请根据食材种类、用量和烹饪方式进行合理估算。只返回合法 JSON，不要包含 markdown 代码块标记或其他内容。`;
 
 function parseAiResponse(raw) {
   try {
@@ -80,8 +84,7 @@ router.post("/recognize", async (req, res) => {
       name: parsed.name || "未知菜品",
       ingredients: parsed.ingredients || [],
       cookingMethod: parsed.cookingMethod || "",
-      tags: parsed.tags || [],
-      description: parsed.description || "",
+      nutrition: parsed.nutrition || {},
       model: effectiveModel,
     });
   } catch (err) {

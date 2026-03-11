@@ -6,12 +6,16 @@ const MODEL_REGISTRY = {
     provider: "zhipu",
     label: "智谱 GLM-4.6V",
     endpoint: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+    // 默认开启思考模式
+    defaults: { thinking: { type: "enabled" } },
   },
   "qwen3.5-plus": {
     provider: "qwen",
     label: "千问 Qwen3.5-Plus",
     endpoint:
       "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    // 默认开启思考模式
+    defaults: { enable_thinking: true },
   },
 };
 
@@ -52,6 +56,7 @@ async function chat(modelId, messages, apiKey, options = {}) {
   const body = {
     model: modelId,
     messages,
+    ...model.defaults,
     ...options,
   };
 

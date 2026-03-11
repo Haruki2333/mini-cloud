@@ -50,28 +50,27 @@
       "</div>";
   }
 
-  var tagsHtml = "";
-  if (record.tags && record.tags.length > 0) {
-    tagsHtml =
+  var nutritionHtml = "";
+  if (record.nutrition && record.nutrition.calories) {
+    var n = record.nutrition;
+    var items = [
+      { label: "热量", value: n.calories, unit: "kcal" },
+      { label: "蛋白质", value: n.protein, unit: "g" },
+      { label: "脂肪", value: n.fat, unit: "g" },
+      { label: "碳水", value: n.carbs, unit: "g" },
+      { label: "纤维", value: n.fiber, unit: "g" },
+    ];
+    nutritionHtml =
       '<div class="detail-section">' +
-      '<h2 class="detail-section-title">标签</h2>' +
-      '<div class="food-card-tags">' +
-      record.tags
-        .map(function (t) {
-          return '<span class="tag">' + escapeHtml(t) + "</span>";
-        })
-        .join("") +
-      "</div>" +
-      "</div>";
-  }
-
-  var descHtml = "";
-  if (record.aiDescription) {
-    descHtml =
-      '<div class="detail-section">' +
-      '<h2 class="detail-section-title">AI 点评</h2>' +
-      '<div class="detail-description">' +
-      escapeHtml(record.aiDescription) +
+      '<h2 class="detail-section-title">营养成分</h2>' +
+      '<div class="nutrition-grid">' +
+      items.map(function (item) {
+        var val = item.value != null ? item.value : "-";
+        return '<div class="nutrition-item">' +
+          '<div class="nutrition-value">' + escapeHtml(String(val)) + '<span class="nutrition-unit">' + escapeHtml(item.unit) + '</span></div>' +
+          '<div class="nutrition-label">' + escapeHtml(item.label) + '</div>' +
+          '</div>';
+      }).join("") +
       "</div>" +
       "</div>";
   }
@@ -94,8 +93,7 @@
     "</p>" +
     ingredientsHtml +
     cookingHtml +
-    tagsHtml +
-    descHtml +
+    nutritionHtml +
     '<div style="margin-top:24px">' +
     '<button class="btn btn-danger" id="deleteBtn">删除记录</button>' +
     "</div>" +

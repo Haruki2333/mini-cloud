@@ -254,8 +254,7 @@
           name: data.name || "未知菜品",
           ingredients: data.ingredients || [],
           cookingMethod: data.cookingMethod || "",
-          tags: data.tags || [],
-          aiDescription: data.description || "",
+          nutrition: data.nutrition || {},
           model: currentModel,
           createdAt: new Date().toISOString(),
         };

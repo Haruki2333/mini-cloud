@@ -744,6 +744,52 @@ textarea::placeholder {
   margin-bottom: var(--spacing-sm);
 }
 
+/* ----- 营养成分网格 ----- */
+
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.nutrition-item {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-base);
+  padding: var(--spacing-md) var(--spacing-sm);
+  text-align: center;
+}
+
+.nutrition-value {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  line-height: var(--line-height-tight);
+}
+
+.nutrition-unit {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-muted);
+  margin-left: 2px;
+}
+
+.nutrition-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--spacing-xs);
+}
+
+/* 第一项（热量）横跨两列突出显示 */
+.nutrition-item:first-child {
+  grid-column: span 2;
+  background: var(--color-primary-light);
+}
+
+.nutrition-item:first-child .nutrition-value {
+  font-size: var(--font-size-2xl);
+  color: var(--color-primary-dark);
+}
+
 /* AI 点评：浅粉色背景 + 金黄色左边线 */
 .detail-description {
   font-size: var(--font-size-base);

@@ -1,9 +1,8 @@
 (function () {
   var imageBase64 = null;
   var thumbBase64 = null;
-  var aiDescription = "";
+  var nutritionData = {};
   var ingredientsInput = createTagInput("ingredientsContainer", "输入食材后按回车");
-  var tagsInput = createTagInput("tagsContainer", "输入标签后按回车");
 
   // 图片上传
   var uploadArea = document.getElementById("uploadArea");
@@ -123,13 +122,11 @@
         ingredientsInput.setTags(data.ingredients || []);
         document.getElementById("cookingMethodInput").value =
           data.cookingMethod || "";
-        tagsInput.setTags(data.tags || []);
-        aiDescription = data.description || "";
+        nutritionData = data.nutrition || {};
 
-        if (aiDescription) {
-          document.getElementById("descriptionGroup").style.display = "";
-          document.getElementById("descriptionText").textContent =
-            aiDescription;
+        if (nutritionData && nutritionData.calories) {
+          document.getElementById("nutritionGroup").style.display = "";
+          renderNutrition(nutritionData);
         }
 
         showAiStatus("success", "&#10003; AI 识别完成，可手动修改");
@@ -165,8 +162,7 @@
       name: name,
       ingredients: ingredientsInput.getTags(),
       cookingMethod: document.getElementById("cookingMethodInput").value.trim(),
-      tags: tagsInput.getTags(),
-      aiDescription: aiDescription,
+      nutrition: nutritionData,
       model: getSettings().model || DEFAULT_MODEL,
       createdAt: new Date().toISOString(),
     });
@@ -180,6 +176,25 @@
   }
 
   document.getElementById("nameInput").addEventListener("input", updateSaveBtn);
+
+  // 渲染营养成分
+  function renderNutrition(n) {
+    var items = [
+      { label: "热量", value: n.calories, unit: "kcal" },
+      { label: "蛋白质", value: n.protein, unit: "g" },
+      { label: "脂肪", value: n.fat, unit: "g" },
+      { label: "碳水", value: n.carbs, unit: "g" },
+      { label: "纤维", value: n.fiber, unit: "g" },
+    ];
+    var grid = document.getElementById("nutritionGrid");
+    grid.innerHTML = items.map(function (item) {
+      var val = item.value != null ? item.value : "-";
+      return '<div class="nutrition-item">' +
+        '<div class="nutrition-value">' + escapeHtml(String(val)) + '<span class="nutrition-unit">' + escapeHtml(item.unit) + '</span></div>' +
+        '<div class="nutrition-label">' + escapeHtml(item.label) + '</div>' +
+        '</div>';
+    }).join("");
+  }
 
   // TagInput 组件
   function createTagInput(containerId, placeholder) {

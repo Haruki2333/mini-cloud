@@ -56,8 +56,13 @@ AI 食物识别，根据图片识别菜品信息。
   "name": "宫保鸡丁",
   "ingredients": ["鸡胸肉", "花生", "干辣椒"],
   "cookingMethod": "爆炒",
-  "tags": ["川菜", "辣", "家常菜"],
-  "description": "一段50字左右的美食描述",
+  "nutrition": {
+    "calories": 380,
+    "protein": 28,
+    "fat": 18,
+    "carbs": 25,
+    "fiber": 3
+  },
   "model": "glm-4.6v"
 }
 ```
@@ -67,8 +72,12 @@ AI 食物识别，根据图片识别菜品信息。
 | name | string | 菜名，解析失败时为 "未知菜品" |
 | ingredients | string[] | 食材列表 |
 | cookingMethod | string | 烹饪方式 |
-| tags | string[] | 标签（菜系、口味、类型等） |
-| description | string | AI 生成的美食描述 |
+| nutrition | object | 营养成分预估 |
+| nutrition.calories | number | 热量（千卡/份） |
+| nutrition.protein | number | 蛋白质（克） |
+| nutrition.fat | number | 脂肪（克） |
+| nutrition.carbs | number | 碳水化合物（克） |
+| nutrition.fiber | number | 膳食纤维（克） |
 | model | string | 实际使用的模型 ID |
 
 ### 错误响应

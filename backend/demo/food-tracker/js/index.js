@@ -14,12 +14,10 @@
         return '<span class="tag ingredient">' + escapeHtml(ing) + "</span>";
       })
       .join("");
-    var tagHtml = (record.tags || [])
-      .slice(0, 2)
-      .map(function (t) {
-        return '<span class="tag">' + escapeHtml(t) + "</span>";
-      })
-      .join("");
+    var caloriesHtml = "";
+    if (record.nutrition && record.nutrition.calories) {
+      caloriesHtml = '<span class="tag tag-warning">' + escapeHtml(String(record.nutrition.calories)) + ' kcal</span>';
+    }
     var modelLabel = getModelLabel(record);
 
     return (
@@ -37,7 +35,7 @@
       "</div>" +
       '<div class="food-card-tags">' +
       ingredientTags +
-      tagHtml +
+      caloriesHtml +
       "</div>" +
       '<div class="food-card-meta">' +
       "<span>" +
