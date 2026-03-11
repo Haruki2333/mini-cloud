@@ -24,7 +24,8 @@
 │   ├── api/                          # 接口文档（按业务域组织）
 │   └── db/                           # 数据库表结构文档
 ├── miniprogs/                        # 小程序前端项目（每个子目录为一个独立小程序）
-├── packages/                         # 共享包（按需创建）
+├── packages/
+│   └── design-tokens/                # UI 设计令牌（CSS 变量、JSON）
 ├── package.json                      # Monorepo 根配置
 └── pnpm-workspace.yaml               # pnpm workspace 配置
 ```
@@ -59,7 +60,7 @@ pnpm docker:run
 - `POST /api/food/recognize` — AI 食物识别（需要 `X-Api-Key` 请求头，支持智谱/Gemini/OpenAI）
 - `GET /api/wx_openid` — 获取微信 Open ID（小程序专用）
 
-完整 API 文档、数据库文档详见 [`docs/`](./docs) 目录。
+完整 API 文档、数据库文档详见 [`docs/`](./docs) 目录。UI 设计规范详见 [`docs/ui/design-spec.md`](./docs/ui/design-spec.md)。
 
 ## Demo 页面
 

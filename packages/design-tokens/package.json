@@ -1,0 +1,11 @@
+{
+  "name": "@mini-cloud/design-tokens",
+  "version": "1.0.0",
+  "description": "小程序和 H5 共用的设计令牌（CSS 变量、JSON 配置）",
+  "main": "tokens.json",
+  "files": [
+    "base.css",
+    "themes/",
+    "tokens.json"
+  ]
+}
