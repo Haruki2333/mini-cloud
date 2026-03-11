@@ -8,9 +8,8 @@
 
 ```json
 [
-  { "id": "glm-4.6v-flash", "provider": "zhipu", "label": "智谱 GLM-4.6V-Flash" },
-  { "id": "glm-4.6v-flashx", "provider": "zhipu", "label": "智谱 GLM-4.6V-FlashX" },
-  { "id": "qwen3.5-flash", "provider": "qwen", "label": "千问 Qwen3.5-Flash" }
+  { "id": "glm-4.6v", "provider": "zhipu", "label": "智谱 GLM-4.6V" },
+  { "id": "qwen3.5-plus", "provider": "qwen", "label": "千问 Qwen3.5-Plus" }
 ]
 ```
 
@@ -41,15 +40,14 @@ AI 食物识别，根据图片识别菜品信息。
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | imageBase64 | string | 是 | Base64 编码的图片（含 `data:image/xxx;base64,` 前缀） |
-| model | string | 否 | 模型 ID，默认 `glm-4.6v-flash` |
+| model | string | 否 | 模型 ID，默认 `glm-4.6v` |
 
 ### 支持的模型
 
 | 模型 ID | 名称 | 厂商 |
 |---------|------|------|
-| glm-4.6v-flash | GLM-4.6V-Flash | 智谱 AI |
-| glm-4.6v-flashx | GLM-4.6V-FlashX | 智谱 AI |
-| qwen3.5-flash | Qwen3.5-Flash | 阿里千问（DashScope） |
+| glm-4.6v | GLM-4.6V | 智谱 AI |
+| qwen3.5-plus | Qwen3.5-Plus | 阿里千问（DashScope） |
 
 ### 成功响应（200）
 
@@ -60,7 +58,7 @@ AI 食物识别，根据图片识别菜品信息。
   "cookingMethod": "爆炒",
   "tags": ["川菜", "辣", "家常菜"],
   "description": "一段50字左右的美食描述",
-  "model": "glm-4.6v-flash"
+  "model": "glm-4.6v"
 }
 ```
 

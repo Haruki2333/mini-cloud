@@ -21,7 +21,8 @@ mini-cloud/
 │   └── Dockerfile
 ├── docs/                           # 项目文档/知识库
 │   ├── api/                        # 接口文档（按业务域组织）
-│   └── db/                         # 数据库表结构文档（每个表一个文件）
+│   ├── db/                         # 数据库表结构文档（每个表一个文件）
+│   └── ui/                         # 设计文档
 ├── miniprogs/                      # 小程序前端项目，每个子目录为一个独立小程序
 ├── packages/                       # 共享包
 │   └── design-tokens/              # UI 设计令牌（CSS 变量、JSON 配置）
