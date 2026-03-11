@@ -23,7 +23,8 @@ mini-cloud/
 │   ├── api/                        # 接口文档（按业务域组织）
 │   └── db/                         # 数据库表结构文档（每个表一个文件）
 ├── miniprogs/                      # 小程序前端项目，每个子目录为一个独立小程序
-├── packages/                       # 共享包（按需创建）
+├── packages/                       # 共享包
+│   └── design-tokens/              # UI 设计令牌（CSS 变量、JSON 配置）
 └── pnpm-workspace.yaml
 ```
 
@@ -54,9 +55,17 @@ mini-cloud/
 
 - `docs/api/` — 按业务域组织的 API 接口文档，每个业务域一个文件
 - `docs/db/` — 按业务域组织的数据库表结构文档，每个表一个文件
+- `docs/ui/` — UI 设计规范文档
 
 ### 文档维护规范
 
 - 新增 API 时：在 `docs/api/` 中对应业务文件里追加章节，新业务域则新建文件
 - 新增数据表时：在 `docs/db/` 下新建对应文件
 - 修改 API 行为或表结构时：同步更新对应文档
+
+### UI 设计规范
+
+- 小程序和 H5 Demo 共用设计规范，详见 `docs/ui/design-spec.md`
+- 设计令牌（CSS 变量、JSON）位于 `packages/design-tokens/`
+- 新建前端页面时需引入设计令牌，遵循规范中的组件和布局约定
+- 每个项目可通过自定义主题文件覆盖颜色变量，基础令牌（间距、圆角等）保持统一
