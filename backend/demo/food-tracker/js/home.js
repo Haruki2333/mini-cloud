@@ -162,7 +162,7 @@
   // 在对话气泡中显示错误
   function showError(msg) {
     speechBubble.textContent = "哎呀！" + msg;
-    speechBubble.style.color = "var(--danger)";
+    speechBubble.style.color = "var(--color-danger)";
 
     // 3 秒后恢复
     setTimeout(function () {
