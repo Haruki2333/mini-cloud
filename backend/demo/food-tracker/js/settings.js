@@ -27,14 +27,13 @@
   saveBtn.addEventListener("click", function () {
     settings.apiKeys.zhipu = document.getElementById("zhipuKey").value;
     settings.apiKeys.qwen = document.getElementById("qwenKey").value;
-    // 清理旧厂商的 Key
-    delete settings.apiKeys.gemini;
-    delete settings.apiKeys.openai;
     saveSettings(settings);
 
-    saveBtn.textContent = "已保存 \u2713";
+    saveBtn.querySelector(".action-cmd").textContent = "SAVED";
+    saveBtn.querySelector(".action-label").textContent = "已保存 \u2713";
     setTimeout(function () {
-      saveBtn.textContent = "保存设置";
+      saveBtn.querySelector(".action-cmd").textContent = "SAVE_CONFIG";
+      saveBtn.querySelector(".action-label").textContent = "保存设置";
     }, 2000);
   });
 })();

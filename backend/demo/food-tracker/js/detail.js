@@ -27,8 +27,9 @@
   var ingredientsHtml = "";
   if (record.ingredients && record.ingredients.length > 0) {
     ingredientsHtml =
-      '<div class="detail-section">' +
-      '<h2 class="detail-section-title">食材</h2>' +
+      '<div class="terminal-panel">' +
+      '<div class="terminal-panel-header"><span class="terminal-dot"></span>INGREDIENTS</div>' +
+      '<div class="terminal-panel-body">' +
       '<div class="food-card-tags">' +
       record.ingredients
         .map(function (ing) {
@@ -36,18 +37,19 @@
         })
         .join("") +
       "</div>" +
-      "</div>";
+      "</div></div>";
   }
 
   var cookingHtml = "";
   if (record.cookingMethod) {
     cookingHtml =
-      '<div class="detail-section">' +
-      '<h2 class="detail-section-title">烹饪方式</h2>' +
+      '<div class="terminal-panel">' +
+      '<div class="terminal-panel-header"><span class="terminal-dot"></span>COOKING_METHOD</div>' +
+      '<div class="terminal-panel-body">' +
       "<p>" +
       escapeHtml(record.cookingMethod) +
       "</p>" +
-      "</div>";
+      "</div></div>";
   }
 
   var nutritionHtml = "";
@@ -61,8 +63,9 @@
       { label: "纤维", value: n.fiber, unit: "g" },
     ];
     nutritionHtml =
-      '<div class="detail-section">' +
-      '<h2 class="detail-section-title">营养成分</h2>' +
+      '<div class="terminal-panel">' +
+      '<div class="terminal-panel-header"><span class="terminal-dot"></span>NUTRITION_DATA</div>' +
+      '<div class="terminal-panel-body">' +
       '<div class="nutrition-grid">' +
       items.map(function (item) {
         var val = item.value != null ? item.value : "-";
@@ -72,32 +75,40 @@
           '</div>';
       }).join("") +
       "</div>" +
-      "</div>";
+      "</div></div>";
   }
 
   container.innerHTML =
+    '<div class="terminal-image-wrap">' +
     '<img class="detail-image" src="' +
     escapeHtml(record.imageBase64) +
     '" alt="' +
     escapeHtml(record.name) +
     '">' +
-    '<div class="detail-content">' +
+    '<div class="terminal-image-scanline"></div>' +
+    '</div>' +
+    '<div class="terminal-panel">' +
+    '<div class="terminal-panel-header"><span class="terminal-dot"></span>IDENTIFICATION</div>' +
+    '<div class="terminal-panel-body">' +
     '<h1 class="detail-name">' +
     escapeHtml(record.name) +
     "</h1>" +
     '<p class="detail-time">' +
     escapeHtml(dateStr) +
-    '&emsp;&middot; <span class="tier-badge">' +
+    '&emsp;&middot; <span class="terminal-meta-label">MODEL:</span>' +
     escapeHtml(modelLabel) +
-    "</span>" +
     "</p>" +
+    "</div></div>" +
     ingredientsHtml +
     cookingHtml +
     nutritionHtml +
-    '<div style="margin-top:24px">' +
-    '<button class="btn btn-danger" id="deleteBtn">删除记录</button>' +
-    "</div>" +
-    "</div>";
+    '<button class="terminal-action-btn--danger" id="deleteBtn">' +
+    '<span class="action-index">[!]</span>' +
+    '<span class="action-content">' +
+    '<span class="action-cmd">DELETE_RECORD</span>' +
+    '<span class="action-label">删除此记录</span>' +
+    '</span>' +
+    '</button>';
 
   document.getElementById("deleteBtn").addEventListener("click", function () {
     if (confirm("确定要删除这条记录吗？")) {
@@ -108,11 +119,11 @@
 
   function showEmpty() {
     container.innerHTML =
-      '<main class="content">' +
-      '<div class="empty-state">' +
-      '<span class="empty-icon">&#128269;</span>' +
-      '<p class="empty-text">记录不存在</p>' +
-      "</div>" +
-      "</main>";
+      '<div class="terminal-panel" style="margin-top:var(--spacing-base)">' +
+      '<div class="terminal-panel-header"><span class="terminal-dot"></span>ERROR</div>' +
+      '<div class="terminal-panel-body" style="text-align:center;padding:48px 16px;color:var(--color-text-muted)">' +
+      '<p style="font-family:var(--font-display);font-size:var(--font-size-xs);letter-spacing:0.05em;margin-bottom:8px">&gt; RECORD_NOT_FOUND</p>' +
+      '<p style="font-size:var(--font-size-sm)">记录不存在</p>' +
+      '</div></div>';
   }
 })();

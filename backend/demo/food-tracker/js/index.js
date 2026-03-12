@@ -21,9 +21,14 @@
     var modelLabel = getModelLabel(record);
 
     return (
-      '<div class="food-card" data-id="' +
+      '<div class="terminal-card" data-id="' +
       escapeHtml(record.id) +
       '">' +
+      '<div class="terminal-card-header">' +
+      '<span class="terminal-dot"></span>' +
+      '<span class="terminal-label">FOOD_RECORD</span>' +
+      '<span class="terminal-freq">' + escapeHtml(dateStr) + '</span>' +
+      '</div>' +
       '<img class="food-card-image" src="' +
       escapeHtml(record.imageBase64) +
       '" alt="' +
@@ -39,9 +44,7 @@
       "</div>" +
       '<div class="food-card-meta">' +
       "<span>" +
-      escapeHtml(dateStr) +
-      "</span>" +
-      '<span class="tier-badge">' +
+      '<span class="terminal-meta-label">MODEL:</span>' +
       escapeHtml(modelLabel) +
       "</span>" +
       "</div>" +
@@ -56,17 +59,18 @@
 
     if (records.length === 0) {
       container.innerHTML =
-        '<div class="empty-state">' +
-        '<span class="empty-icon">&#127869;</span>' +
-        '<p class="empty-text">还没有记录</p>' +
-        '<p class="empty-hint">点击下方按钮记录你的第一道菜</p>' +
-        "</div>";
+        '<div class="terminal-panel">' +
+        '<div class="terminal-panel-header"><span class="terminal-dot"></span>NO_DATA</div>' +
+        '<div class="terminal-panel-body" style="text-align:center;padding:48px 16px;color:var(--color-text-muted)">' +
+        '<p style="font-family:var(--font-display);font-size:var(--font-size-xs);letter-spacing:0.05em;margin-bottom:8px">&gt; NO_RECORDS_FOUND</p>' +
+        '<p style="font-size:var(--font-size-sm)">点击下方按钮记录你的第一道菜</p>' +
+        '</div></div>';
       return;
     }
 
     container.innerHTML = records.map(renderFoodCard).join("");
 
-    container.querySelectorAll(".food-card").forEach(function (card) {
+    container.querySelectorAll(".terminal-card").forEach(function (card) {
       card.addEventListener("click", function () {
         var id = card.getAttribute("data-id");
         location.href = "detail.html?id=" + encodeURIComponent(id);

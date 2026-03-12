@@ -10,14 +10,6 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="header">
-    <span class="header-title">食物记录</span>
-    <div class="header-actions">
-      <a href="records.html" class="header-link">历史</a>
-      <a href="settings.html" class="settings-icon" aria-label="设置">&#9881;</a>
-    </div>
-  </header>
-
   <main class="home-content">
     <!-- 信号状态指示器 -->
     <div class="signal-indicator">
@@ -46,10 +38,40 @@
       </div>
     </div>
 
-    <!-- 操作按钮 -->
-    <div class="home-btn-group">
-      <button class="btn btn-primary home-camera-btn" id="cameraBtn">&#128247; 拍照识别</button>
-      <button class="btn btn-secondary home-camera-btn" id="albumBtn">&#128444;&#65039; 从相册选择</button>
+    <!-- 终端操作选项 -->
+    <div class="terminal-actions">
+      <button class="terminal-action-btn" id="cameraBtn">
+        <span class="action-index">[01]</span>
+        <span class="action-content">
+          <span class="action-cmd">CAPTURE_SCAN</span>
+          <span class="action-label">拍照识别</span>
+        </span>
+        <span class="action-arrow">&#x25B6;</span>
+      </button>
+      <button class="terminal-action-btn" id="albumBtn">
+        <span class="action-index">[02]</span>
+        <span class="action-content">
+          <span class="action-cmd">LOAD_IMAGE</span>
+          <span class="action-label">从相册选择</span>
+        </span>
+        <span class="action-arrow">&#x25B6;</span>
+      </button>
+      <a href="records.html" class="terminal-action-btn">
+        <span class="action-index">[03]</span>
+        <span class="action-content">
+          <span class="action-cmd">VIEW_HISTORY</span>
+          <span class="action-label">历史记录</span>
+        </span>
+        <span class="action-arrow">&#x25B6;</span>
+      </a>
+      <a href="settings.html" class="terminal-action-btn">
+        <span class="action-index">[04]</span>
+        <span class="action-content">
+          <span class="action-cmd">SYSTEM_CONFIG</span>
+          <span class="action-label">系统设置</span>
+        </span>
+        <span class="action-arrow">&#x25B6;</span>
+      </a>
     </div>
 
     <!-- 隐藏的文件输入 -->

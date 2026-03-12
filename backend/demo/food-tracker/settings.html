@@ -7,39 +7,48 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="header">
-    <button class="header-back" onclick="history.back()">&#8592; 返回</button>
-    <span class="header-title">设置</span>
-    <div style="width:48px"></div>
-  </header>
+  <nav class="terminal-nav">
+    <a href="index.html" class="terminal-nav-back">
+      <span class="terminal-dot"></span>
+      <span class="terminal-nav-cmd">&lt; RETURN</span>
+    </a>
+    <span class="terminal-nav-title">SYSTEM_CONFIG</span>
+    <span class="terminal-nav-freq">SYS</span>
+  </nav>
 
-  <main class="content">
-    <div class="settings-section">
-      <h2 class="settings-section-title">识别模型</h2>
-      <p style="font-size:13px;color:var(--color-text-muted);margin-bottom:16px">
-        选择用于食物识别的 AI 模型
-      </p>
-      <div class="tier-switch" id="modelSwitch" style="flex-wrap:wrap;gap:6px"></div>
-    </div>
-
-    <div class="settings-section">
-      <h2 class="settings-section-title">API Key 配置</h2>
-      <p style="font-size:13px;color:var(--color-text-muted);margin-bottom:16px">
-        API Key 仅存储在本地浏览器中，不会上传到服务器
-      </p>
-
-      <div class="settings-item">
-        <label class="settings-item-label">智谱 API Key（GLM-4V 系列）</label>
-        <input type="password" id="zhipuKey" placeholder="输入智谱 API Key">
-      </div>
-
-      <div class="settings-item">
-        <label class="settings-item-label">千问 API Key（Qwen 系列 · DashScope）</label>
-        <input type="password" id="qwenKey" placeholder="输入千问 DashScope API Key">
+  <main class="terminal-page">
+    <div class="terminal-panel">
+      <div class="terminal-panel-header"><span class="terminal-dot"></span>AI_MODEL</div>
+      <div class="terminal-panel-body">
+        <p class="terminal-hint">&gt; 选择用于食物识别的 AI 模型</p>
+        <div class="tier-switch" id="modelSwitch" style="flex-wrap:wrap;gap:6px"></div>
       </div>
     </div>
 
-    <button class="btn btn-primary" id="saveBtn">保存设置</button>
+    <div class="terminal-panel">
+      <div class="terminal-panel-header"><span class="terminal-dot"></span>API_CREDENTIALS</div>
+      <div class="terminal-panel-body">
+        <p class="terminal-hint">&gt; API Key 仅存储在本地浏览器中，不会上传到服务器</p>
+
+        <div class="terminal-input-group">
+          <label class="terminal-input-label">// ZHIPU_KEY</label>
+          <input type="password" class="terminal-input" id="zhipuKey" placeholder="输入智谱 API Key">
+        </div>
+
+        <div class="terminal-input-group">
+          <label class="terminal-input-label">// QWEN_KEY</label>
+          <input type="password" class="terminal-input" id="qwenKey" placeholder="输入千问 DashScope API Key">
+        </div>
+      </div>
+    </div>
+
+    <button class="terminal-action-btn" id="saveBtn">
+      <span class="action-index">[OK]</span>
+      <span class="action-content">
+        <span class="action-cmd">SAVE_CONFIG</span>
+        <span class="action-label">保存设置</span>
+      </span>
+    </button>
   </main>
 
   <script src="js/types.js"></script>

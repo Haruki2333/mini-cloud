@@ -57,7 +57,7 @@ pnpm docker:run
 
 ## 后端 API
 
-- `POST /api/food/recognize` — AI 食物识别（需要 `X-Api-Key` 请求头，支持智谱/Gemini/OpenAI）
+- `POST /api/food/recognize` — AI 食物识别（需要 `X-Api-Key` 请求头，支持智谱/Qwen）
 - `GET /api/wx_openid` — 获取微信 Open ID（小程序专用）
 
 完整 API 文档、数据库文档详见 [`docs/`](./docs) 目录。UI 设计规范详见 [`docs/ui/design-spec.md`](./docs/ui/design-spec.md)。
@@ -72,7 +72,6 @@ pnpm docker:run
 
 功能：
 - 拍照或上传食物图片，AI 自动识别菜名、食材、烹饪方式
-- 支持三个 AI 等级：体验版（智谱 GLM-4V）、标准版（Gemini 2.0 Flash）、高级版（GPT-4o）
 - 记录以时间线形式展示，数据存储在浏览器 localStorage 中
 - 支持在设置页配置各 AI 提供商的 API Key
 

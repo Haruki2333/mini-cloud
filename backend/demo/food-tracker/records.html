@@ -7,17 +7,21 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="header">
-    <a href="index.html" class="header-back">&#8592; 首页</a>
-    <span class="header-title">历史记录</span>
-    <div class="header-actions">
-      <a href="settings.html" class="settings-icon" aria-label="设置">&#9881;</a>
-    </div>
-  </header>
+  <nav class="terminal-nav">
+    <a href="index.html" class="terminal-nav-back">
+      <span class="terminal-dot"></span>
+      <span class="terminal-nav-cmd">&lt; RETURN</span>
+    </a>
+    <span class="terminal-nav-title">DATA_ARCHIVE</span>
+    <span class="terminal-nav-freq">REC</span>
+  </nav>
 
-  <main class="content" id="recordList"></main>
+  <main class="terminal-page" id="recordList"></main>
 
-  <a href="add.html" class="fab" aria-label="记录新食物">+</a>
+  <a href="add.html" class="terminal-fab" aria-label="记录新食物">
+    <span class="terminal-dot"></span>
+    <span>[+] NEW_RECORD</span>
+  </a>
 
   <script src="js/types.js"></script>
   <script src="js/storage.js"></script>

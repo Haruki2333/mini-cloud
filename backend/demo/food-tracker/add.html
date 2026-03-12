@@ -7,44 +7,63 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="header">
-    <button class="header-back" onclick="history.back()">&#8592; 返回</button>
-    <span class="header-title">新增记录</span>
-    <div style="width:48px"></div>
-  </header>
+  <nav class="terminal-nav">
+    <a href="index.html" class="terminal-nav-back">
+      <span class="terminal-dot"></span>
+      <span class="terminal-nav-cmd">&lt; RETURN</span>
+    </a>
+    <span class="terminal-nav-title">NEW_RECORD</span>
+    <span class="terminal-nav-freq">ADD</span>
+  </nav>
 
-  <main class="content">
-    <div class="form-group">
-      <div class="upload-area" id="uploadArea">
-        <input type="file" accept="image/*" id="fileInput" style="display:none">
-        <span class="upload-icon">&#128247;</span>
-        <span class="upload-text">点击拍照或选择图片</span>
+  <main class="terminal-page">
+    <div class="terminal-panel">
+      <div class="terminal-panel-header"><span class="terminal-dot"></span>IMAGE_CAPTURE</div>
+      <div class="terminal-panel-body">
+        <div class="upload-area terminal-upload" id="uploadArea">
+          <input type="file" accept="image/*" id="fileInput" style="display:none">
+          <span class="upload-icon">&#128247;</span>
+          <span class="upload-text">点击拍照或选择图片</span>
+        </div>
       </div>
     </div>
 
     <div id="aiStatus" style="display:none"></div>
 
-    <div class="form-group">
-      <label class="form-label">菜名</label>
-      <input id="nameInput" placeholder="输入菜名">
+    <div class="terminal-panel">
+      <div class="terminal-panel-header"><span class="terminal-dot"></span>FOOD_DATA</div>
+      <div class="terminal-panel-body">
+        <div class="terminal-input-group">
+          <label class="terminal-input-label">// FOOD_NAME</label>
+          <input class="terminal-input" id="nameInput" placeholder="输入菜名">
+        </div>
+
+        <div class="terminal-input-group">
+          <label class="terminal-input-label">// INGREDIENTS</label>
+          <div class="tag-input-container terminal-tag-input" id="ingredientsContainer"></div>
+        </div>
+
+        <div class="terminal-input-group">
+          <label class="terminal-input-label">// COOKING_METHOD</label>
+          <input class="terminal-input" id="cookingMethodInput" placeholder="如：红烧、清蒸、爆炒">
+        </div>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label class="form-label">食材</label>
-      <div class="tag-input-container" id="ingredientsContainer"></div>
+    <div class="terminal-panel" id="nutritionGroup" style="display:none">
+      <div class="terminal-panel-header"><span class="terminal-dot"></span>NUTRITION_DATA</div>
+      <div class="terminal-panel-body">
+        <div class="nutrition-grid" id="nutritionGrid"></div>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label class="form-label">烹饪方式</label>
-      <input id="cookingMethodInput" placeholder="如：红烧、清蒸、爆炒">
-    </div>
-
-    <div class="form-group" id="nutritionGroup" style="display:none">
-      <label class="form-label">营养成分（AI 预估）</label>
-      <div class="nutrition-grid" id="nutritionGrid"></div>
-    </div>
-
-    <button class="btn btn-primary" id="saveBtn" disabled>保存记录</button>
+    <button class="terminal-action-btn" id="saveBtn" disabled>
+      <span class="action-index">[OK]</span>
+      <span class="action-content">
+        <span class="action-cmd">SAVE_RECORD</span>
+        <span class="action-label">保存记录</span>
+      </span>
+    </button>
   </main>
 
   <script src="js/types.js"></script>

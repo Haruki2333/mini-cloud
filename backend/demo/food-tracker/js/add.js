@@ -154,7 +154,8 @@
     if (!imageBase64 || !name) return;
 
     saveBtn.disabled = true;
-    saveBtn.textContent = "保存中...";
+    saveBtn.querySelector(".action-cmd").textContent = "SAVING";
+    saveBtn.querySelector(".action-label").textContent = "保存中...";
 
     saveRecord({
       id: generateId(),
