@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const recognizeRouter = require("./routes/recognize");
+const geocodeRouter = require("./routes/geocode");
 
 const logger = morgan("tiny");
 
@@ -14,6 +15,7 @@ app.use(logger);
 
 // API 路由
 app.use("/api/food", recognizeRouter);
+app.use("/api/geocode", geocodeRouter);
 
 // 小程序调用，获取微信 Open ID
 app.get("/api/wx_openid", async (req, res) => {

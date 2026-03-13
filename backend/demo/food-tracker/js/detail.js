@@ -16,6 +16,29 @@
 
   var dateStr = formatDate(record.createdAt);
 
+  // 拍摄时间展示
+  var photoTimeStr = "";
+  if (record.photoTime) {
+    var photoFormatted = formatDate(record.photoTime);
+    if (photoFormatted !== dateStr) {
+      photoTimeStr = "拍摄于 " + photoFormatted + " · 记录于 " + dateStr;
+    } else {
+      photoTimeStr = dateStr;
+    }
+  } else {
+    photoTimeStr = dateStr;
+  }
+
+  // 位置信息展示
+  var locationStr = "";
+  if (record.location) {
+    if (record.location.address) {
+      locationStr = record.location.address;
+    } else if (record.location.lat != null && record.location.lng != null) {
+      locationStr = record.location.lat.toFixed(4) + ", " + record.location.lng.toFixed(4);
+    }
+  }
+
   // 模型标签（向后兼容旧 tier 记录）
   var modelLabel = "";
   if (record.model && MODEL_CONFIG[record.model]) {
@@ -94,10 +117,11 @@
     escapeHtml(record.name) +
     "</h1>" +
     '<p class="detail-time">' +
-    escapeHtml(dateStr) +
+    escapeHtml(photoTimeStr) +
     '&emsp;&middot; <span class="terminal-meta-label">MODEL:</span>' +
     escapeHtml(modelLabel) +
     "</p>" +
+    (locationStr ? '<p class="detail-location"><span class="terminal-meta-label">LOC:</span> ' + escapeHtml(locationStr) + '</p>' : '') +
     "</div></div>" +
     ingredientsHtml +
     cookingHtml +

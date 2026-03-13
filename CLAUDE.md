@@ -15,7 +15,8 @@ mini-cloud/
 ├── backend/                        # 后端服务（Express.js + MySQL），部署到微信云托管
 │   ├── index.js                    # Express 主入口
 │   ├── routes/                     # API 路由
-│   │   └── recognize.js            # POST /api/food/recognize - AI 食物识别
+│   │   ├── recognize.js            # POST /api/food/recognize - AI 食物识别
+│   │   └── geocode.js              # GET /api/geocode/reverse - 反向地理编码代理
 │   ├── demo/                       # H5 Demo 页面（静态文件，通过 /demo/* 访问）
 │   │   └── food-tracker/           # 食物记录 Demo
 │   └── Dockerfile
@@ -41,6 +42,7 @@ mini-cloud/
 ## 后端 API
 
 - `POST /api/food/recognize` — AI 食物识别（详见 `docs/api/food.md`）
+- `GET /api/geocode/reverse` — 反向地理编码代理（详见 `docs/api/geocode.md`）
 - `GET /api/wx_openid` — 获取微信 Open ID（小程序专用）
 
 完整接口文档见 `docs/api/` 目录。

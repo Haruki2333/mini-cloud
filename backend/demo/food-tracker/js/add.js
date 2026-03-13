@@ -2,6 +2,7 @@
   var imageBase64 = null;
   var thumbBase64 = null;
   var nutritionData = {};
+  var currentPhotoMeta = null;
   var ingredientsInput = createTagInput("ingredientsContainer", "输入食材后按回车");
 
   // 图片上传
@@ -15,6 +16,11 @@
   fileInput.addEventListener("change", function (e) {
     var file = e.target.files && e.target.files[0];
     if (!file) return;
+
+    // 提取 EXIF 元数据（与图片处理并行）
+    getPhotoMeta(file, function (meta) {
+      currentPhotoMeta = meta;
+    });
 
     var reader = new FileReader();
     reader.onload = function (ev) {
@@ -166,6 +172,8 @@
       nutrition: nutritionData,
       model: getSettings().model || DEFAULT_MODEL,
       createdAt: new Date().toISOString(),
+      photoTime: (currentPhotoMeta && currentPhotoMeta.photoTime) || new Date().toISOString(),
+      location: (currentPhotoMeta && currentPhotoMeta.location) || null,
     });
 
     location.href = "index.html";

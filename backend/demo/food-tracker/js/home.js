@@ -102,10 +102,17 @@
     albumInput.click();
   });
 
+  // 当前照片的元数据（EXIF 时间 + 位置）
+  var currentPhotoMeta = null;
+
   // 统一处理图片选择
   function handleFileSelect(e) {
     var file = e.target.files && e.target.files[0];
     if (!file) return;
+    // 先提取 EXIF，再压缩识别
+    getPhotoMeta(file, function (meta) {
+      currentPhotoMeta = meta;
+    });
     compressAndRecognize(file);
     // 清空 input 以便重复选择同一文件
     e.target.value = "";
@@ -248,6 +255,7 @@
         stopLoadingAnimation();
 
         // 组装记录并保存
+        var meta = currentPhotoMeta || {};
         var record = {
           id: generateId(),
           imageBase64: thumbBase64 || base64,
@@ -257,6 +265,8 @@
           nutrition: data.nutrition || {},
           model: currentModel,
           createdAt: new Date().toISOString(),
+          photoTime: meta.photoTime || new Date().toISOString(),
+          location: meta.location || null,
         };
 
         saveRecord(record);

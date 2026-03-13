@@ -725,10 +725,16 @@ textarea::placeholder {
 .detail-time {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-xs);
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+}
+
+.detail-location {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-lg);
 }
 
 .detail-section {
