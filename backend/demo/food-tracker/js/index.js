@@ -20,20 +20,34 @@
     }
     var modelLabel = getModelLabel(record);
 
+    var isVoice = record.source === "voice";
+    var cardLabel = isVoice ? "VOICE_RECORD" : "FOOD_RECORD";
+    var imageHtml = "";
+    if (record.imageBase64) {
+      imageHtml =
+        '<img class="food-card-image" src="' +
+        escapeHtml(record.imageBase64) +
+        '" alt="' +
+        escapeHtml(record.name) +
+        '">';
+    } else {
+      imageHtml =
+        '<div class="voice-card-placeholder">' +
+        '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="1" width="6" height="11" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>' +
+        '<span>VOICE INPUT</span>' +
+        '</div>';
+    }
+
     return (
       '<div class="terminal-card" data-id="' +
       escapeHtml(record.id) +
       '">' +
       '<div class="terminal-card-header">' +
       '<span class="terminal-dot"></span>' +
-      '<span class="terminal-label">FOOD_RECORD</span>' +
+      '<span class="terminal-label">' + cardLabel + '</span>' +
       '<span class="terminal-freq">' + escapeHtml(dateStr) + '</span>' +
       '</div>' +
-      '<img class="food-card-image" src="' +
-      escapeHtml(record.imageBase64) +
-      '" alt="' +
-      escapeHtml(record.name) +
-      '">' +
+      imageHtml +
       '<div class="food-card-body">' +
       '<div class="food-card-name">' +
       escapeHtml(record.name) +

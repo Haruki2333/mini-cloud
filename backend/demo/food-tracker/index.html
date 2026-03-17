@@ -56,8 +56,16 @@
         </span>
         <span class="action-arrow">&#x25B6;</span>
       </button>
-      <a href="records.html" class="terminal-action-btn">
+      <button class="terminal-action-btn" id="voiceBtn">
         <span class="action-index">[03]</span>
+        <span class="action-content">
+          <span class="action-cmd" id="voiceBtnCmd">VOICE_INPUT</span>
+          <span class="action-label" id="voiceBtnLabel">语音记录</span>
+        </span>
+        <span class="action-arrow">&#x25B6;</span>
+      </button>
+      <a href="records.html" class="terminal-action-btn">
+        <span class="action-index">[04]</span>
         <span class="action-content">
           <span class="action-cmd">VIEW_HISTORY</span>
           <span class="action-label">历史记录</span>
@@ -65,7 +73,7 @@
         <span class="action-arrow">&#x25B6;</span>
       </a>
       <a href="settings.html" class="terminal-action-btn">
-        <span class="action-index">[04]</span>
+        <span class="action-index">[05]</span>
         <span class="action-content">
           <span class="action-cmd">SYSTEM_CONFIG</span>
           <span class="action-label">系统设置</span>
@@ -78,6 +86,34 @@
     <input type="file" accept="image/*" capture="environment" id="cameraInput" style="display:none">
     <input type="file" accept="image/*" id="albumInput" style="display:none">
   </main>
+
+  <!-- 语音输入面板 -->
+  <div class="voice-overlay" id="voiceOverlay">
+    <div class="voice-panel">
+      <div class="terminal-panel-header">
+        <span class="terminal-dot"></span>VOICE_INPUT
+        <button class="voice-close-btn" id="voiceCloseBtn">&times;</button>
+      </div>
+      <div class="voice-panel-body">
+        <div class="voice-mic-wrap">
+          <div class="voice-ring-outer" id="voiceRing"></div>
+          <button class="voice-mic-btn" id="voiceMicBtn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="1" width="6" height="11" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
+        </div>
+        <p class="voice-status" id="voiceStatus">点击麦克风开始录音</p>
+        <textarea class="terminal-input voice-transcript" id="voiceTranscript" rows="3" placeholder="语音转写结果将显示在这里，也可以直接输入文字描述..."></textarea>
+        <button class="terminal-action-btn voice-confirm-btn" id="voiceConfirmBtn" style="display:none">
+          <span class="action-index">[OK]</span>
+          <span class="action-content">
+            <span class="action-cmd">ANALYZE_TEXT</span>
+            <span class="action-label">确认并分析</span>
+          </span>
+          <span class="action-arrow">&#x25B6;</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- 识别中遮罩 -->
   <div class="home-loading-overlay" id="loadingOverlay">

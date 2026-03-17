@@ -280,6 +280,206 @@
       });
   }
 
+  // ===== 语音输入功能 =====
+  var voiceBtn = document.getElementById("voiceBtn");
+  var voiceBtnCmd = document.getElementById("voiceBtnCmd");
+  var voiceBtnLabel = document.getElementById("voiceBtnLabel");
+  var voiceOverlay = document.getElementById("voiceOverlay");
+  var voiceCloseBtn = document.getElementById("voiceCloseBtn");
+  var voiceMicBtn = document.getElementById("voiceMicBtn");
+  var voiceRing = document.getElementById("voiceRing");
+  var voiceStatus = document.getElementById("voiceStatus");
+  var voiceTranscript = document.getElementById("voiceTranscript");
+  var voiceConfirmBtn = document.getElementById("voiceConfirmBtn");
+
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var recognition = null;
+  var isRecording = false;
+  var speechSupported = !!SpeechRecognition;
+
+  if (!speechSupported) {
+    voiceBtnCmd.textContent = "TEXT_INPUT";
+    voiceBtnLabel.textContent = "文字记录";
+    voiceMicBtn.style.display = "none";
+    voiceRing.style.display = "none";
+    voiceStatus.textContent = "请输入食物描述";
+    voiceConfirmBtn.style.display = "";
+  }
+
+  if (speechSupported) {
+    recognition = new SpeechRecognition();
+    recognition.lang = "zh-CN";
+    recognition.interimResults = true;
+    recognition.continuous = true;
+
+    recognition.onresult = function (e) {
+      var transcript = "";
+      for (var i = 0; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript;
+      }
+      voiceTranscript.value = transcript;
+    };
+
+    recognition.onend = function () {
+      stopRecording();
+    };
+
+    recognition.onerror = function (e) {
+      console.error("语音识别错误:", e.error);
+      stopRecording();
+      if (e.error === "not-allowed") {
+        voiceStatus.textContent = "麦克风权限被拒绝，请手动输入";
+      } else {
+        voiceStatus.textContent = "语音识别出错，请手动输入";
+      }
+      voiceConfirmBtn.style.display = "";
+    };
+  }
+
+  function startRecording() {
+    if (!recognition) return;
+    voiceTranscript.value = "";
+    isRecording = true;
+    voiceMicBtn.classList.add("recording");
+    voiceRing.classList.add("recording");
+    voiceStatus.textContent = "正在录音...";
+    voiceConfirmBtn.style.display = "none";
+    try {
+      recognition.start();
+    } catch (e) {
+      stopRecording();
+    }
+  }
+
+  function stopRecording() {
+    isRecording = false;
+    voiceMicBtn.classList.remove("recording");
+    voiceRing.classList.remove("recording");
+    voiceStatus.textContent = "录音结束，可编辑后确认";
+    voiceConfirmBtn.style.display = "";
+    try {
+      recognition && recognition.stop();
+    } catch (e) {}
+  }
+
+  function openVoicePanel() {
+    voiceOverlay.classList.add("visible");
+    voiceTranscript.value = "";
+    if (speechSupported) {
+      voiceStatus.textContent = "点击麦克风开始录音";
+      voiceConfirmBtn.style.display = "none";
+    }
+  }
+
+  function closeVoicePanel() {
+    if (isRecording) stopRecording();
+    voiceOverlay.classList.remove("visible");
+  }
+
+  voiceBtn.addEventListener("click", openVoicePanel);
+  voiceCloseBtn.addEventListener("click", closeVoicePanel);
+
+  voiceOverlay.addEventListener("click", function (e) {
+    if (e.target === voiceOverlay) closeVoicePanel();
+  });
+
+  if (speechSupported) {
+    voiceMicBtn.addEventListener("click", function () {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+  }
+
+  // textarea 有内容时自动显示确认按钮
+  voiceTranscript.addEventListener("input", function () {
+    if (voiceTranscript.value.trim()) {
+      voiceConfirmBtn.style.display = "";
+    }
+  });
+
+  voiceConfirmBtn.addEventListener("click", function () {
+    var text = voiceTranscript.value.trim();
+    if (!text) return;
+
+    closeVoicePanel();
+    recognizeText(text);
+  });
+
+  function recognizeText(text) {
+    var settings = getSettings();
+    var currentModel = settings.model || DEFAULT_MODEL;
+    var config = MODEL_CONFIG[currentModel];
+
+    if (!config) {
+      showError("不支持的模型，请在设置中切换");
+      return;
+    }
+
+    var apiKey = settings.apiKeys[config.provider];
+    if (!apiKey) {
+      showError("请先在设置页面配置 " + config.label + " 的 API Key");
+      return;
+    }
+
+    startLoadingAnimation();
+
+    fetch("/api/food/recognize-text", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": apiKey,
+      },
+      body: JSON.stringify({ text: text, model: currentModel }),
+    })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.json().then(function (err) {
+            throw new Error(err.error || "识别失败");
+          });
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        stopLoadingAnimation();
+
+        var record = {
+          id: generateId(),
+          imageBase64: "",
+          name: data.name || "未知菜品",
+          ingredients: data.ingredients || [],
+          cookingMethod: data.cookingMethod || "",
+          nutrition: data.nutrition || {},
+          model: currentModel,
+          createdAt: new Date().toISOString(),
+          photoTime: new Date().toISOString(),
+          location: null,
+          source: "voice",
+          voiceText: text,
+        };
+
+        // 尝试获取位置
+        getBrowserLocation(function (pos) {
+          if (pos) {
+            reverseGeocode(pos.lat, pos.lng, function (address) {
+              record.location = { lat: pos.lat, lng: pos.lng, address: address || "" };
+              saveRecord(record);
+              location.href = "detail.html?id=" + record.id;
+            });
+          } else {
+            saveRecord(record);
+            location.href = "detail.html?id=" + record.id;
+          }
+        });
+      })
+      .catch(function (err) {
+        stopLoadingAnimation();
+        showError(err.message || "识别失败，请重试");
+      });
+  }
+
   // 在终端消息区追加错误消息
   function showError(msg) {
     var el = document.createElement("div");

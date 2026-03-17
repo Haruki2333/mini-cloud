@@ -101,15 +101,31 @@
       "</div></div>";
   }
 
+  var isVoice = record.source === "voice";
+  var sourceLabel = isVoice ? ' <span class="terminal-meta-label">SRC:</span>VOICE' : '';
+
+  var topSection = "";
+  if (record.imageBase64) {
+    topSection =
+      '<div class="terminal-image-wrap">' +
+      '<img class="detail-image" src="' +
+      escapeHtml(record.imageBase64) +
+      '" alt="' +
+      escapeHtml(record.name) +
+      '">' +
+      '<div class="terminal-image-scanline"></div>' +
+      '</div>';
+  } else if (isVoice && record.voiceText) {
+    topSection =
+      '<div class="terminal-panel">' +
+      '<div class="terminal-panel-header"><span class="terminal-dot"></span>VOICE_TRANSCRIPT</div>' +
+      '<div class="voice-text-display">' +
+      escapeHtml(record.voiceText) +
+      '</div></div>';
+  }
+
   container.innerHTML =
-    '<div class="terminal-image-wrap">' +
-    '<img class="detail-image" src="' +
-    escapeHtml(record.imageBase64) +
-    '" alt="' +
-    escapeHtml(record.name) +
-    '">' +
-    '<div class="terminal-image-scanline"></div>' +
-    '</div>' +
+    topSection +
     '<div class="terminal-panel">' +
     '<div class="terminal-panel-header"><span class="terminal-dot"></span>IDENTIFICATION</div>' +
     '<div class="terminal-panel-body">' +
@@ -120,6 +136,7 @@
     escapeHtml(photoTimeStr) +
     '&emsp;&middot; <span class="terminal-meta-label">MODEL:</span>' +
     escapeHtml(modelLabel) +
+    sourceLabel +
     "</p>" +
     (locationStr ? '<p class="detail-location"><span class="terminal-meta-label">LOC:</span> ' + escapeHtml(locationStr) + '</p>' : '') +
     "</div></div>" +
