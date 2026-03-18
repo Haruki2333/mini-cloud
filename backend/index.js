@@ -4,6 +4,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const recognizeRouter = require("./routes/recognize");
 const geocodeRouter = require("./routes/geocode");
+const { setupAsrWebSocket } = require("./routes/asr");
 
 const logger = morgan("tiny");
 
@@ -29,6 +30,8 @@ app.use("/", express.static(path.join(__dirname, "demo/food-tracker")));
 
 const port = process.env.PORT || 80;
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log("启动成功", port);
 });
+
+setupAsrWebSocket(server);

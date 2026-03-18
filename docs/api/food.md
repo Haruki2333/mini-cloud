@@ -148,3 +148,50 @@ AI 食物识别，根据图片识别菜品信息。
 ### 实现位置
 
 `backend/routes/recognize.js`
+
+---
+
+## WS /api/asr/realtime
+
+实时语音识别 WebSocket 代理，将前端音频流转发到千问（DashScope）`qwen3-asr-flash-realtime` 模型。
+
+语音识别与食物识别模型解耦：语音转文字始终使用千问 ASR（只要配置了千问 API Key），与当前选择的食物识别模型无关。
+
+### 连接
+
+```
+ws(s)://<host>/api/asr/realtime?apiKey=<千问API Key>
+```
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| apiKey | 是 | 千问（DashScope）API Key，通过 URL query 传递 |
+
+### 工作流程
+
+1. 前端建立 WebSocket 连接，后端用 `apiKey` 连接 DashScope WebSocket
+2. 前端发送 `session.update` 配置会话参数（VAD、音频格式、采样率）
+3. 前端持续发送 `input_audio_buffer.append`（Base64 编码 PCM16 音频）
+4. 后端透传所有消息到 DashScope，并将 DashScope 返回的转写结果透传回前端
+5. 前端发送 `session.finish` 结束会话
+
+### 前端发送的消息类型
+
+| type | 说明 |
+|------|------|
+| session.update | 配置会话参数 |
+| input_audio_buffer.append | 发送音频数据（Base64） |
+| input_audio_buffer.commit | 提交音频缓冲区 |
+| session.finish | 结束会话 |
+
+### 后端转发的服务端事件
+
+| type | 说明 |
+|------|------|
+| conversation.item.input_audio_transcription.text | 中间转写结果 |
+| conversation.item.input_audio_transcription.completed | 最终转写结果 |
+| error | 错误信息 |
+
+### 实现位置
+
+`backend/routes/asr.js`

@@ -280,100 +280,265 @@
       });
   }
 
-  // ===== 语音输入功能 =====
+  // ===== 语音输入功能（千问 ASR） =====
   var voiceBtn = document.getElementById("voiceBtn");
   var voiceBtnCmd = document.getElementById("voiceBtnCmd");
   var voiceBtnLabel = document.getElementById("voiceBtnLabel");
   var voiceOverlay = document.getElementById("voiceOverlay");
   var voiceCloseBtn = document.getElementById("voiceCloseBtn");
-  var voiceMicBtn = document.getElementById("voiceMicBtn");
-  var voiceRing = document.getElementById("voiceRing");
+  var voiceRecordingIndicator = document.getElementById("voiceRecordingIndicator");
   var voiceStatus = document.getElementById("voiceStatus");
   var voiceTranscript = document.getElementById("voiceTranscript");
+  var voiceStopBtn = document.getElementById("voiceStopBtn");
   var voiceConfirmBtn = document.getElementById("voiceConfirmBtn");
 
-  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  var recognition = null;
   var isRecording = false;
-  var speechSupported = !!SpeechRecognition;
+  var asrWebSocket = null;
+  var audioContext = null;
+  var mediaStream = null;
+  var audioWorkletNode = null;
+  var scriptProcessorNode = null;
+  var micSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 
-  if (!speechSupported) {
+  if (!micSupported) {
     voiceBtnCmd.textContent = "TEXT_INPUT";
     voiceBtnLabel.textContent = "文字记录";
-    voiceMicBtn.style.display = "none";
-    voiceRing.style.display = "none";
-    voiceStatus.textContent = "请输入食物描述";
-    voiceConfirmBtn.style.display = "";
-  }
-
-  if (speechSupported) {
-    recognition = new SpeechRecognition();
-    recognition.lang = "zh-CN";
-    recognition.interimResults = true;
-    recognition.continuous = true;
-
-    recognition.onresult = function (e) {
-      var transcript = "";
-      for (var i = 0; i < e.results.length; i++) {
-        transcript += e.results[i][0].transcript;
-      }
-      voiceTranscript.value = transcript;
-    };
-
-    recognition.onend = function () {
-      stopRecording();
-    };
-
-    recognition.onerror = function (e) {
-      console.error("语音识别错误:", e.error);
-      stopRecording();
-      if (e.error === "not-allowed") {
-        voiceStatus.textContent = "麦克风权限被拒绝，请手动输入";
-      } else {
-        voiceStatus.textContent = "语音识别出错，请手动输入";
-      }
-      voiceConfirmBtn.style.display = "";
-    };
-  }
-
-  function startRecording() {
-    if (!recognition) return;
-    voiceTranscript.value = "";
-    isRecording = true;
-    voiceMicBtn.classList.add("recording");
-    voiceRing.classList.add("recording");
-    voiceStatus.textContent = "正在录音...";
-    voiceConfirmBtn.style.display = "none";
-    try {
-      recognition.start();
-    } catch (e) {
-      stopRecording();
-    }
-  }
-
-  function stopRecording() {
-    isRecording = false;
-    voiceMicBtn.classList.remove("recording");
-    voiceRing.classList.remove("recording");
-    voiceStatus.textContent = "录音结束，可编辑后确认";
-    voiceConfirmBtn.style.display = "";
-    try {
-      recognition && recognition.stop();
-    } catch (e) {}
   }
 
   function openVoicePanel() {
+    var settings = getSettings();
+    var qwenKey = settings.apiKeys && settings.apiKeys.qwen;
+
+    if (micSupported && !qwenKey) {
+      showError("请先在设置页面配置千问（Qwen）的 API Key 以使用语音功能");
+      return;
+    }
+
     voiceOverlay.classList.add("visible");
     voiceTranscript.value = "";
-    if (speechSupported) {
-      voiceStatus.textContent = "点击麦克风开始录音";
-      voiceConfirmBtn.style.display = "none";
+    voiceConfirmBtn.style.display = "none";
+
+    if (micSupported) {
+      voiceStopBtn.style.display = "";
+      voiceRecordingIndicator.classList.remove("hidden");
+      startVoiceRecording();
+    } else {
+      // 降级：纯文字输入模式
+      voiceStopBtn.style.display = "none";
+      voiceRecordingIndicator.classList.add("hidden");
+      voiceStatus.textContent = "请输入食物描述";
+      voiceConfirmBtn.style.display = "";
     }
   }
 
   function closeVoicePanel() {
-    if (isRecording) stopRecording();
+    if (isRecording) stopVoiceRecording();
     voiceOverlay.classList.remove("visible");
+  }
+
+  function startVoiceRecording() {
+    isRecording = true;
+    voiceStatus.textContent = "正在连接语音服务...";
+    voiceTranscript.value = "";
+
+    navigator.mediaDevices.getUserMedia({
+      audio: { sampleRate: 16000, channelCount: 1 }
+    }).then(function (stream) {
+      if (!isRecording) {
+        stream.getTracks().forEach(function (t) { t.stop(); });
+        return;
+      }
+      mediaStream = stream;
+
+      audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      var source = audioContext.createMediaStreamSource(stream);
+
+      // 建立 WebSocket 连接
+      var settings = getSettings();
+      var qwenKey = settings.apiKeys.qwen;
+      var wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
+      var wsUrl = wsProtocol + "//" + location.host + "/api/asr/realtime?apiKey=" + encodeURIComponent(qwenKey);
+
+      asrWebSocket = new WebSocket(wsUrl);
+
+      asrWebSocket.onopen = function () {
+        if (!isRecording) return;
+        voiceStatus.textContent = "正在录音...";
+
+        // 发送 session.update
+        asrWebSocket.send(JSON.stringify({
+          type: "session.update",
+          session: {
+            turn_detection: { type: "server_vad" },
+            input_audio_format: "pcm16",
+            sample_rate: 16000
+          }
+        }));
+
+        // 开始采集音频
+        setupAudioCapture(source);
+      };
+
+      asrWebSocket.onmessage = function (e) {
+        try {
+          var msg = JSON.parse(e.data);
+          if (msg.type === "conversation.item.input_audio_transcription.completed") {
+            // 最终结果：追加文本
+            var current = voiceTranscript.value;
+            voiceTranscript.value = current + (msg.transcript || "");
+          } else if (msg.type === "conversation.item.input_audio_transcription.text") {
+            // 中间结果：显示在 textarea（追加到已确认文本后）
+            var confirmed = voiceTranscript.getAttribute("data-confirmed") || "";
+            voiceTranscript.value = confirmed + (msg.transcript || "");
+          } else if (msg.type === "error") {
+            voiceStatus.textContent = "语音识别错误: " + (msg.error || "未知错误");
+            console.error("[ASR]", msg);
+          }
+        } catch (err) {
+          console.error("[ASR] 消息解析失败:", err);
+        }
+      };
+
+      asrWebSocket.onerror = function () {
+        voiceStatus.textContent = "语音服务连接失败，请手动输入";
+        stopVoiceRecording();
+        voiceConfirmBtn.style.display = "";
+      };
+
+      asrWebSocket.onclose = function () {
+        if (isRecording) {
+          stopVoiceRecording();
+        }
+      };
+    }).catch(function (err) {
+      console.error("麦克风获取失败:", err);
+      isRecording = false;
+      voiceRecordingIndicator.classList.add("hidden");
+      voiceStopBtn.style.display = "none";
+      if (err.name === "NotAllowedError") {
+        voiceStatus.textContent = "麦克风权限被拒绝，请手动输入";
+      } else {
+        voiceStatus.textContent = "无法访问麦克风，请手动输入";
+      }
+      voiceConfirmBtn.style.display = "";
+    });
+  }
+
+  function setupAudioCapture(source) {
+    // 用于累积音频数据并定时发送
+    var audioBuffer = [];
+    var sendInterval = null;
+
+    function sendAudioChunk() {
+      if (!asrWebSocket || asrWebSocket.readyState !== WebSocket.OPEN) return;
+      if (audioBuffer.length === 0) return;
+
+      // 合并所有 buffer
+      var totalLen = 0;
+      audioBuffer.forEach(function (buf) { totalLen += buf.length; });
+      var merged = new Int16Array(totalLen);
+      var offset = 0;
+      audioBuffer.forEach(function (buf) {
+        merged.set(buf, offset);
+        offset += buf.length;
+      });
+      audioBuffer = [];
+
+      // Int16Array → Base64
+      var bytes = new Uint8Array(merged.buffer);
+      var binary = "";
+      for (var i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      var base64 = btoa(binary);
+
+      asrWebSocket.send(JSON.stringify({
+        type: "input_audio_buffer.append",
+        audio: base64
+      }));
+    }
+
+    // 尝试 AudioWorklet，降级到 ScriptProcessor
+    if (audioContext.audioWorklet) {
+      audioContext.audioWorklet.addModule("js/pcm-worklet.js").then(function () {
+        if (!isRecording) return;
+        audioWorkletNode = new AudioWorkletNode(audioContext, "pcm-processor");
+        audioWorkletNode.port.onmessage = function (e) {
+          audioBuffer.push(new Int16Array(e.data));
+        };
+        source.connect(audioWorkletNode);
+        audioWorkletNode.connect(audioContext.destination);
+        sendInterval = setInterval(sendAudioChunk, 100);
+      }).catch(function () {
+        // AudioWorklet 加载失败，用 ScriptProcessor
+        useFallbackProcessor(source, audioBuffer);
+        sendInterval = setInterval(sendAudioChunk, 100);
+      });
+    } else {
+      useFallbackProcessor(source, audioBuffer);
+      sendInterval = setInterval(sendAudioChunk, 100);
+    }
+
+    // 保存清理函数
+    audioContext._cleanupCapture = function () {
+      if (sendInterval) clearInterval(sendInterval);
+      if (audioWorkletNode) {
+        audioWorkletNode.disconnect();
+        audioWorkletNode = null;
+      }
+      if (scriptProcessorNode) {
+        scriptProcessorNode.disconnect();
+        scriptProcessorNode = null;
+      }
+    };
+  }
+
+  function useFallbackProcessor(source, audioBuffer) {
+    scriptProcessorNode = audioContext.createScriptProcessor(4096, 1, 1);
+    scriptProcessorNode.onaudioprocess = function (e) {
+      var input = e.inputBuffer.getChannelData(0);
+      var pcm16 = new Int16Array(input.length);
+      for (var i = 0; i < input.length; i++) {
+        pcm16[i] = Math.max(-32768, Math.min(32767, Math.round(input[i] * 32767)));
+      }
+      audioBuffer.push(pcm16);
+    };
+    source.connect(scriptProcessorNode);
+    scriptProcessorNode.connect(audioContext.destination);
+  }
+
+  function stopVoiceRecording() {
+    isRecording = false;
+    voiceRecordingIndicator.classList.add("hidden");
+    voiceStopBtn.style.display = "none";
+    voiceStatus.textContent = "录音结束，可编辑后确认";
+    voiceConfirmBtn.style.display = "";
+
+    // 停止音频采集
+    if (audioContext && audioContext._cleanupCapture) {
+      audioContext._cleanupCapture();
+    }
+
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(function (t) { t.stop(); });
+      mediaStream = null;
+    }
+
+    if (audioContext) {
+      audioContext.close().catch(function () {});
+      audioContext = null;
+    }
+
+    // 关闭 WebSocket
+    if (asrWebSocket) {
+      if (asrWebSocket.readyState === WebSocket.OPEN) {
+        try {
+          asrWebSocket.send(JSON.stringify({ type: "session.finish" }));
+        } catch (e) {}
+      }
+      asrWebSocket.close();
+      asrWebSocket = null;
+    }
   }
 
   voiceBtn.addEventListener("click", openVoicePanel);
@@ -383,15 +548,9 @@
     if (e.target === voiceOverlay) closeVoicePanel();
   });
 
-  if (speechSupported) {
-    voiceMicBtn.addEventListener("click", function () {
-      if (isRecording) {
-        stopRecording();
-      } else {
-        startRecording();
-      }
-    });
-  }
+  voiceStopBtn.addEventListener("click", function () {
+    stopVoiceRecording();
+  });
 
   // textarea 有内容时自动显示确认按钮
   voiceTranscript.addEventListener("input", function () {
