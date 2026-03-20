@@ -64,7 +64,11 @@ var ASR = (function () {
             } else if (msg.type === "conversation.item.input_audio_transcription.text") {
               if (callbacks.onTranscript) callbacks.onTranscript(msg.transcript || "");
             } else if (msg.type === "error") {
-              if (callbacks.onError) callbacks.onError(msg.error || "未知错误");
+              var errMsg = msg.error;
+              if (typeof errMsg === "object" && errMsg !== null) {
+                errMsg = errMsg.message || JSON.stringify(errMsg);
+              }
+              if (callbacks.onError) callbacks.onError(errMsg || "未知错误");
             }
           } catch (err) {
             console.error("[ASR] 消息解析失败:", err);
