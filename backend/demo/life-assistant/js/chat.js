@@ -202,8 +202,14 @@
         }
       },
       onError: function (err) {
+        ASR.stop();
         addErrorMessage(err);
         resetRecordingUI();
+        // 移除录音气泡
+        if (recordingMsgEl) {
+          recordingMsgEl.remove();
+          recordingMsgEl = null;
+        }
       },
     });
   }

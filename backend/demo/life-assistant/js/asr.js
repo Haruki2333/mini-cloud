@@ -18,6 +18,12 @@ var ASR = (function () {
 
     if (callbacks.onRecording) callbacks.onRecording("connecting");
 
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      isRecording = false;
+      if (callbacks.onError) callbacks.onError("当前环境不支持麦克风访问，请使用 HTTPS 访问页面");
+      return;
+    }
+
     navigator.mediaDevices
       .getUserMedia({ audio: { sampleRate: 16000, channelCount: 1 } })
       .then(function (stream) {
@@ -52,6 +58,7 @@ var ASR = (function () {
         asrWebSocket.onmessage = function (e) {
           try {
             var msg = JSON.parse(e.data);
+            if (!callbacks) return;
             if (msg.type === "conversation.item.input_audio_transcription.completed") {
               if (callbacks.onFinalResult) callbacks.onFinalResult(msg.transcript || "");
             } else if (msg.type === "conversation.item.input_audio_transcription.text") {
@@ -65,7 +72,7 @@ var ASR = (function () {
         };
 
         asrWebSocket.onerror = function () {
-          if (callbacks.onError) callbacks.onError("语音服务连接失败");
+          if (callbacks && callbacks.onError) callbacks.onError("语音服务连接失败");
           stop();
         };
 
