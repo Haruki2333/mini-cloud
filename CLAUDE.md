@@ -18,11 +18,13 @@ mini-cloud/
 │   ├── routes/                     # API 路由
 │   │   ├── recognize.js            # 食物识别相关接口
 │   │   ├── geocode.js              # 反向地理编码代理
-│   │   └── asr.js                  # WebSocket 实时语音识别
+│   │   ├── asr.js                  # WebSocket 实时语音识别
+│   │   └── chat.js                 # 通用对话接口
 │   ├── services/                   # 业务服务模块
 │   │   └── llm.js                  # LLM 调用封装
 │   ├── demo/                       # H5 Demo 页面（静态文件，通过 /demo/* 访问）
-│   │   └── food-tracker/           # 食物记录 Demo（拍照识别，localStorage 存储）
+│   │   ├── food-tracker/           # 食物记录 Demo（拍照识别，localStorage 存储）
+│   │   └── life-assistant/         # 生活助理 Demo（语音对话，LLM 聊天）
 │   └── Dockerfile
 ├── docs/                           # 项目文档/知识库
 │   ├── api/                        # 接口文档（按业务域组织）
@@ -54,6 +56,7 @@ mini-cloud/
 - `GET /api/food/models` — 获取可用 AI 模型列表（详见 `docs/api/food.md`）
 - `GET /api/geocode/reverse` — 反向地理编码代理（详见 `docs/api/geocode.md`）
 - `WebSocket /api/asr/realtime` — 实时语音识别
+- `POST /api/chat/completions` — 通用 AI 对话（详见 `docs/api/chat.md`）
 - `GET /api/wx_openid` — 获取微信 Open ID（小程序专用）
 
 完整接口文档见 `docs/api/` 目录。

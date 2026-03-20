@@ -1,0 +1,344 @@
+(function () {
+  var chatMessages = document.getElementById("chatMessages");
+  var micBtn = document.getElementById("micBtn");
+  var micHint = document.getElementById("micHint");
+  var profileBadge = document.getElementById("profileBadge");
+  var toastEl = document.getElementById("toast");
+
+  var isWaitingLLM = false;
+  var confirmedText = "";
+  var recordingMsgEl = null;
+  var thinkingMsgEl = null;
+
+  // ===== 初始化 =====
+  function init() {
+    checkApiKey();
+    loadHistory();
+    showWelcome();
+    micBtn.addEventListener("click", toggleRecording);
+  }
+
+  function checkApiKey() {
+    var settings = getSettings();
+    var model = settings.model || DEFAULT_MODEL;
+    var key = getApiKeyForModel(model);
+    if (!key) {
+      profileBadge.classList.add("show");
+    } else {
+      profileBadge.classList.remove("show");
+    }
+  }
+
+  // ===== Toast =====
+  var toastTimer = null;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      toastEl.classList.remove("show");
+    }, 2500);
+  }
+
+  // ===== 消息渲染 =====
+  function addMessage(role, content, save) {
+    var div = document.createElement("div");
+    div.className = "chat-msg--" + role;
+
+    if (role === "assistant") {
+      div.innerHTML = formatAssistantContent(content);
+    } else {
+      div.textContent = content;
+    }
+
+    chatMessages.appendChild(div);
+    scrollToBottom();
+
+    if (save !== false) {
+      var history = getChatHistory();
+      history.push({ role: role, content: content, time: new Date().toISOString() });
+      saveChatHistory(history);
+    }
+
+    return div;
+  }
+
+  function addSystemMessage(text) {
+    var div = document.createElement("div");
+    div.className = "chat-msg--system";
+    div.textContent = text;
+    chatMessages.appendChild(div);
+    scrollToBottom();
+  }
+
+  function addErrorMessage(text) {
+    var div = document.createElement("div");
+    div.className = "chat-msg--error";
+    div.textContent = "[ERROR] " + text;
+    chatMessages.appendChild(div);
+    scrollToBottom();
+  }
+
+  function formatAssistantContent(content) {
+    // 简单的 markdown 格式化：加粗、换行
+    var html = escapeHtml(content);
+    html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/\n/g, "<br>");
+    return html;
+  }
+
+  function scrollToBottom() {
+    requestAnimationFrame(function () {
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+  }
+
+  // ===== 欢迎消息 =====
+  function showWelcome() {
+    var history = getChatHistory();
+    if (history.length > 0) return;
+
+    addSystemMessage("> [LINK VERIFIED]");
+
+    var profile = getProfile();
+    var greeting = profile.name
+      ? profile.name + "，你好！我是光明助理，有什么可以帮你的？"
+      : "你好！我是光明助理，有什么可以帮你的？";
+
+    typeMessage(greeting);
+  }
+
+  function typeMessage(text) {
+    var div = document.createElement("div");
+    div.className = "chat-msg--assistant";
+    chatMessages.appendChild(div);
+
+    var i = 0;
+    function typeNext() {
+      if (i < text.length) {
+        div.innerHTML = formatAssistantContent(text.substring(0, i + 1));
+        i++;
+        scrollToBottom();
+        setTimeout(typeNext, 30 + Math.random() * 20);
+      } else {
+        // 保存欢迎消息到历史
+        var history = getChatHistory();
+        history.push({ role: "assistant", content: text, time: new Date().toISOString() });
+        saveChatHistory(history);
+      }
+    }
+    typeNext();
+  }
+
+  // ===== 加载历史记录 =====
+  function loadHistory() {
+    var history = getChatHistory();
+    if (history.length === 0) return;
+
+    addSystemMessage("> [LINK VERIFIED]");
+
+    history.forEach(function (msg) {
+      addMessage(msg.role, msg.content, false);
+    });
+  }
+
+  // ===== 录音控制 =====
+  function toggleRecording() {
+    if (isWaitingLLM) return;
+
+    if (ASR.isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  }
+
+  function startRecording() {
+    var settings = getSettings();
+    var model = settings.model || DEFAULT_MODEL;
+    var apiKey = getApiKeyForModel(model);
+
+    // ASR 始终需要千问 key
+    var qwenKey = settings.apiKeys.qwen;
+    if (!qwenKey) {
+      showToast("请先在个人资料页配置千问 API Key");
+      profileBadge.classList.add("show");
+      return;
+    }
+
+    confirmedText = "";
+    micBtn.classList.add("recording");
+    micHint.innerHTML = "&gt; <span>录音中，再次点击结束</span>";
+
+    // 创建临时录音消息气泡
+    recordingMsgEl = document.createElement("div");
+    recordingMsgEl.className = "chat-msg--recording";
+    recordingMsgEl.innerHTML = '<span class="recording-dot"></span>正在聆听...';
+    chatMessages.appendChild(recordingMsgEl);
+    scrollToBottom();
+
+    ASR.start(qwenKey, {
+      onRecording: function (state) {
+        if (state === "recording") {
+          micHint.innerHTML = "&gt; <span>录音中，再次点击结束</span>";
+        }
+      },
+      onTranscript: function (text) {
+        // 中间结果
+        if (recordingMsgEl) {
+          var display = confirmedText + text;
+          if (display) {
+            recordingMsgEl.innerHTML = '<span class="recording-dot"></span>' + escapeHtml(display);
+          }
+          scrollToBottom();
+        }
+      },
+      onFinalResult: function (text) {
+        // 最终确认结果
+        confirmedText += text;
+        if (recordingMsgEl && confirmedText) {
+          recordingMsgEl.innerHTML = '<span class="recording-dot"></span>' + escapeHtml(confirmedText);
+          scrollToBottom();
+        }
+      },
+      onError: function (err) {
+        addErrorMessage(err);
+        resetRecordingUI();
+      },
+    });
+  }
+
+  function stopRecording() {
+    ASR.stop();
+    resetRecordingUI();
+
+    var text = confirmedText.trim();
+
+    // 移除临时录音气泡
+    if (recordingMsgEl) {
+      recordingMsgEl.remove();
+      recordingMsgEl = null;
+    }
+
+    if (!text) {
+      addSystemMessage("> 未检测到语音内容");
+      return;
+    }
+
+    // 添加用户消息并调用 LLM
+    addMessage("user", text);
+    sendToLLM();
+  }
+
+  function resetRecordingUI() {
+    micBtn.classList.remove("recording");
+    micHint.innerHTML = "&gt; <span>点击下方按钮开始对话</span>";
+  }
+
+  // ===== LLM 调用 =====
+  function sendToLLM() {
+    isWaitingLLM = true;
+    micBtn.style.opacity = "0.5";
+    micBtn.style.pointerEvents = "none";
+
+    // 显示思考中
+    thinkingMsgEl = document.createElement("div");
+    thinkingMsgEl.className = "chat-msg--thinking";
+    thinkingMsgEl.innerHTML = '<span class="thinking-dots"><span></span><span></span><span></span></span> 正在思考...';
+    chatMessages.appendChild(thinkingMsgEl);
+    scrollToBottom();
+
+    var settings = getSettings();
+    var model = settings.model || DEFAULT_MODEL;
+    var apiKey = getApiKeyForModel(model);
+    var profile = getProfile();
+
+    if (!apiKey) {
+      removeThinking();
+      addErrorMessage("缺少 API Key，请在个人资料页配置");
+      profileBadge.classList.add("show");
+      finishLLM();
+      return;
+    }
+
+    // 构建消息列表（最近 20 条）
+    var history = getChatHistory();
+    var recent = history.slice(-20).map(function (m) {
+      return { role: m.role, content: m.content };
+    });
+
+    fetch("/api/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": apiKey,
+      },
+      body: JSON.stringify({
+        messages: recent,
+        model: model,
+        profile: profile,
+      }),
+    })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.json().then(function (data) {
+            throw new Error(data.error || "请求失败 (" + res.status + ")");
+          });
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        removeThinking();
+        if (data.content) {
+          typeAssistantReply(data.content);
+        } else {
+          addErrorMessage("助理返回了空回复");
+          finishLLM();
+        }
+      })
+      .catch(function (err) {
+        removeThinking();
+        addErrorMessage(err.message);
+        finishLLM();
+      });
+  }
+
+  function removeThinking() {
+    if (thinkingMsgEl) {
+      thinkingMsgEl.remove();
+      thinkingMsgEl = null;
+    }
+  }
+
+  function typeAssistantReply(text) {
+    var div = document.createElement("div");
+    div.className = "chat-msg--assistant";
+    chatMessages.appendChild(div);
+
+    var i = 0;
+    function typeNext() {
+      if (i < text.length) {
+        div.innerHTML = formatAssistantContent(text.substring(0, i + 1));
+        i++;
+        scrollToBottom();
+        setTimeout(typeNext, 20 + Math.random() * 15);
+      } else {
+        // 保存到历史
+        var history = getChatHistory();
+        history.push({ role: "assistant", content: text, time: new Date().toISOString() });
+        saveChatHistory(history);
+        finishLLM();
+      }
+    }
+    typeNext();
+  }
+
+  function finishLLM() {
+    isWaitingLLM = false;
+    micBtn.style.opacity = "";
+    micBtn.style.pointerEvents = "";
+  }
+
+  // 启动
+  init();
+})();
