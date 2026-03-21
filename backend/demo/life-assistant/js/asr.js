@@ -47,7 +47,7 @@ var ASR = (function () {
             type: "session.update",
             session: {
               turn_detection: { type: "server_vad" },
-              input_audio_format: "pcm16",
+              input_audio_format: "pcm",
               sample_rate: 16000,
             },
           }));
