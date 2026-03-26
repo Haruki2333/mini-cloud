@@ -2,11 +2,14 @@
   var chatMessages = document.getElementById("chatMessages");
   var micBtn = document.getElementById("micBtn");
   var micHint = document.getElementById("micHint");
+  var chatInput = document.getElementById("chatInput");
+  var sendBtn = document.getElementById("sendBtn");
   var profileBadge = document.getElementById("profileBadge");
   var toastEl = document.getElementById("toast");
 
   var isWaitingLLM = false;
   var confirmedText = "";
+  var pendingUserText = ""; // 当次用户输入，仅此内容传递给模型
   var recordingMsgEl = null;
   var thinkingMsgEl = null;
 
@@ -22,6 +25,24 @@
     loadHistory();
     showWelcome();
     micBtn.addEventListener("click", toggleRecording);
+    sendBtn.addEventListener("click", handleSendText);
+    chatInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.isComposing) {
+        e.preventDefault();
+        handleSendText();
+      }
+    });
+  }
+
+  // ===== 文字输入发送 =====
+  function handleSendText() {
+    if (isWaitingLLM) return;
+    var text = chatInput.value.trim();
+    if (!text) return;
+    chatInput.value = "";
+    addMessage("user", text);
+    pendingUserText = text;
+    sendToLLM();
   }
 
   function checkApiKey() {
@@ -174,6 +195,7 @@
 
     confirmedText = "";
     micBtn.classList.add("recording");
+    micHint.style.display = "";
     micHint.innerHTML = "&gt; <span>录音中，再次点击结束</span>";
 
     // 创建临时录音消息气泡
@@ -184,11 +206,7 @@
     scrollToBottom();
 
     ASR.start(qwenKey, {
-      onRecording: function (state) {
-        if (state === "recording") {
-          micHint.innerHTML = "&gt; <span>录音中，再次点击结束</span>";
-        }
-      },
+      onRecording: function () {},
       onTranscript: function (text) {
         // 中间结果
         if (recordingMsgEl) {
@@ -239,12 +257,13 @@
 
     // 添加用户消息并调用 LLM
     addMessage("user", text);
+    pendingUserText = text;
     sendToLLM();
   }
 
   function resetRecordingUI() {
     micBtn.classList.remove("recording");
-    micHint.innerHTML = "&gt; <span>点击下方按钮开始对话</span>";
+    micHint.style.display = "none";
   }
 
   // ===== SSE 解析 =====
@@ -340,6 +359,9 @@
     isWaitingLLM = true;
     micBtn.style.opacity = "0.5";
     micBtn.style.pointerEvents = "none";
+    sendBtn.style.opacity = "0.5";
+    sendBtn.style.pointerEvents = "none";
+    chatInput.disabled = true;
 
     // 显示思考气泡
     createThinkingBubble();
@@ -357,11 +379,8 @@
       return;
     }
 
-    // 构建消息列表（最近 20 条）
-    var history = getChatHistory();
-    var recent = history.slice(-20).map(function (m) {
-      return { role: m.role, content: m.content };
-    });
+    // 仅将当次用户输入传递给模型
+    var recent = [{ role: "user", content: pendingUserText }];
 
     fetch("/api/chat/completions", {
       method: "POST",
@@ -486,6 +505,10 @@
     isWaitingLLM = false;
     micBtn.style.opacity = "";
     micBtn.style.pointerEvents = "";
+    sendBtn.style.opacity = "";
+    sendBtn.style.pointerEvents = "";
+    chatInput.disabled = false;
+    chatInput.focus();
   }
 
   // 启动
