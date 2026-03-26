@@ -53,10 +53,17 @@ async function chat(modelId, messages, apiKey, options = {}) {
     throw new Error(`不支持的模型: ${modelId}`);
   }
 
+  // 当使用 function calling 时，关闭思考模式（部分模型不兼容）
+  const defaults = { ...model.defaults };
+  if (options.tools) {
+    delete defaults.enable_thinking;
+    delete defaults.thinking;
+  }
+
   const body = {
     model: modelId,
     messages,
-    ...model.defaults,
+    ...defaults,
     ...options,
   };
 
@@ -81,14 +88,11 @@ async function chat(modelId, messages, apiKey, options = {}) {
   }
 
   const data = await res.json();
-  const content =
-    (data.choices &&
-      data.choices[0] &&
-      data.choices[0].message &&
-      data.choices[0].message.content) ||
-    "";
+  const message = data.choices && data.choices[0] && data.choices[0].message;
+  const content = (message && message.content) || "";
+  const tool_calls = (message && message.tool_calls) || null;
 
-  return { content, usage: data.usage || null };
+  return { content, tool_calls, usage: data.usage || null };
 }
 
 module.exports = { MODEL_REGISTRY, getModels, getModelInfo, chat };
