@@ -10,6 +10,12 @@
   var recordingMsgEl = null;
   var thinkingMsgEl = null;
 
+  // 技能名称映射（用于展示）
+  var SKILL_LABELS = {
+    record_expense: "记录支出",
+    record_food: "记录食物",
+  };
+
   // ===== 初始化 =====
   function init() {
     checkApiKey();
@@ -241,18 +247,102 @@
     micHint.innerHTML = "&gt; <span>点击下方按钮开始对话</span>";
   }
 
-  // ===== LLM 调用 =====
+  // ===== SSE 解析 =====
+  function parseSSEChunk(text) {
+    var events = [];
+    var lines = text.split("\n");
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (line.indexOf("data: ") === 0) {
+        var data = line.substring(6);
+        if (data === "[DONE]") {
+          events.push({ type: "done" });
+        } else {
+          try {
+            events.push(JSON.parse(data));
+          } catch (e) {
+            // 忽略解析错误
+          }
+        }
+      }
+    }
+    return events;
+  }
+
+  // ===== 思考步骤展示 =====
+  function createThinkingBubble() {
+    thinkingMsgEl = document.createElement("div");
+    thinkingMsgEl.className = "chat-msg--thinking";
+    thinkingMsgEl.innerHTML =
+      '<span class="thinking-dots"><span></span><span></span><span></span></span> 正在思考...';
+    chatMessages.appendChild(thinkingMsgEl);
+    scrollToBottom();
+  }
+
+  function showThinkingStep(event) {
+    if (!thinkingMsgEl) return;
+    // 清空默认的"正在思考..."
+    thinkingMsgEl.innerHTML = "";
+
+    var toolCalls = event.tool_calls || [];
+    for (var i = 0; i < toolCalls.length; i++) {
+      var tc = toolCalls[i];
+      var label = SKILL_LABELS[tc.name] || tc.name;
+      var args = {};
+      try {
+        args = JSON.parse(tc.arguments);
+      } catch (e) {}
+
+      var desc = formatToolCallDesc(tc.name, args);
+      var step = document.createElement("div");
+      step.className = "thinking-step";
+      step.setAttribute("data-tool", tc.name);
+      step.innerHTML =
+        '<span class="thinking-icon">&gt;</span> ' +
+        escapeHtml(label + ": " + desc) +
+        '<span class="thinking-status">...</span>';
+      thinkingMsgEl.appendChild(step);
+    }
+    scrollToBottom();
+  }
+
+  function formatToolCallDesc(name, args) {
+    if (name === "record_expense") {
+      return (args.description || "") + " ¥" + (args.amount || "");
+    } else if (name === "record_food") {
+      return (args.food_name || "") + "（" + (args.meal_type || "") + "）";
+    }
+    return JSON.stringify(args);
+  }
+
+  function showToolResult(event) {
+    if (!thinkingMsgEl) return;
+    // 找到对应的 step 元素，更新状态
+    var steps = thinkingMsgEl.querySelectorAll('.thinking-step[data-tool="' + event.name + '"]');
+    for (var i = 0; i < steps.length; i++) {
+      var statusEl = steps[i].querySelector(".thinking-status");
+      if (statusEl && statusEl.textContent === "...") {
+        if (event.result && event.result.success) {
+          statusEl.textContent = "[OK]";
+          statusEl.classList.add("done");
+        } else {
+          statusEl.textContent = "[FAIL]";
+          statusEl.classList.add("fail");
+        }
+        break;
+      }
+    }
+    scrollToBottom();
+  }
+
+  // ===== LLM 调用（SSE 流式） =====
   function sendToLLM() {
     isWaitingLLM = true;
     micBtn.style.opacity = "0.5";
     micBtn.style.pointerEvents = "none";
 
-    // 显示思考中
-    thinkingMsgEl = document.createElement("div");
-    thinkingMsgEl.className = "chat-msg--thinking";
-    thinkingMsgEl.innerHTML = '<span class="thinking-dots"><span></span><span></span><span></span></span> 正在思考...';
-    chatMessages.appendChild(thinkingMsgEl);
-    scrollToBottom();
+    // 显示思考气泡
+    createThinkingBubble();
 
     var settings = getSettings();
     var model = settings.model || DEFAULT_MODEL;
@@ -287,26 +377,79 @@
     })
       .then(function (res) {
         if (!res.ok) {
+          // 非 SSE 错误响应
           return res.json().then(function (data) {
             throw new Error(data.error || "请求失败 (" + res.status + ")");
           });
         }
-        return res.json();
-      })
-      .then(function (data) {
-        removeThinking();
-        if (data.content) {
-          typeAssistantReply(data.content);
-        } else {
-          addErrorMessage("助理返回了空回复");
-          finishLLM();
+
+        var reader = res.body.getReader();
+        var decoder = new TextDecoder();
+        var buffer = "";
+
+        function readChunk() {
+          reader.read().then(function (result) {
+            if (result.done) {
+              // 流结束
+              finishLLM();
+              return;
+            }
+
+            buffer += decoder.decode(result.value, { stream: true });
+            // 按双换行分割完整的 SSE 消息
+            var parts = buffer.split("\n\n");
+            // 最后一个可能不完整，保留在 buffer
+            buffer = parts.pop() || "";
+
+            for (var i = 0; i < parts.length; i++) {
+              var events = parseSSEChunk(parts[i]);
+              for (var j = 0; j < events.length; j++) {
+                handleSSEEvent(events[j]);
+              }
+            }
+
+            readChunk();
+          }).catch(function (err) {
+            removeThinking();
+            addErrorMessage("读取响应流失败: " + err.message);
+            finishLLM();
+          });
         }
+
+        readChunk();
       })
       .catch(function (err) {
         removeThinking();
         addErrorMessage(err.message);
         finishLLM();
       });
+  }
+
+  function handleSSEEvent(event) {
+    switch (event.type) {
+      case "thinking":
+        showThinkingStep(event);
+        break;
+      case "tool_result":
+        showToolResult(event);
+        break;
+      case "answer":
+        removeThinking();
+        if (event.content) {
+          typeAssistantReply(event.content);
+        } else {
+          finishLLM();
+        }
+        break;
+      case "error":
+        removeThinking();
+        addErrorMessage(event.message || "未知错误");
+        finishLLM();
+        break;
+      case "done":
+        // 流结束标记，finishLLM 由 reader.done 触发
+        break;
+    }
   }
 
   function removeThinking() {
