@@ -71,6 +71,8 @@ async function* think({ messages, model, apiKey, profile }) {
     // 有 tool_calls → 通知前端正在思考
     yield {
       type: "thinking",
+      iteration: i + 1,
+      maxIterations: MAX_ITERATIONS,
       content: result.content,
       tool_calls: result.tool_calls.map((tc) => ({
         name: tc.function.name,
@@ -94,12 +96,16 @@ async function* think({ messages, model, apiKey, profile }) {
         args = {};
       }
 
+      const startTime = Date.now();
       const toolResult = await skills.execute(call.function.name, args);
+      const duration = Date.now() - startTime;
 
       yield {
         type: "tool_result",
         name: call.function.name,
+        arguments: call.function.arguments,
         result: toolResult,
+        duration,
       };
 
       // 将工具结果加入对话上下文
