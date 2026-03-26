@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>数据详情 - 光明生活助理</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="detail-page">
+    <!-- 导航 -->
+    <nav class="terminal-nav">
+      <a href="index.html">&larr;</a>
+      <span class="nav-title">DATA_RECORDS</span>
+    </nav>
+
+    <!-- 日期选择 -->
+    <div class="date-picker-row">
+      <label>DATE&gt;</label>
+      <input type="date" class="date-picker" id="dateInput">
+    </div>
+
+    <!-- 今日摘要 -->
+    <section class="terminal-panel">
+      <div class="terminal-panel-header">
+        <span class="terminal-dot"></span>
+        DAILY_SUMMARY
+      </div>
+      <div class="terminal-panel-body">
+        <div class="summary-grid" id="summaryPanel">
+          <div class="summary-item">
+            <div class="summary-value" id="totalExpense">¥0</div>
+            <div class="summary-label">总支出</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-value" id="totalCalories">0</div>
+            <div class="summary-label">总热量 (kcal)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 支出列表 -->
+    <section class="terminal-panel">
+      <div class="terminal-panel-header">
+        <span class="terminal-dot"></span>
+        EXPENSE_LOG
+      </div>
+      <div class="terminal-panel-body" id="expenseList">
+        <div class="record-empty">&gt; 暂无支出记录</div>
+      </div>
+    </section>
+
+    <!-- 食物列表 -->
+    <section class="terminal-panel">
+      <div class="terminal-panel-header">
+        <span class="terminal-dot"></span>
+        FOOD_LOG
+      </div>
+      <div class="terminal-panel-body" id="foodList">
+        <div class="record-empty">&gt; 暂无食物记录</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/types.js"></script>
+  <script src="js/detail.js"></script>
+</body>
+</html>

@@ -12,6 +12,7 @@
   var pendingUserText = ""; // 当次用户输入，仅此内容传递给模型
   var recordingMsgEl = null;
   var thinkingMsgEl = null;
+  var thinkingStepCount = 0; // 当前 thinking 中的工具调用步数
 
   // 技能名称映射（用于展示）
   var SKILL_LABELS = {
@@ -288,8 +289,9 @@
     return events;
   }
 
-  // ===== 思考步骤展示 =====
+  // ===== 思考步骤展示（可折叠日志面板） =====
   function createThinkingBubble() {
+    thinkingStepCount = 0;
     thinkingMsgEl = document.createElement("div");
     thinkingMsgEl.className = "chat-msg--thinking";
     thinkingMsgEl.innerHTML =
@@ -300,8 +302,19 @@
 
   function showThinkingStep(event) {
     if (!thinkingMsgEl) return;
-    // 清空默认的"正在思考..."
-    thinkingMsgEl.innerHTML = "";
+    // 首次收到 thinking 事件，清空默认的"正在思考..."
+    var dots = thinkingMsgEl.querySelector(".thinking-dots");
+    if (dots) {
+      thinkingMsgEl.innerHTML = "";
+    }
+
+    // 添加轮次标题
+    if (event.iteration) {
+      var roundEl = document.createElement("div");
+      roundEl.className = "thinking-round";
+      roundEl.textContent = "轮次 " + event.iteration + "/" + event.maxIterations;
+      thinkingMsgEl.appendChild(roundEl);
+    }
 
     var toolCalls = event.tool_calls || [];
     for (var i = 0; i < toolCalls.length; i++) {
@@ -316,11 +329,24 @@
       var step = document.createElement("div");
       step.className = "thinking-step";
       step.setAttribute("data-tool", tc.name);
+
+      // 摘要行 + 详情区域（入参和结果）
       step.innerHTML =
-        '<span class="thinking-icon">&gt;</span> ' +
-        escapeHtml(label + ": " + desc) +
-        '<span class="thinking-status">...</span>';
+        '<div class="thinking-step-header">' +
+          '<span class="thinking-icon">&gt;</span> ' +
+          escapeHtml(label + ": " + desc) +
+          '<span class="thinking-status">...</span>' +
+        '</div>' +
+        '<div class="thinking-step-detail">' +
+          '<div class="detail-section">' +
+            '<span class="detail-label">入参</span>' +
+            '<pre class="detail-pre">' + escapeHtml(JSON.stringify(args, null, 2)) + '</pre>' +
+          '</div>' +
+          '<div class="detail-section detail-result-section"></div>' +
+        '</div>';
+
       thinkingMsgEl.appendChild(step);
+      thinkingStepCount++;
     }
     scrollToBottom();
   }
@@ -341,17 +367,57 @@
     for (var i = 0; i < steps.length; i++) {
       var statusEl = steps[i].querySelector(".thinking-status");
       if (statusEl && statusEl.textContent === "...") {
+        // 更新状态标签（含耗时）
+        var durationStr = event.duration != null ? " " + event.duration + "ms" : "";
         if (event.result && event.result.success) {
-          statusEl.textContent = "[OK]";
+          statusEl.textContent = "[OK]" + durationStr;
           statusEl.classList.add("done");
         } else {
-          statusEl.textContent = "[FAIL]";
+          statusEl.textContent = "[FAIL]" + durationStr;
           statusEl.classList.add("fail");
+        }
+        // 填充完整返回结果
+        var resultSection = steps[i].querySelector(".detail-result-section");
+        if (resultSection && event.result) {
+          resultSection.innerHTML =
+            '<span class="detail-label">结果</span>' +
+            '<pre class="detail-pre">' +
+            escapeHtml(JSON.stringify(event.result, null, 2)) +
+            '</pre>';
         }
         break;
       }
     }
     scrollToBottom();
+  }
+
+  // 将 thinking 气泡转为可折叠日志（不删除）
+  function collapseThinking() {
+    if (!thinkingMsgEl) return;
+
+    // 如果没有任何工具调用步骤，直接移除（纯对话场景）
+    if (thinkingStepCount === 0) {
+      thinkingMsgEl.remove();
+      thinkingMsgEl = null;
+      return;
+    }
+
+    // 添加摘要行并折叠
+    var summary = document.createElement("div");
+    summary.className = "thinking-summary";
+    summary.innerHTML = '<span class="thinking-icon">&gt;</span> Agent 执行日志（' + thinkingStepCount + ' 步）<span class="thinking-toggle">展开</span>';
+    summary.addEventListener("click", function () {
+      thinkingMsgEl.classList.toggle("collapsed");
+      var toggleEl = summary.querySelector(".thinking-toggle");
+      if (toggleEl) {
+        toggleEl.textContent = thinkingMsgEl.classList.contains("collapsed") ? "展开" : "收起";
+      }
+      scrollToBottom();
+    });
+
+    thinkingMsgEl.insertBefore(summary, thinkingMsgEl.firstChild);
+    thinkingMsgEl.classList.add("collapsed");
+    thinkingMsgEl = null;
   }
 
   // ===== LLM 调用（SSE 流式） =====
@@ -453,7 +519,7 @@
         showToolResult(event);
         break;
       case "answer":
-        removeThinking();
+        collapseThinking();
         if (event.content) {
           typeAssistantReply(event.content);
         } else {
@@ -471,6 +537,7 @@
     }
   }
 
+  // 错误场景下直接移除 thinking 气泡
   function removeThinking() {
     if (thinkingMsgEl) {
       thinkingMsgEl.remove();

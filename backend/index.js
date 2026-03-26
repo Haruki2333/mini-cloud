@@ -5,6 +5,7 @@ const morgan = require("morgan");
 const recognizeRouter = require("./routes/recognize");
 const geocodeRouter = require("./routes/geocode");
 const chatRouter = require("./routes/chat");
+const recordsRouter = require("./routes/records");
 const { setupAsrWebSocket } = require("./routes/asr");
 
 const logger = morgan("tiny");
@@ -19,6 +20,7 @@ app.use(logger);
 app.use("/api/food", recognizeRouter);
 app.use("/api/geocode", geocodeRouter);
 app.use("/api/chat", chatRouter);
+app.use("/api/records", recordsRouter);
 
 // 小程序调用，获取微信 Open ID
 app.get("/api/wx_openid", async (req, res) => {
