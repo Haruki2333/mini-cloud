@@ -39,17 +39,26 @@
       <div class="chat-messages" id="chatMessages"></div>
     </div>
 
-    <!-- 底部麦克风区 -->
+    <!-- 底部输入区 -->
     <div class="chat-bottom">
-      <div class="mic-hint" id="micHint">&gt; <span>点击下方按钮开始对话</span></div>
-      <button class="mic-btn" id="micBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-          <line x1="12" y1="19" x2="12" y2="23"/>
-          <line x1="8" y1="23" x2="16" y2="23"/>
-        </svg>
-      </button>
+      <div class="input-bar">
+        <button class="mic-btn-small" id="micBtn" type="button" title="语音输入">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
+        <input class="chat-input" id="chatInput" type="text" placeholder="输入消息..." autocomplete="off">
+        <button class="send-btn" id="sendBtn" type="button" title="发送">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+      <div class="mic-hint" id="micHint" style="display:none">&gt; <span>录音中，再次点击结束</span></div>
     </div>
   </main>
 
