@@ -395,6 +395,9 @@
   function collapseThinking() {
     if (!thinkingMsgEl) return;
 
+    // 将 DOM 引用缓存到局部变量，避免回调时访问已被置空的外层引用
+    var msgEl = thinkingMsgEl;
+
     // 如果没有任何工具调用步骤，直接移除（纯对话场景）
     if (thinkingStepCount === 0) {
       thinkingMsgEl.remove();
@@ -407,16 +410,16 @@
     summary.className = "thinking-summary";
     summary.innerHTML = '<span class="thinking-icon">&gt;</span> Agent 执行日志（' + thinkingStepCount + ' 步）<span class="thinking-toggle">展开</span>';
     summary.addEventListener("click", function () {
-      thinkingMsgEl.classList.toggle("collapsed");
+      msgEl.classList.toggle("collapsed");
       var toggleEl = summary.querySelector(".thinking-toggle");
       if (toggleEl) {
-        toggleEl.textContent = thinkingMsgEl.classList.contains("collapsed") ? "展开" : "收起";
+        toggleEl.textContent = msgEl.classList.contains("collapsed") ? "展开" : "收起";
       }
       scrollToBottom();
     });
 
-    thinkingMsgEl.insertBefore(summary, thinkingMsgEl.firstChild);
-    thinkingMsgEl.classList.add("collapsed");
+    msgEl.insertBefore(summary, msgEl.firstChild);
+    msgEl.classList.add("collapsed");
     thinkingMsgEl = null;
   }
 
