@@ -4,10 +4,14 @@
 
 const expense = require("./expense");
 const foodLog = require("./food-log");
+const todo = require("./todo");
+const insight = require("./insight");
 
 const skillModules = {
   record_expense: expense,
   record_food: foodLog,
+  record_todo: todo,
+  record_insight: insight,
 };
 
 /** 所有技能的 tool definition 数组（传给 LLM） */

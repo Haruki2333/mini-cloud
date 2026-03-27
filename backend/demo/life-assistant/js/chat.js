@@ -18,6 +18,8 @@
   var SKILL_LABELS = {
     record_expense: "记录支出",
     record_food: "记录食物",
+    record_todo: "记录待办",
+    record_insight: "记录感悟",
   };
 
   // ===== 初始化 =====
@@ -356,6 +358,12 @@
       return (args.description || "") + " ¥" + (args.amount || "");
     } else if (name === "record_food") {
       return (args.food_name || "") + "（" + (args.meal_type || "") + "）";
+    } else if (name === "record_todo") {
+      var p = args.priority ? "（" + args.priority + "）" : "";
+      return (args.title || "") + p;
+    } else if (name === "record_insight") {
+      var tag = args.tag ? "（" + args.tag + "）" : "";
+      return (args.content || "").substring(0, 30) + tag;
     }
     return JSON.stringify(args);
   }

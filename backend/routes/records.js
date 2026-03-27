@@ -6,6 +6,8 @@
 const express = require("express");
 const expense = require("../services/skills/expense");
 const foodLog = require("../services/skills/food-log");
+const todo = require("../services/skills/todo");
+const insight = require("../services/skills/insight");
 
 const router = express.Router();
 
@@ -27,17 +29,29 @@ router.get("/foods", (req, res) => {
   res.json({ success: true, records });
 });
 
+// GET /api/records/todos?date=YYYY-MM-DD
+router.get("/todos", (req, res) => {
+  const date = req.query.date || null;
+  const records = todo.getRecords(date);
+  res.json({ success: true, records });
+});
+
+// GET /api/records/insights?date=YYYY-MM-DD
+router.get("/insights", (req, res) => {
+  const date = req.query.date || null;
+  const records = insight.getRecords(date);
+  res.json({ success: true, records });
+});
+
 // GET /api/records/summary?date=YYYY-MM-DD
 router.get("/summary", (req, res) => {
   const date = req.query.date || getToday();
   const expenses = expense.getRecords(date);
   const foods = foodLog.getRecords(date);
+  const todos = todo.getRecords(date);
+  const insights = insight.getRecords(date);
 
   const totalExpense = expenses.reduce((s, r) => s + r.amount, 0);
-  const totalCalories = foods.reduce(
-    (s, r) => s + (r.estimated_calories || 0),
-    0
-  );
   const expenseByCategory = {};
   expenses.forEach((r) => {
     expenseByCategory[r.category] =
@@ -52,7 +66,9 @@ router.get("/summary", (req, res) => {
       count: expenses.length,
       byCategory: expenseByCategory,
     },
-    food: { totalCalories, count: foods.length },
+    food: { count: foods.length },
+    todo: { count: todos.length },
+    insight: { count: insights.length },
   });
 });
 
