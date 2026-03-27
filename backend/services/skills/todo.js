@@ -1,5 +1,5 @@
 /**
- * 记录每日食物技能
+ * 记录待办事项技能
  * 内存存储，重启后数据清空
  */
 
@@ -9,24 +9,24 @@ let nextId = 1;
 const definition = {
   type: "function",
   function: {
-    name: "record_food",
+    name: "record_todo",
     description:
-      "记录用户吃的食物。当用户提到吃了什么、饮食相关内容时调用此工具。",
+      "记录一条待办事项。当用户提到要做的事、任务、计划、提醒等内容时调用此工具。",
     parameters: {
       type: "object",
       properties: {
-        food_name: { type: "string", description: "食物名称" },
-        meal_type: {
+        title: { type: "string", description: "待办事项内容" },
+        priority: {
           type: "string",
-          description: "餐次",
-          enum: ["早餐", "午餐", "晚餐", "加餐"],
+          description: "优先级",
+          enum: ["高", "中", "低"],
         },
         date: {
           type: "string",
           description: "日期，格式 YYYY-MM-DD，默认今天",
         },
       },
-      required: ["food_name", "meal_type"],
+      required: ["title"],
     },
   },
 };
@@ -35,32 +35,31 @@ function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function getTodayMeals(date) {
+function getTodaySummary(date) {
   const dayRecords = records.filter((r) => r.date === date);
-  const byMeal = {};
+  const byPriority = {};
   dayRecords.forEach((r) => {
-    if (!byMeal[r.meal_type]) byMeal[r.meal_type] = [];
-    byMeal[r.meal_type].push(r.food_name);
+    byPriority[r.priority] = (byPriority[r.priority] || 0) + 1;
   });
-  return { byMeal, count: dayRecords.length };
+  return { count: dayRecords.length, byPriority };
 }
 
 async function execute(params) {
   const date = params.date || getToday();
   const record = {
     id: nextId++,
-    food_name: params.food_name,
-    meal_type: params.meal_type,
+    title: params.title,
+    priority: params.priority || "中",
     date,
     createdAt: new Date().toISOString(),
   };
   records.push(record);
 
-  const todayMeals = getTodayMeals(date);
+  const summary = getTodaySummary(date);
   return {
     success: true,
-    message: `已记录食物：${record.food_name}（${record.meal_type}）`,
-    todayMeals,
+    message: `已记录待办：${record.title}（优先级：${record.priority}）`,
+    todaySummary: summary,
   };
 }
 
