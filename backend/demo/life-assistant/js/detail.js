@@ -20,21 +20,17 @@
     var date = dateInput.value;
     if (!date) return;
 
-    Promise.all([
-      fetch("/api/records/summary?date=" + date).then(function (r) { return r.json(); }),
-      fetch("/api/records/expenses?date=" + date).then(function (r) { return r.json(); }),
-      fetch("/api/records/foods?date=" + date).then(function (r) { return r.json(); }),
-      fetch("/api/records/todos?date=" + date).then(function (r) { return r.json(); }),
-      fetch("/api/records/insights?date=" + date).then(function (r) { return r.json(); }),
-    ]).then(function (results) {
-      renderSummary(results[0]);
-      renderExpenses(results[1].records || []);
-      renderFoods(results[2].records || []);
-      renderTodos(results[3].records || []);
-      renderInsights(results[4].records || []);
-    }).catch(function (err) {
-      console.error("加载数据失败:", err);
-    });
+    var summary = getRecordsSummary(date);
+    var expenses = getRecordsByDate("expense", date);
+    var foods = getRecordsByDate("food", date);
+    var todos = getRecordsByDate("todo", date);
+    var insights = getRecordsByDate("insight", date);
+
+    renderSummary(summary);
+    renderExpenses(expenses);
+    renderFoods(foods);
+    renderTodos(todos);
+    renderInsights(insights);
   }
 
   function renderSummary(data) {
