@@ -16,10 +16,7 @@
 
   // 技能名称映射（用于展示）
   var SKILL_LABELS = {
-    record_expense: "记录支出",
-    record_food: "记录食物",
-    record_todo: "记录待办",
-    record_insight: "记录感悟",
+    record: "记录",
   };
 
   // ===== 初始化 =====
@@ -354,16 +351,28 @@
   }
 
   function formatToolCallDesc(name, args) {
-    if (name === "record_expense") {
-      return (args.description || "") + " ¥" + (args.amount || "");
-    } else if (name === "record_food") {
-      return (args.food_name || "") + "（" + (args.meal_type || "") + "）";
-    } else if (name === "record_todo") {
-      var p = args.priority ? "（" + args.priority + "）" : "";
-      return (args.title || "") + p;
-    } else if (name === "record_insight") {
-      var tag = args.tag ? "（" + args.tag + "）" : "";
-      return (args.content || "").substring(0, 30) + tag;
+    if (name === "record" && args.records) {
+      var descs = [];
+      for (var i = 0; i < args.records.length; i++) {
+        var r = args.records[i];
+        switch (r.type) {
+          case "expense":
+            descs.push((r.description || "") + " ¥" + (r.amount || ""));
+            break;
+          case "food":
+            descs.push((r.food_name || "") + "（" + (r.meal_type || "") + "）");
+            break;
+          case "todo":
+            var p = r.priority ? "（" + r.priority + "）" : "";
+            descs.push((r.title || "") + p);
+            break;
+          case "insight":
+            var tag = r.tag ? "（" + r.tag + "）" : "";
+            descs.push((r.content || "").substring(0, 30) + tag);
+            break;
+        }
+      }
+      return descs.join("；");
     }
     return JSON.stringify(args);
   }
