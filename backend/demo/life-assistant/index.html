@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <main class="chat-page">
+  <main class="home-page">
     <!-- 顶部栏 -->
     <div class="chat-topbar">
       <div class="signal-indicator">
@@ -19,14 +19,6 @@
         <span class="signal-status">CONNECTED</span>
       </div>
       <div class="topbar-links">
-        <a href="detail.html" class="profile-link" title="数据详情">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-          </svg>
-        </a>
         <a href="profile.html" class="profile-link" id="profileLink">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -44,13 +36,61 @@
       <span class="terminal-freq">CH-07</span>
     </div>
 
-    <!-- 聊天消息区 -->
-    <div class="chat-container">
-      <div class="chat-messages" id="chatMessages"></div>
+    <!-- 可滚动主体 -->
+    <div class="home-content" id="homeContent">
+
+      <!-- AI 回复卡片 -->
+      <section class="terminal-panel" id="assistantPanel">
+        <div class="terminal-panel-header">
+          <span class="terminal-dot"></span>
+          ASSISTANT_REPLY
+        </div>
+        <div class="terminal-panel-body">
+          <div id="thinkingArea"></div>
+          <div id="assistantReply" class="assistant-reply"></div>
+        </div>
+      </section>
+
+      <!-- 日期选择 -->
+      <div class="date-picker-row">
+        <label>DATE&gt;</label>
+        <input type="date" class="date-picker" id="dateInput">
+      </div>
+
+      <!-- 每日摘要 + 记录详情 -->
+      <section class="terminal-panel">
+        <div class="terminal-panel-header">
+          <span class="terminal-dot"></span>
+          DAILY_SUMMARY
+        </div>
+        <div class="terminal-panel-body">
+          <div class="summary-grid" id="summaryPanel">
+            <div class="summary-item summary-item--clickable" data-type="expense">
+              <div class="summary-value" id="totalExpense">¥0</div>
+              <div class="summary-label">总支出</div>
+            </div>
+            <div class="summary-item summary-item--clickable" data-type="food">
+              <div class="summary-value" id="totalFood">0</div>
+              <div class="summary-label">食物记录</div>
+            </div>
+            <div class="summary-item summary-item--clickable" data-type="todo">
+              <div class="summary-value" id="totalTodo">0</div>
+              <div class="summary-label">待办事项</div>
+            </div>
+            <div class="summary-item summary-item--clickable" data-type="insight">
+              <div class="summary-value" id="totalInsight">0</div>
+              <div class="summary-label">感悟</div>
+            </div>
+          </div>
+          <!-- 展开的记录列表 -->
+          <div class="summary-detail" id="summaryDetail"></div>
+        </div>
+      </section>
+
     </div>
 
-    <!-- 底部输入区 -->
-    <div class="chat-bottom">
+    <!-- 固定底部输入栏 -->
+    <div class="home-input-bar">
       <div class="input-bar">
         <button class="mic-btn-small" id="micBtn" type="button" title="语音输入">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

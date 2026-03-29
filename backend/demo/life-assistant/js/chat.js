@@ -1,29 +1,47 @@
 (function () {
-  var chatMessages = document.getElementById("chatMessages");
+  var homeContent = document.getElementById("homeContent");
+  var thinkingArea = document.getElementById("thinkingArea");
+  var assistantReply = document.getElementById("assistantReply");
   var micBtn = document.getElementById("micBtn");
   var micHint = document.getElementById("micHint");
   var chatInput = document.getElementById("chatInput");
   var sendBtn = document.getElementById("sendBtn");
   var profileBadge = document.getElementById("profileBadge");
   var toastEl = document.getElementById("toast");
+  var dateInput = document.getElementById("dateInput");
+  var summaryDetail = document.getElementById("summaryDetail");
+
+  var totalExpenseEl = document.getElementById("totalExpense");
+  var totalFoodEl = document.getElementById("totalFood");
+  var totalTodoEl = document.getElementById("totalTodo");
+  var totalInsightEl = document.getElementById("totalInsight");
 
   var isWaitingLLM = false;
   var confirmedText = "";
-  var pendingUserText = ""; // 当次用户输入，仅此内容传递给模型
-  var recordingMsgEl = null;
+  var pendingUserText = "";
   var thinkingMsgEl = null;
-  var thinkingStepCount = 0; // 当前 thinking 中的工具调用步数
+  var thinkingStepCount = 0;
+  var activeDetailType = null; // 当前展开的记录类型
 
-  // 技能名称映射（用于展示）
   var SKILL_LABELS = {
     record: "记录",
+  };
+
+  var DETAIL_TITLES = {
+    expense: "EXPENSE_LOG",
+    food: "FOOD_LOG",
+    todo: "TODO_LOG",
+    insight: "INSIGHT_LOG",
   };
 
   // ===== 初始化 =====
   function init() {
     checkApiKey();
-    loadHistory();
     showWelcome();
+    initDatePicker();
+    refreshData();
+    bindSummaryClicks();
+
     micBtn.addEventListener("click", toggleRecording);
     sendBtn.addEventListener("click", handleSendText);
     chatInput.addEventListener("keydown", function (e) {
@@ -34,13 +52,134 @@
     });
   }
 
+  // ===== 日期选择器 =====
+  function initDatePicker() {
+    dateInput.value = new Date().toISOString().slice(0, 10);
+    dateInput.addEventListener("change", function () {
+      refreshData();
+    });
+  }
+
+  // ===== 摘要格点击 =====
+  function bindSummaryClicks() {
+    var items = document.querySelectorAll(".summary-item--clickable");
+    for (var i = 0; i < items.length; i++) {
+      items[i].addEventListener("click", function () {
+        var type = this.getAttribute("data-type");
+        toggleDetail(type);
+      });
+    }
+  }
+
+  function toggleDetail(type) {
+    var items = document.querySelectorAll(".summary-item--clickable");
+
+    if (activeDetailType === type) {
+      // 收起
+      activeDetailType = null;
+      summaryDetail.innerHTML = "";
+      for (var i = 0; i < items.length; i++) {
+        items[i].classList.remove("active");
+      }
+      return;
+    }
+
+    activeDetailType = type;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].getAttribute("data-type") === type) {
+        items[i].classList.add("active");
+      } else {
+        items[i].classList.remove("active");
+      }
+    }
+
+    var date = dateInput.value;
+    var records = getRecordsByDate(type, date);
+    renderDetailList(type, records);
+  }
+
+  function renderDetailList(type, records) {
+    if (records.length === 0) {
+      summaryDetail.innerHTML =
+        '<div class="summary-detail-inner">' +
+          '<div class="summary-detail-title">' + DETAIL_TITLES[type] + '</div>' +
+          '<div class="record-empty">&gt; 暂无记录</div>' +
+        '</div>';
+      return;
+    }
+
+    var maxShow = 5;
+    var showRecords = records.slice(0, maxShow);
+    var html = '<div class="summary-detail-inner">';
+    html += '<div class="summary-detail-title">' + DETAIL_TITLES[type] + '</div>';
+
+    for (var i = 0; i < showRecords.length; i++) {
+      html += renderRecordItem(type, showRecords[i]);
+    }
+
+    if (records.length > maxShow) {
+      html += '<a href="detail.html" class="record-more">查看全部 ' + records.length + ' 条记录 &rarr;</a>';
+    }
+
+    html += '</div>';
+    summaryDetail.innerHTML = html;
+  }
+
+  function renderRecordItem(type, r) {
+    switch (type) {
+      case "expense":
+        return '<div class="record-item">' +
+          '<span class="record-desc">' + escapeHtml(r.description || "") + '</span>' +
+          '<span class="record-tag">' + escapeHtml(r.category || "") + '</span>' +
+          '<span class="record-amount">¥' + (r.amount || 0) + '</span>' +
+        '</div>';
+      case "food":
+        return '<div class="record-item">' +
+          '<span class="record-desc">' + escapeHtml(r.food_name || "") + '</span>' +
+          '<span class="record-tag">' + escapeHtml(r.meal_type || "") + '</span>' +
+        '</div>';
+      case "todo":
+        return '<div class="record-item">' +
+          '<span class="record-desc">' + escapeHtml(r.title || "") + '</span>' +
+          '<span class="record-tag">' + escapeHtml(r.priority || "") + '</span>' +
+        '</div>';
+      case "insight":
+        var tagHtml = r.tag ? '<span class="record-tag">' + escapeHtml(r.tag) + '</span>' : '';
+        return '<div class="record-item">' +
+          '<span class="record-desc">' + escapeHtml(r.content || "") + '</span>' +
+          tagHtml +
+        '</div>';
+      default:
+        return '';
+    }
+  }
+
+  // ===== 数据刷新 =====
+  function refreshData() {
+    var date = dateInput.value;
+    if (!date) return;
+
+    var summary = getRecordsSummary(date);
+    if (summary.success) {
+      totalExpenseEl.textContent = "¥" + (summary.expense.total || 0);
+      totalFoodEl.textContent = summary.food.count || 0;
+      totalTodoEl.textContent = summary.todo.count || 0;
+      totalInsightEl.textContent = summary.insight.count || 0;
+    }
+
+    // 如果有展开的记录面板，刷新它
+    if (activeDetailType) {
+      var records = getRecordsByDate(activeDetailType, date);
+      renderDetailList(activeDetailType, records);
+    }
+  }
+
   // ===== 文字输入发送 =====
   function handleSendText() {
     if (isWaitingLLM) return;
     var text = chatInput.value.trim();
     if (!text) return;
     chatInput.value = "";
-    addMessage("user", text);
     pendingUserText = text;
     sendToLLM();
   }
@@ -67,112 +206,33 @@
     }, 2500);
   }
 
-  // ===== 消息渲染 =====
-  function addMessage(role, content, save) {
-    var div = document.createElement("div");
-    div.className = "chat-msg--" + role;
+  // ===== 欢迎消息 =====
+  function showWelcome() {
+    var profile = getProfile();
+    var greeting = profile.name
+      ? profile.name + "，你好！我是光明助理，有什么可以帮你的？"
+      : "你好！我是光明助理，有什么可以帮你的？";
 
-    if (role === "assistant") {
-      div.innerHTML = formatAssistantContent(content);
-    } else {
-      div.textContent = content;
-    }
-
-    chatMessages.appendChild(div);
-    scrollToBottom();
-
-    if (save !== false) {
-      var history = getChatHistory();
-      history.push({ role: role, content: content, time: new Date().toISOString() });
-      saveChatHistory(history);
-    }
-
-    return div;
-  }
-
-  function addSystemMessage(text) {
-    var div = document.createElement("div");
-    div.className = "chat-msg--system";
-    div.textContent = text;
-    chatMessages.appendChild(div);
-    scrollToBottom();
-  }
-
-  function addErrorMessage(text) {
-    var div = document.createElement("div");
-    div.className = "chat-msg--error";
-    div.textContent = "[ERROR] " + text;
-    chatMessages.appendChild(div);
-    scrollToBottom();
+    assistantReply.classList.remove("assistant-reply--typing");
+    assistantReply.innerHTML = formatAssistantContent(greeting);
   }
 
   function formatAssistantContent(content) {
-    // 简单的 markdown 格式化：加粗、换行
     var html = escapeHtml(content);
     html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
     html = html.replace(/\n/g, "<br>");
     return html;
   }
 
-  function scrollToBottom() {
+  function scrollToTop() {
     requestAnimationFrame(function () {
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    });
-  }
-
-  // ===== 欢迎消息 =====
-  function showWelcome() {
-    var history = getChatHistory();
-    if (history.length > 0) return;
-
-    addSystemMessage("> [LINK VERIFIED]");
-
-    var profile = getProfile();
-    var greeting = profile.name
-      ? profile.name + "，你好！我是光明助理，有什么可以帮你的？"
-      : "你好！我是光明助理，有什么可以帮你的？";
-
-    typeMessage(greeting);
-  }
-
-  function typeMessage(text) {
-    var div = document.createElement("div");
-    div.className = "chat-msg--assistant";
-    chatMessages.appendChild(div);
-
-    var i = 0;
-    function typeNext() {
-      if (i < text.length) {
-        div.innerHTML = formatAssistantContent(text.substring(0, i + 1));
-        i++;
-        scrollToBottom();
-        setTimeout(typeNext, 30 + Math.random() * 20);
-      } else {
-        // 保存欢迎消息到历史
-        var history = getChatHistory();
-        history.push({ role: "assistant", content: text, time: new Date().toISOString() });
-        saveChatHistory(history);
-      }
-    }
-    typeNext();
-  }
-
-  // ===== 加载历史记录 =====
-  function loadHistory() {
-    var history = getChatHistory();
-    if (history.length === 0) return;
-
-    addSystemMessage("> [LINK VERIFIED]");
-
-    history.forEach(function (msg) {
-      addMessage(msg.role, msg.content, false);
+      homeContent.scrollTop = 0;
     });
   }
 
   // ===== 录音控制 =====
   function toggleRecording() {
     if (isWaitingLLM) return;
-
     if (ASR.isRecording) {
       stopRecording();
     } else {
@@ -182,10 +242,6 @@
 
   function startRecording() {
     var settings = getSettings();
-    var model = settings.model || DEFAULT_MODEL;
-    var apiKey = getApiKeyForModel(model);
-
-    // ASR 始终需要千问 key
     var qwenKey = settings.apiKeys.qwen;
     if (!qwenKey) {
       showToast("请先在个人资料页配置千问 API Key");
@@ -198,42 +254,24 @@
     micHint.style.display = "";
     micHint.innerHTML = "&gt; <span>录音中，再次点击结束</span>";
 
-    // 创建临时录音消息气泡
-    recordingMsgEl = document.createElement("div");
-    recordingMsgEl.className = "chat-msg--recording";
-    recordingMsgEl.innerHTML = '<span class="recording-dot"></span>正在聆听...';
-    chatMessages.appendChild(recordingMsgEl);
-    scrollToBottom();
-
     ASR.start(qwenKey, {
       onRecording: function () {},
       onTranscript: function (text) {
-        // 中间结果
-        if (recordingMsgEl) {
-          var display = confirmedText + text;
-          if (display) {
-            recordingMsgEl.innerHTML = '<span class="recording-dot"></span>' + escapeHtml(display);
-          }
-          scrollToBottom();
+        var display = confirmedText + text;
+        if (display) {
+          micHint.innerHTML = '&gt; <span class="recording-dot"></span> ' + escapeHtml(display);
         }
       },
       onFinalResult: function (text) {
-        // 最终确认结果
         confirmedText += text;
-        if (recordingMsgEl && confirmedText) {
-          recordingMsgEl.innerHTML = '<span class="recording-dot"></span>' + escapeHtml(confirmedText);
-          scrollToBottom();
+        if (confirmedText) {
+          micHint.innerHTML = '&gt; <span class="recording-dot"></span> ' + escapeHtml(confirmedText);
         }
       },
       onError: function (err) {
         ASR.stop();
-        addErrorMessage(err);
+        showToast(err);
         resetRecordingUI();
-        // 移除录音气泡
-        if (recordingMsgEl) {
-          recordingMsgEl.remove();
-          recordingMsgEl = null;
-        }
       },
     });
   }
@@ -243,20 +281,11 @@
     resetRecordingUI();
 
     var text = confirmedText.trim();
-
-    // 移除临时录音气泡
-    if (recordingMsgEl) {
-      recordingMsgEl.remove();
-      recordingMsgEl = null;
-    }
-
     if (!text) {
-      addSystemMessage("> 未检测到语音内容");
+      showToast("未检测到语音内容");
       return;
     }
 
-    // 添加用户消息并调用 LLM
-    addMessage("user", text);
     pendingUserText = text;
     sendToLLM();
   }
@@ -279,35 +308,32 @@
         } else {
           try {
             events.push(JSON.parse(data));
-          } catch (e) {
-            // 忽略解析错误
-          }
+          } catch (e) {}
         }
       }
     }
     return events;
   }
 
-  // ===== 思考步骤展示（可折叠日志面板） =====
+  // ===== 思考步骤展示 =====
   function createThinkingBubble() {
     thinkingStepCount = 0;
+    thinkingArea.innerHTML = "";
     thinkingMsgEl = document.createElement("div");
     thinkingMsgEl.className = "chat-msg--thinking";
     thinkingMsgEl.innerHTML =
       '<span class="thinking-dots"><span></span><span></span><span></span></span> 正在思考...';
-    chatMessages.appendChild(thinkingMsgEl);
-    scrollToBottom();
+    thinkingArea.appendChild(thinkingMsgEl);
+    scrollToTop();
   }
 
   function showThinkingStep(event) {
     if (!thinkingMsgEl) return;
-    // 首次收到 thinking 事件，清空默认的"正在思考..."
     var dots = thinkingMsgEl.querySelector(".thinking-dots");
     if (dots) {
       thinkingMsgEl.innerHTML = "";
     }
 
-    // 添加轮次标题
     if (event.iteration) {
       var roundEl = document.createElement("div");
       roundEl.className = "thinking-round";
@@ -329,7 +355,6 @@
       step.className = "thinking-step";
       step.setAttribute("data-tool", tc.name);
 
-      // 摘要行 + 详情区域（入参和结果）
       step.innerHTML =
         '<div class="thinking-step-header">' +
           '<span class="thinking-icon">&gt;</span> ' +
@@ -347,7 +372,7 @@
       thinkingMsgEl.appendChild(step);
       thinkingStepCount++;
     }
-    scrollToBottom();
+    scrollToTop();
   }
 
   function formatToolCallDesc(name, args) {
@@ -386,15 +411,15 @@
           addRecord(results[k].type, results[k].record);
         }
       }
+      // 刷新数据面板
+      refreshData();
     }
 
     if (!thinkingMsgEl) return;
-    // 找到对应的 step 元素，更新状态
     var steps = thinkingMsgEl.querySelectorAll('.thinking-step[data-tool="' + event.name + '"]');
     for (var i = 0; i < steps.length; i++) {
       var statusEl = steps[i].querySelector(".thinking-status");
       if (statusEl && statusEl.textContent === "...") {
-        // 更新状态标签（含耗时）
         var durationStr = event.duration != null ? " " + event.duration + "ms" : "";
         if (event.result && event.result.success) {
           statusEl.textContent = "[OK]" + durationStr;
@@ -403,7 +428,6 @@
           statusEl.textContent = "[FAIL]" + durationStr;
           statusEl.classList.add("fail");
         }
-        // 填充完整返回结果
         var resultSection = steps[i].querySelector(".detail-result-section");
         if (resultSection && event.result) {
           resultSection.innerHTML =
@@ -415,24 +439,19 @@
         break;
       }
     }
-    scrollToBottom();
+    scrollToTop();
   }
 
-  // 将 thinking 气泡转为可折叠日志（不删除）
   function collapseThinking() {
     if (!thinkingMsgEl) return;
-
-    // 将 DOM 引用缓存到局部变量，避免回调时访问已被置空的外层引用
     var msgEl = thinkingMsgEl;
 
-    // 如果没有任何工具调用步骤，直接移除（纯对话场景）
     if (thinkingStepCount === 0) {
-      thinkingMsgEl.remove();
+      thinkingArea.innerHTML = "";
       thinkingMsgEl = null;
       return;
     }
 
-    // 添加摘要行并折叠
     var summary = document.createElement("div");
     summary.className = "thinking-summary";
     summary.innerHTML = '<span class="thinking-icon">&gt;</span> Agent 执行日志（' + thinkingStepCount + ' 步）<span class="thinking-toggle">展开</span>';
@@ -442,11 +461,15 @@
       if (toggleEl) {
         toggleEl.textContent = msgEl.classList.contains("collapsed") ? "展开" : "收起";
       }
-      scrollToBottom();
     });
 
     msgEl.insertBefore(summary, msgEl.firstChild);
     msgEl.classList.add("collapsed");
+    thinkingMsgEl = null;
+  }
+
+  function removeThinking() {
+    thinkingArea.innerHTML = "";
     thinkingMsgEl = null;
   }
 
@@ -459,8 +482,11 @@
     sendBtn.style.pointerEvents = "none";
     chatInput.disabled = true;
 
-    // 显示思考气泡
+    // 清空上一条回复
+    assistantReply.innerHTML = "";
+    assistantReply.classList.remove("assistant-reply--typing");
     createThinkingBubble();
+    scrollToTop();
 
     var settings = getSettings();
     var model = settings.model || DEFAULT_MODEL;
@@ -469,13 +495,12 @@
 
     if (!apiKey) {
       removeThinking();
-      addErrorMessage("缺少 API Key，请在个人资料页配置");
+      assistantReply.innerHTML = '<span style="color:var(--color-danger)">[ERROR] 缺少 API Key，请在个人资料页配置</span>';
       profileBadge.classList.add("show");
       finishLLM();
       return;
     }
 
-    // 仅将当次用户输入传递给模型
     var recent = [{ role: "user", content: pendingUserText }];
 
     fetch("/api/chat/completions", {
@@ -492,7 +517,6 @@
     })
       .then(function (res) {
         if (!res.ok) {
-          // 非 SSE 错误响应
           return res.json().then(function (data) {
             throw new Error(data.error || "请求失败 (" + res.status + ")");
           });
@@ -505,15 +529,12 @@
         function readChunk() {
           reader.read().then(function (result) {
             if (result.done) {
-              // 流结束
               finishLLM();
               return;
             }
 
             buffer += decoder.decode(result.value, { stream: true });
-            // 按双换行分割完整的 SSE 消息
             var parts = buffer.split("\n\n");
-            // 最后一个可能不完整，保留在 buffer
             buffer = parts.pop() || "";
 
             for (var i = 0; i < parts.length; i++) {
@@ -526,7 +547,7 @@
             readChunk();
           }).catch(function (err) {
             removeThinking();
-            addErrorMessage("读取响应流失败: " + err.message);
+            assistantReply.innerHTML = '<span style="color:var(--color-danger)">[ERROR] 读取响应流失败: ' + escapeHtml(err.message) + '</span>';
             finishLLM();
           });
         }
@@ -535,7 +556,7 @@
       })
       .catch(function (err) {
         removeThinking();
-        addErrorMessage(err.message);
+        assistantReply.innerHTML = '<span style="color:var(--color-danger)">[ERROR] ' + escapeHtml(err.message) + '</span>';
         finishLLM();
       });
   }
@@ -558,40 +579,30 @@
         break;
       case "error":
         removeThinking();
-        addErrorMessage(event.message || "未知错误");
+        assistantReply.innerHTML = '<span style="color:var(--color-danger)">[ERROR] ' + escapeHtml(event.message || "未知错误") + '</span>';
         finishLLM();
         break;
       case "done":
-        // 流结束标记，finishLLM 由 reader.done 触发
         break;
-    }
-  }
-
-  // 错误场景下直接移除 thinking 气泡
-  function removeThinking() {
-    if (thinkingMsgEl) {
-      thinkingMsgEl.remove();
-      thinkingMsgEl = null;
     }
   }
 
   function typeAssistantReply(text) {
-    var div = document.createElement("div");
-    div.className = "chat-msg--assistant";
-    chatMessages.appendChild(div);
+    assistantReply.classList.add("assistant-reply--typing");
+    assistantReply.innerHTML = "";
 
     var i = 0;
     function typeNext() {
       if (i < text.length) {
-        div.innerHTML = formatAssistantContent(text.substring(0, i + 1));
+        assistantReply.innerHTML = formatAssistantContent(text.substring(0, i + 1));
         i++;
-        scrollToBottom();
         setTimeout(typeNext, 20 + Math.random() * 15);
       } else {
-        // 保存到历史
-        var history = getChatHistory();
-        history.push({ role: "assistant", content: text, time: new Date().toISOString() });
-        saveChatHistory(history);
+        // 保存到聊天历史（仅保留最新一条，方便刷新后显示）
+        saveChatHistory([
+          { role: "user", content: pendingUserText, time: new Date().toISOString() },
+          { role: "assistant", content: text, time: new Date().toISOString() },
+        ]);
         finishLLM();
       }
     }
