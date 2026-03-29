@@ -378,6 +378,16 @@
   }
 
   function showToolResult(event) {
+    // 将 record 工具的结果持久化到 localStorage
+    if (event.name === "record" && event.result && event.result.success && event.result.results) {
+      var results = event.result.results;
+      for (var k = 0; k < results.length; k++) {
+        if (results[k].success && results[k].record) {
+          addRecord(results[k].type, results[k].record);
+        }
+      }
+    }
+
     if (!thinkingMsgEl) return;
     // 找到对应的 step 元素，更新状态
     var steps = thinkingMsgEl.querySelectorAll('.thinking-step[data-tool="' + event.name + '"]');

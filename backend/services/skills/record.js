@@ -109,6 +109,7 @@ function handleExpense(item, date) {
     type: "expense",
     success: true,
     message: `已记录支出：${record.description} ¥${record.amount}（${record.category}）`,
+    record,
   };
 }
 
@@ -129,6 +130,7 @@ function handleFood(item, date) {
     type: "food",
     success: true,
     message: `已记录食物：${record.food_name}（${record.meal_type}）`,
+    record,
   };
 }
 
@@ -149,6 +151,7 @@ function handleTodo(item, date) {
     type: "todo",
     success: true,
     message: `已记录待办：${record.title}（优先级：${record.priority}）`,
+    record,
   };
 }
 
@@ -170,6 +173,7 @@ function handleInsight(item, date) {
     type: "insight",
     success: true,
     message: `已记录感悟${tagStr}：${record.content}`,
+    record,
   };
 }
 
