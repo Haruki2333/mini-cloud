@@ -5,6 +5,7 @@ const morgan = require("morgan");
 const recognizeRouter = require("./routes/recognize");
 const geocodeRouter = require("./routes/geocode");
 const chatRouter = require("./routes/chat");
+const financeChatRouter = require("./routes/finance-chat");
 const recordsRouter = require("./routes/records");
 const { setupAsrWebSocket } = require("./routes/asr");
 
@@ -20,6 +21,7 @@ app.use(logger);
 app.use("/api/food", recognizeRouter);
 app.use("/api/geocode", geocodeRouter);
 app.use("/api/chat", chatRouter);
+app.use("/api/finance-chat", financeChatRouter);
 app.use("/api/records", recordsRouter);
 
 // 小程序调用，获取微信 Open ID
@@ -30,8 +32,9 @@ app.get("/api/wx_openid", async (req, res) => {
 });
 
 // 静态文件服务
-app.use("/", express.static(path.join(__dirname, "demo/life-assistant")));
+app.use("/life-assistant", express.static(path.join(__dirname, "demo/life-assistant")));
 app.use("/food-tracker", express.static(path.join(__dirname, "demo/food-tracker")));
+app.use("/", express.static(path.join(__dirname, "demo/finance-assistant")));
 
 const port = process.env.PORT || 80;
 

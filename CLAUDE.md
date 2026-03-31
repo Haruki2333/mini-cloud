@@ -19,12 +19,17 @@ mini-cloud/
 │   │   ├── recognize.js            # 食物识别相关接口
 │   │   ├── geocode.js              # 反向地理编码代理
 │   │   ├── asr.js                  # WebSocket 实时语音识别
-│   │   └── chat.js                 # 通用对话接口
+│   │   ├── chat.js                 # 通用对话接口（生活助理）
+│   │   └── finance-chat.js         # 财务对话接口（财务助理）
 │   ├── services/                   # 业务服务模块
-│   │   └── llm.js                  # LLM 调用封装
+│   │   ├── llm.js                  # LLM 调用封装
+│   │   ├── brain.js                # 生活助理 ReAct 推理循环
+│   │   ├── finance-brain.js        # 财务助理 ReAct 推理循环
+│   │   └── finance-skills/         # 财务助理技能模块
 │   ├── demo/                       # H5 Demo 页面（静态文件，通过 /demo/* 访问）
 │   │   ├── food-tracker/           # 食物记录 Demo（拍照识别，localStorage 存储）
-│   │   └── life-assistant/         # 生活助理 Demo（语音对话，LLM 聊天）
+│   │   ├── life-assistant/         # 生活助理 Demo（语音对话，LLM 聊天）
+│   │   └── finance-assistant/      # 财务助理 Demo（文字对话，收支记录与分析）
 │   └── Dockerfile
 ├── docs/                           # 项目文档/知识库
 │   ├── api/                        # 接口文档（按业务域组织）
@@ -57,6 +62,7 @@ mini-cloud/
 - `GET /api/geocode/reverse` — 反向地理编码代理（详见 `docs/api/geocode.md`）
 - `WebSocket /api/asr/realtime` — 实时语音识别
 - `POST /api/chat/completions` — 通用 AI 对话（详见 `docs/api/chat.md`）
+- `POST /api/finance-chat/completions` — 财务助理 AI 对话（SSE 流式，支持记账/查询工具）
 - `GET /api/wx_openid` — 获取微信 Open ID（小程序专用）
 
 完整接口文档见 `docs/api/` 目录。
