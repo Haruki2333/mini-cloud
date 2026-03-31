@@ -2,10 +2,9 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-const recognizeRouter = require("./routes/recognize");
+const foodRouter = require("./routes/food");
 const geocodeRouter = require("./routes/geocode");
-const chatRouter = require("./routes/chat");
-const financeChatRouter = require("./routes/finance-chat");
+const { lifeRouter: chatRouter, financeRouter: financeChatRouter } = require("./routes/chat");
 const recordsRouter = require("./routes/records");
 const { setupAsrWebSocket } = require("./routes/asr");
 
@@ -18,7 +17,7 @@ app.use(cors());
 app.use(logger);
 
 // API 路由
-app.use("/api/food", recognizeRouter);
+app.use("/api/food", foodRouter);
 app.use("/api/geocode", geocodeRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/finance-chat", financeChatRouter);
