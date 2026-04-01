@@ -205,6 +205,7 @@
     // 清空上一条回复
     assistantReply.innerHTML = "";
     assistantReply.classList.remove("assistant-reply--typing");
+    assistantReply.classList.add("assistant-reply--loading");
     createThinkingBubble();
     scrollToBottom();
 
@@ -331,6 +332,7 @@
 
   function finishLLM() {
     isWaitingLLM = false;
+    assistantReply.classList.remove("assistant-reply--loading");
     sendBtn.style.opacity = "";
     sendBtn.style.pointerEvents = "";
     chatInput.disabled = false;
