@@ -5,23 +5,18 @@
   var modelGroup = document.getElementById("modelGroup");
   var saveBtn = document.getElementById("saveBtn");
   var clearChatBtn = document.getElementById("clearChatBtn");
-  var budgetList = document.getElementById("budgetList");
-  var budgetCategory = document.getElementById("budgetCategory");
-  var budgetAmount = document.getElementById("budgetAmount");
-  var budgetPeriod = document.getElementById("budgetPeriod");
-  var addBudgetBtn = document.getElementById("addBudgetBtn");
   var toastEl = document.getElementById("toast");
 
+  var monthlyBudget = document.getElementById("monthlyBudget");
   var currentModel = DEFAULT_MODEL;
 
   function init() {
     loadProfile();
     loadSettings();
     renderModelOptions();
-    renderBudgetList();
+    loadMonthlyBudget();
     saveBtn.addEventListener("click", save);
     clearChatBtn.addEventListener("click", confirmClearChat);
-    addBudgetBtn.addEventListener("click", addBudget);
   }
 
   // ===== Toast =====
@@ -71,93 +66,33 @@
     });
   }
 
-  // ===== 预算管理 =====
-  function renderBudgetList() {
+  // ===== 月预算 =====
+  function loadMonthlyBudget() {
     var budgets = getAllRecords().budget || [];
-    budgetList.innerHTML = "";
-
-    if (budgets.length === 0) {
-      var empty = document.createElement("div");
-      empty.style.cssText = "color:var(--color-text-muted);font-size:var(--font-size-sm);padding:8px 0;";
-      empty.textContent = "暂无预算设置";
-      budgetList.appendChild(empty);
-      return;
+    var entry = null;
+    for (var i = 0; i < budgets.length; i++) {
+      if (budgets[i].id === "monthly") { entry = budgets[i]; break; }
     }
-
-    budgets.forEach(function (b) {
-      var item = document.createElement("div");
-      item.className = "record-item";
-
-      var desc = document.createElement("span");
-      desc.className = "record-desc";
-      desc.textContent = escapeHtml(b.category);
-
-      var tag = document.createElement("span");
-      tag.className = "record-tag";
-      tag.textContent = b.period;
-
-      var amount = document.createElement("span");
-      amount.className = "record-amount";
-      amount.textContent = "¥" + b.amount;
-
-      var del = document.createElement("button");
-      del.style.cssText =
-        "background:none;border:none;cursor:pointer;color:var(--color-danger);font-size:16px;padding:0 4px;line-height:1;";
-      del.textContent = "×";
-      del.title = "删除";
-      del.addEventListener("click", (function (id) {
-        return function () { deleteBudget(id); };
-      })(b.id));
-
-      item.appendChild(desc);
-      item.appendChild(tag);
-      item.appendChild(amount);
-      item.appendChild(del);
-      budgetList.appendChild(item);
-    });
+    monthlyBudget.value = entry ? entry.amount : "";
   }
 
-  function addBudget() {
-    var category = budgetCategory.value.trim();
-    var amount = parseFloat(budgetAmount.value);
-    var period = budgetPeriod.value;
-
-    if (!category) {
-      showToast("请填写预算分类");
-      budgetCategory.focus();
-      return;
-    }
+  function saveMonthlyBudget() {
+    var amount = parseFloat(monthlyBudget.value);
+    var all = getAllRecords();
     if (!amount || amount <= 0) {
-      showToast("请填写有效金额");
-      budgetAmount.focus();
-      return;
+      all.budget = [];
+    } else {
+      all.budget = [{
+        id: "monthly",
+        type: "budget",
+        category: "月预算",
+        amount: amount,
+        period: "月",
+        date: new Date().toISOString().slice(0, 10),
+        createdAt: new Date().toISOString(),
+      }];
     }
-
-    var now = new Date();
-    var dateStr = now.toISOString().slice(0, 10);
-    var id = "budget-" + now.getTime() + "-" + Math.random().toString(36).slice(2, 7);
-
-    addRecord("budget", {
-      id: id,
-      type: "budget",
-      category: category,
-      amount: amount,
-      period: period,
-      date: dateStr,
-      createdAt: now.toISOString(),
-    });
-
-    budgetCategory.value = "";
-    budgetAmount.value = "";
-    budgetPeriod.value = "月";
-    renderBudgetList();
-    showToast("预算已添加");
-  }
-
-  function deleteBudget(id) {
-    deleteRecord("budget", id);
-    renderBudgetList();
-    showToast("预算已删除");
+    saveAllRecords(all);
   }
 
   // ===== 保存 =====
@@ -173,6 +108,8 @@
         zhipu: apiKeyZhipu.value.trim(),
       },
     });
+
+    saveMonthlyBudget();
 
     showToast("设置已保存");
   }
