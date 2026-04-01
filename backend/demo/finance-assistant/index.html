@@ -39,20 +39,20 @@
     <!-- 可滚动主体 -->
     <div class="home-content" id="homeContent">
 
-      <!-- 日期选择 -->
+      <!-- 月份选择 -->
       <div class="date-picker-row">
-        <label>DATE&gt;</label>
-        <input type="date" class="date-picker" id="dateInput">
+        <label>MONTH&gt;</label>
+        <input type="month" class="date-picker" id="dateInput">
       </div>
 
-      <!-- 每日财务摘要 + 记录详情 -->
+      <!-- 每月财务摘要 -->
       <section class="terminal-panel">
         <div class="terminal-panel-header">
           <span class="terminal-dot"></span>
-          DAILY_SUMMARY
+          MONTHLY_SUMMARY
         </div>
         <div class="terminal-panel-body">
-          <div class="summary-grid" id="summaryPanel">
+          <div class="summary-grid summary-grid--3col" id="summaryPanel">
             <div class="summary-item summary-item--clickable" data-type="expense">
               <div class="summary-value" id="totalExpense">¥0</div>
               <div class="summary-label">总支出</div>
@@ -61,13 +61,11 @@
               <div class="summary-value" id="totalIncome">¥0</div>
               <div class="summary-label">总收入</div>
             </div>
-            <div class="summary-item summary-item--clickable" data-type="budget">
-              <div class="summary-value" id="netIncome">¥0</div>
+            <div class="summary-item summary-item--muted">
+              <div class="summary-value summary-value--muted" id="netIncome">¥0</div>
               <div class="summary-label">净收支</div>
             </div>
           </div>
-          <!-- 展开的记录列表 -->
-          <div class="summary-detail" id="summaryDetail"></div>
         </div>
       </section>
 

@@ -7,7 +7,6 @@
   var profileBadge = document.getElementById("profileBadge");
   var toastEl = document.getElementById("toast");
   var dateInput = document.getElementById("dateInput");
-  var summaryDetail = document.getElementById("summaryDetail");
 
   var totalExpenseEl = document.getElementById("totalExpense");
   var totalIncomeEl = document.getElementById("totalIncome");
@@ -17,17 +16,10 @@
   var pendingUserText = "";
   var thinkingMsgEl = null;
   var thinkingStepCount = 0;
-  var activeDetailType = null;
 
   var SKILL_LABELS = {
     record: "记录",
     query: "查询",
-  };
-
-  var DETAIL_TITLES = {
-    expense: "EXPENSE_LOG",
-    income: "INCOME_LOG",
-    budget: "BUDGET_LOG",
   };
 
   // ===== 初始化 =====
@@ -47,119 +39,37 @@
     });
   }
 
-  // ===== 日期选择器 =====
+  // ===== 月份选择器 =====
   function initDatePicker() {
-    dateInput.value = new Date().toISOString().slice(0, 10);
+    dateInput.value = new Date().toISOString().slice(0, 7);
     dateInput.addEventListener("change", function () {
       refreshData();
     });
   }
 
-  // ===== 摘要格点击 =====
+  // ===== 摘要格点击（跳转详情页） =====
   function bindSummaryClicks() {
     var items = document.querySelectorAll(".summary-item--clickable");
     for (var i = 0; i < items.length; i++) {
       items[i].addEventListener("click", function () {
         var type = this.getAttribute("data-type");
-        toggleDetail(type);
+        var month = dateInput.value;
+        window.location.href = "detail.html?type=" + type + "&month=" + month;
       });
-    }
-  }
-
-  function toggleDetail(type) {
-    var items = document.querySelectorAll(".summary-item--clickable");
-
-    if (activeDetailType === type) {
-      activeDetailType = null;
-      summaryDetail.innerHTML = "";
-      for (var i = 0; i < items.length; i++) {
-        items[i].classList.remove("active");
-      }
-      return;
-    }
-
-    activeDetailType = type;
-    for (var i = 0; i < items.length; i++) {
-      if (items[i].getAttribute("data-type") === type) {
-        items[i].classList.add("active");
-      } else {
-        items[i].classList.remove("active");
-      }
-    }
-
-    var date = dateInput.value;
-    var records = getRecordsByDate(type, date);
-    renderDetailList(type, records);
-  }
-
-  function renderDetailList(type, records) {
-    if (records.length === 0) {
-      summaryDetail.innerHTML =
-        '<div class="summary-detail-inner">' +
-          '<div class="summary-detail-title">' + DETAIL_TITLES[type] + '</div>' +
-          '<div class="record-empty">&gt; 暂无记录</div>' +
-        '</div>';
-      return;
-    }
-
-    var maxShow = 5;
-    var showRecords = records.slice(0, maxShow);
-    var html = '<div class="summary-detail-inner">';
-    html += '<div class="summary-detail-title">' + DETAIL_TITLES[type] + '</div>';
-
-    for (var i = 0; i < showRecords.length; i++) {
-      html += renderRecordItem(type, showRecords[i]);
-    }
-
-    if (records.length > maxShow) {
-      html += '<a href="detail.html" class="record-more">查看全部 ' + records.length + ' 条记录 &rarr;</a>';
-    }
-
-    html += '</div>';
-    summaryDetail.innerHTML = html;
-  }
-
-  function renderRecordItem(type, r) {
-    switch (type) {
-      case "expense":
-        return '<div class="record-item">' +
-          '<span class="record-desc">' + escapeHtml(r.description || "") + '</span>' +
-          '<span class="record-tag">' + escapeHtml(r.category || "") + '</span>' +
-          '<span class="record-amount">¥' + (r.amount || 0) + '</span>' +
-        '</div>';
-      case "income":
-        return '<div class="record-item">' +
-          '<span class="record-desc">' + escapeHtml(r.description || "") + '</span>' +
-          '<span class="record-tag">' + escapeHtml(r.source || "") + '</span>' +
-          '<span class="record-amount">¥' + (r.amount || 0) + '</span>' +
-        '</div>';
-      case "budget":
-        return '<div class="record-item">' +
-          '<span class="record-desc">' + escapeHtml(r.category || "") + '</span>' +
-          '<span class="record-tag">每' + escapeHtml(r.period || "") + '</span>' +
-          '<span class="record-amount">¥' + (r.amount || 0) + '</span>' +
-        '</div>';
-      default:
-        return '';
     }
   }
 
   // ===== 数据刷新 =====
   function refreshData() {
-    var date = dateInput.value;
-    if (!date) return;
+    var month = dateInput.value;
+    if (!month) return;
 
-    var summary = getRecordsSummary(date);
+    var summary = getRecordsSummaryByMonth(month);
     if (summary.success) {
       totalExpenseEl.textContent = "¥" + (summary.expense.total || 0);
       totalIncomeEl.textContent = "¥" + (summary.income.total || 0);
       var net = summary.netIncome || 0;
       netIncomeEl.textContent = (net >= 0 ? "¥" : "-¥") + Math.abs(net);
-    }
-
-    if (activeDetailType) {
-      var records = getRecordsByDate(activeDetailType, date);
-      renderDetailList(activeDetailType, records);
     }
   }
 
