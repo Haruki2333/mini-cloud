@@ -324,6 +324,7 @@
     var model = settings.model || DEFAULT_MODEL;
     var apiKey = getApiKeyForModel(model);
     var profile = getProfile();
+    profile.budgets = getAllRecords().budget || [];
 
     if (!apiKey) {
       removeThinking();

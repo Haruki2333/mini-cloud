@@ -22,11 +22,11 @@ function saveSettings(settings) {
 
 function getProfile() {
   var raw = localStorage.getItem(PROFILE_KEY);
-  if (!raw) return { name: "", age: "", gender: "", hobbies: "", bio: "" };
+  if (!raw) return { name: "" };
   try {
     return JSON.parse(raw);
   } catch (e) {
-    return { name: "", age: "", gender: "", hobbies: "", bio: "" };
+    return { name: "" };
   }
 }
 
@@ -80,6 +80,13 @@ function addRecord(type, record) {
   var all = getAllRecords();
   if (!all[type]) all[type] = [];
   all[type].push(record);
+  saveAllRecords(all);
+}
+
+function deleteRecord(type, id) {
+  var all = getAllRecords();
+  if (!all[type]) return;
+  all[type] = all[type].filter(function (r) { return r.id !== id; });
   saveAllRecords(all);
 }
 
