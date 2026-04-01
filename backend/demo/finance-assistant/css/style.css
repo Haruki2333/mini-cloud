@@ -1110,6 +1110,10 @@ textarea.form-input {
 }
 
 .summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   padding: var(--spacing-sm) 0;
 }

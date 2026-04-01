@@ -100,11 +100,25 @@
       });
     }
 
-    var total = 0;
-    for (var i = 0; i < records.length; i++) {
-      total += records[i].amount || 0;
+    var totalText;
+    if (type === "all") {
+      var income = 0, expense = 0;
+      for (var i = 0; i < records.length; i++) {
+        if (records[i]._kind === "income") income += records[i].amount || 0;
+        else expense += records[i].amount || 0;
+      }
+      var net = income - expense;
+      totalText = (net >= 0 ? "¥" : "-¥") + Math.abs(net);
+    } else if (type === "expense") {
+      var total = 0;
+      for (var i = 0; i < records.length; i++) total += records[i].amount || 0;
+      totalText = "-¥" + total;
+    } else {
+      var total = 0;
+      for (var i = 0; i < records.length; i++) total += records[i].amount || 0;
+      totalText = "¥" + total;
     }
-    totalAmountEl.textContent = "¥" + total;
+    totalAmountEl.textContent = totalText;
     totalCountEl.textContent = records.length + " 条记录";
 
     renderRecords(records);

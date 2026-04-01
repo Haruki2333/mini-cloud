@@ -35,26 +35,10 @@
         BUDGET_CONFIG
       </div>
       <div class="terminal-panel-body">
-        <div id="budgetList"></div>
-        <div class="form-row" style="margin-top: 12px; align-items: flex-end;">
-          <div class="form-group" style="flex: 2; margin-bottom: 0;">
-            <label class="form-label">分类</label>
-            <input type="text" class="form-input" id="budgetCategory" placeholder="如：餐饮、娱乐">
-          </div>
-          <div class="form-group" style="flex: 2; margin-bottom: 0;">
-            <label class="form-label">金额（元）</label>
-            <input type="number" class="form-input" id="budgetAmount" placeholder="0" min="0">
-          </div>
-          <div class="form-group" style="flex: 1; margin-bottom: 0;">
-            <label class="form-label">周期</label>
-            <select class="form-input" id="budgetPeriod">
-              <option value="月">月</option>
-              <option value="天">天</option>
-              <option value="年">年</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label class="form-label">月预算（元）</label>
+          <input type="number" class="form-input" id="monthlyBudget" placeholder="0" min="0">
         </div>
-        <button class="btn-primary" id="addBudgetBtn" style="margin-top: 10px;">添加预算</button>
       </div>
     </section>
 

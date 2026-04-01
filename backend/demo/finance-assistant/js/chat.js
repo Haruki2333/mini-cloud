@@ -150,6 +150,8 @@
   }
 
   // ===== 思考步骤展示 =====
+  var LOADING_TEXTS = ["正在思考...", "正在分析...", "正在处理...", "正在生成回复..."];
+
   function createThinkingBubble() {
     thinkingStepCount = 0;
     thinkingArea.innerHTML = "";
@@ -163,78 +165,11 @@
 
   function showThinkingStep(event) {
     if (!thinkingMsgEl) return;
-    var dots = thinkingMsgEl.querySelector(".thinking-dots");
-    if (dots) {
-      thinkingMsgEl.innerHTML = "";
-    }
-
-    if (event.iteration) {
-      var roundEl = document.createElement("div");
-      roundEl.className = "thinking-round";
-      roundEl.textContent = "轮次 " + event.iteration + "/" + event.maxIterations;
-      thinkingMsgEl.appendChild(roundEl);
-    }
-
-    var toolCalls = event.tool_calls || [];
-    for (var i = 0; i < toolCalls.length; i++) {
-      var tc = toolCalls[i];
-      var label = SKILL_LABELS[tc.name] || tc.name;
-      var args = {};
-      try {
-        args = JSON.parse(tc.arguments);
-      } catch (e) {}
-
-      var desc = formatToolCallDesc(tc.name, args);
-      var step = document.createElement("div");
-      step.className = "thinking-step";
-      step.setAttribute("data-tool", tc.name);
-
-      step.innerHTML =
-        '<div class="thinking-step-header">' +
-          '<span class="thinking-icon">&gt;</span> ' +
-          escapeHtml(label + ": " + desc) +
-          '<span class="thinking-status">...</span>' +
-        '</div>' +
-        '<div class="thinking-step-detail">' +
-          '<div class="detail-section">' +
-            '<span class="detail-label">入参</span>' +
-            '<pre class="detail-pre">' + escapeHtml(JSON.stringify(args, null, 2)) + '</pre>' +
-          '</div>' +
-          '<div class="detail-section detail-result-section"></div>' +
-        '</div>';
-
-      thinkingMsgEl.appendChild(step);
-      thinkingStepCount++;
-    }
+    var text = LOADING_TEXTS[Math.min(thinkingStepCount, LOADING_TEXTS.length - 1)];
+    thinkingMsgEl.innerHTML =
+      '<span class="thinking-dots"><span></span><span></span><span></span></span> ' + text;
+    thinkingStepCount++;
     scrollToBottom();
-  }
-
-  function formatToolCallDesc(name, args) {
-    if (name === "record" && args.records) {
-      var descs = [];
-      for (var i = 0; i < args.records.length; i++) {
-        var r = args.records[i];
-        switch (r.type) {
-          case "expense":
-            descs.push((r.description || "") + " ¥" + (r.amount || ""));
-            break;
-          case "income":
-            descs.push((r.description || "") + " ¥" + (r.amount || "") + "（" + (r.source || "") + "）");
-            break;
-          case "budget":
-            descs.push((r.category || "") + " 每" + (r.period || "") + " ¥" + (r.amount || ""));
-            break;
-        }
-      }
-      return descs.join("；");
-    }
-    if (name === "query") {
-      var parts = [];
-      if (args.date) parts.push(args.date);
-      if (args.type && args.type !== "all") parts.push(args.type);
-      return parts.length > 0 ? parts.join(" ") : "全部记录";
-    }
-    return JSON.stringify(args);
   }
 
   function showToolResult(event) {
@@ -248,57 +183,10 @@
       }
       refreshData();
     }
-
-    if (!thinkingMsgEl) return;
-    var steps = thinkingMsgEl.querySelectorAll('.thinking-step[data-tool="' + event.name + '"]');
-    for (var i = 0; i < steps.length; i++) {
-      var statusEl = steps[i].querySelector(".thinking-status");
-      if (statusEl && statusEl.textContent === "...") {
-        var durationStr = event.duration != null ? " " + event.duration + "ms" : "";
-        if (event.result && event.result.success) {
-          statusEl.textContent = "[OK]" + durationStr;
-          statusEl.classList.add("done");
-        } else {
-          statusEl.textContent = "[FAIL]" + durationStr;
-          statusEl.classList.add("fail");
-        }
-        var resultSection = steps[i].querySelector(".detail-result-section");
-        if (resultSection && event.result) {
-          resultSection.innerHTML =
-            '<span class="detail-label">结果</span>' +
-            '<pre class="detail-pre">' +
-            escapeHtml(JSON.stringify(event.result, null, 2)) +
-            '</pre>';
-        }
-        break;
-      }
-    }
-    scrollToBottom();
   }
 
   function collapseThinking() {
-    if (!thinkingMsgEl) return;
-    var msgEl = thinkingMsgEl;
-
-    if (thinkingStepCount === 0) {
-      thinkingArea.innerHTML = "";
-      thinkingMsgEl = null;
-      return;
-    }
-
-    var summary = document.createElement("div");
-    summary.className = "thinking-summary";
-    summary.innerHTML = '<span class="thinking-icon">&gt;</span> Agent 执行日志（' + thinkingStepCount + ' 步）<span class="thinking-toggle">展开</span>';
-    summary.addEventListener("click", function () {
-      msgEl.classList.toggle("collapsed");
-      var toggleEl = summary.querySelector(".thinking-toggle");
-      if (toggleEl) {
-        toggleEl.textContent = msgEl.classList.contains("collapsed") ? "展开" : "收起";
-      }
-    });
-
-    msgEl.insertBefore(summary, msgEl.firstChild);
-    msgEl.classList.add("collapsed");
+    thinkingArea.innerHTML = "";
     thinkingMsgEl = null;
   }
 
