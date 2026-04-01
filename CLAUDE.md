@@ -16,16 +16,18 @@ mini-cloud/
 ├── backend/                        # 后端服务（Express.js + MySQL），部署到微信云托管
 │   ├── index.js                    # Express 主入口
 │   ├── routes/                     # API 路由
-│   │   ├── recognize.js            # 食物识别相关接口
-│   │   ├── geocode.js              # 反向地理编码代理
-│   │   ├── asr.js                  # WebSocket 实时语音识别
-│   │   ├── chat.js                 # 通用对话接口（生活助理）
-│   │   └── finance-chat.js         # 财务对话接口（财务助理）
+│   │   ├── food.js                 # 食物识别相关接口（/api/food）
+│   │   ├── geocode.js              # 反向地理编码代理（/api/geocode）
+│   │   ├── asr.js                  # WebSocket 实时语音识别（/api/asr/realtime）
+│   │   ├── chat.js                 # 对话路由（导出 lifeRouter + financeRouter）
+│   │   └── records.js              # 数据记录查询（/api/records）
 │   ├── services/                   # 业务服务模块
 │   │   ├── llm.js                  # LLM 调用封装
-│   │   ├── brain.js                # 生活助理 ReAct 推理循环
-│   │   ├── finance-brain.js        # 财务助理 ReAct 推理循环
-│   │   └── finance-skills/         # 财务助理技能模块
+│   │   ├── brain.js                # 通用 ReAct 推理循环工厂（createBrain）
+│   │   └── skills/                 # 技能模块
+│   │       ├── registry.js         # 通用技能注册工厂（createSkillRegistry）
+│   │       ├── life-record.js      # 生活记录技能（expense/food/todo/insight）
+│   │       └── finance-record.js   # 财务记录技能（expense/income/budget）
 │   ├── demo/                       # H5 Demo 页面（静态文件，通过 /demo/* 访问）
 │   │   ├── food-tracker/           # 食物记录 Demo（拍照识别，localStorage 存储）
 │   │   ├── life-assistant/         # 生活助理 Demo（语音对话，LLM 聊天）

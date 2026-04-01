@@ -3,7 +3,7 @@
  */
 
 const express = require("express");
-const record = require("../services/skills/record");
+const record = require("../services/skills/life-record");
 
 const router = express.Router();
 
