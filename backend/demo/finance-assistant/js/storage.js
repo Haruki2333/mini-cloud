@@ -90,6 +90,36 @@ function getRecordsByDate(type, date) {
   return records;
 }
 
+function getRecordsByMonth(type, month) {
+  var all = getAllRecords();
+  var records = all[type] || [];
+  if (month) return records.filter(function (r) { return r.date && r.date.slice(0, 7) === month; });
+  return records;
+}
+
+function getRecordsSummaryByMonth(month) {
+  var expenses = getRecordsByMonth("expense", month);
+  var incomes = getRecordsByMonth("income", month);
+
+  var totalExpense = 0;
+  for (var i = 0; i < expenses.length; i++) {
+    totalExpense += expenses[i].amount;
+  }
+
+  var totalIncome = 0;
+  for (var i = 0; i < incomes.length; i++) {
+    totalIncome += incomes[i].amount;
+  }
+
+  return {
+    success: true,
+    month: month,
+    expense: { total: totalExpense, count: expenses.length },
+    income: { total: totalIncome, count: incomes.length },
+    netIncome: totalIncome - totalExpense,
+  };
+}
+
 function getRecordsSummary(date) {
   var expenses = getRecordsByDate("expense", date);
   var incomes = getRecordsByDate("income", date);

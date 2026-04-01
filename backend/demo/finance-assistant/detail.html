@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>数据详情 - 光明财务助理</title>
+  <title>收支详情 - 光明财务助理</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -11,69 +11,43 @@
     <!-- 导航 -->
     <nav class="terminal-nav">
       <a href="index.html">&larr;</a>
-      <span class="nav-title">FINANCE_RECORDS</span>
+      <span class="nav-title" id="pageTitle">EXPENSE_RECORDS</span>
     </nav>
 
-    <!-- 日期选择 -->
+    <!-- 月份选择 -->
     <div class="date-picker-row">
-      <label>DATE&gt;</label>
-      <input type="date" class="date-picker" id="dateInput">
+      <label>MONTH&gt;</label>
+      <input type="month" class="date-picker" id="monthInput">
     </div>
 
-    <!-- 今日摘要 -->
+    <!-- 搜索框 -->
+    <div class="search-row">
+      <label>SEARCH&gt;</label>
+      <input type="text" class="search-input" id="searchInput" placeholder="输入关键词过滤..." autocomplete="off">
+    </div>
+
+    <!-- 月度汇总 -->
     <section class="terminal-panel">
       <div class="terminal-panel-header">
         <span class="terminal-dot"></span>
-        DAILY_SUMMARY
+        MONTHLY_TOTAL
       </div>
       <div class="terminal-panel-body">
-        <div class="summary-grid" id="summaryPanel">
-          <div class="summary-item">
-            <div class="summary-value" id="totalExpense">¥0</div>
-            <div class="summary-label">总支出</div>
-          </div>
-          <div class="summary-item">
-            <div class="summary-value" id="totalIncome">¥0</div>
-            <div class="summary-label">总收入</div>
-          </div>
-          <div class="summary-item">
-            <div class="summary-value" id="netIncome">¥0</div>
-            <div class="summary-label">净收支</div>
-          </div>
+        <div class="detail-summary">
+          <span class="detail-summary-amount" id="totalAmount">¥0</span>
+          <span class="detail-summary-count" id="totalCount">0 条记录</span>
         </div>
       </div>
     </section>
 
-    <!-- 支出列表 -->
+    <!-- 记录列表 -->
     <section class="terminal-panel">
       <div class="terminal-panel-header">
         <span class="terminal-dot"></span>
-        EXPENSE_LOG
+        <span id="listTitle">RECORD_LIST</span>
       </div>
-      <div class="terminal-panel-body" id="expenseList">
-        <div class="record-empty">&gt; 暂无支出记录</div>
-      </div>
-    </section>
-
-    <!-- 收入列表 -->
-    <section class="terminal-panel">
-      <div class="terminal-panel-header">
-        <span class="terminal-dot"></span>
-        INCOME_LOG
-      </div>
-      <div class="terminal-panel-body" id="incomeList">
-        <div class="record-empty">&gt; 暂无收入记录</div>
-      </div>
-    </section>
-
-    <!-- 预算列表 -->
-    <section class="terminal-panel">
-      <div class="terminal-panel-header">
-        <span class="terminal-dot"></span>
-        BUDGET_LOG
-      </div>
-      <div class="terminal-panel-body" id="budgetList">
-        <div class="record-empty">&gt; 暂无预算记录</div>
+      <div class="terminal-panel-body" id="recordList">
+        <div class="record-empty">&gt; 暂无记录</div>
       </div>
     </section>
   </main>

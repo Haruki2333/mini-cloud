@@ -1105,9 +1105,17 @@ textarea.form-input {
   gap: var(--spacing-md);
 }
 
+.summary-grid--3col {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 .summary-item {
   text-align: center;
   padding: var(--spacing-sm) 0;
+}
+
+.summary-item--muted {
+  opacity: 0.7;
 }
 
 .summary-value {
@@ -1116,6 +1124,12 @@ textarea.form-input {
   font-weight: 700;
   color: var(--color-primary);
   line-height: 1.2;
+}
+
+.summary-value--muted {
+  font-size: var(--font-size-lg);
+  font-weight: 400;
+  color: var(--color-text-muted);
 }
 
 .summary-label {
@@ -1183,4 +1197,74 @@ textarea.form-input {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+}
+
+/* ========== 搜索行 ========== */
+
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-base);
+}
+
+.search-row label {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  background: var(--color-bg);
+  outline: none;
+  transition: border-color var(--duration-fast) var(--easing-default);
+}
+
+.search-input:focus {
+  border-color: var(--color-primary);
+}
+
+/* ========== 详情页汇总 ========== */
+
+.detail-summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-md);
+}
+
+.detail-summary-amount {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.detail-summary-count {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* 记录日期分组标签 */
+.record-date-label {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  padding: var(--spacing-sm) 0 var(--spacing-xs);
+  letter-spacing: 0.5px;
+  border-bottom: 1px dashed var(--color-border);
+  margin-top: var(--spacing-sm);
+}
+
+.record-date-label:first-child {
+  margin-top: 0;
 }
