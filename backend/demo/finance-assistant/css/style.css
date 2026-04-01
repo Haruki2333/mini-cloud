@@ -1268,3 +1268,60 @@ textarea.form-input {
 .record-date-label:first-child {
   margin-top: 0;
 }
+
+/* ========== 类型切换标签 ========== */
+
+.type-tabs {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-base);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  padding: var(--spacing-xs);
+}
+
+.type-tab {
+  flex: 1;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all var(--duration-fast) var(--easing-default);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.type-tab.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.type-tab:not(.active):hover {
+  color: var(--color-text);
+  background: var(--color-bg-secondary);
+}
+
+/* 收/支类型标记（全部模式） */
+.record-kind {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.record-kind--expense {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+}
+
+.record-kind--income {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--color-success);
+}
