@@ -25,24 +25,36 @@
           <label class="form-label">称呼</label>
           <input type="text" class="form-input" id="profileName" placeholder="你希望助理怎么称呼你">
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">年龄</label>
-            <input type="number" class="form-input" id="profileAge" placeholder="可选">
+      </div>
+    </section>
+
+    <!-- 预算配置 -->
+    <section class="terminal-panel">
+      <div class="terminal-panel-header">
+        <span class="terminal-dot"></span>
+        BUDGET_CONFIG
+      </div>
+      <div class="terminal-panel-body">
+        <div id="budgetList"></div>
+        <div class="form-row" style="margin-top: 12px; align-items: flex-end;">
+          <div class="form-group" style="flex: 2; margin-bottom: 0;">
+            <label class="form-label">分类</label>
+            <input type="text" class="form-input" id="budgetCategory" placeholder="如：餐饮、娱乐">
           </div>
-          <div class="form-group">
-            <label class="form-label">性别</label>
-            <input type="text" class="form-input" id="profileGender" placeholder="可选">
+          <div class="form-group" style="flex: 2; margin-bottom: 0;">
+            <label class="form-label">金额（元）</label>
+            <input type="number" class="form-input" id="budgetAmount" placeholder="0" min="0">
+          </div>
+          <div class="form-group" style="flex: 1; margin-bottom: 0;">
+            <label class="form-label">周期</label>
+            <select class="form-input" id="budgetPeriod">
+              <option value="月">月</option>
+              <option value="天">天</option>
+              <option value="年">年</option>
+            </select>
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">爱好</label>
-          <input type="text" class="form-input" id="profileHobbies" placeholder="如：阅读、跑步、做饭">
-        </div>
-        <div class="form-group">
-          <label class="form-label">个人简介</label>
-          <textarea class="form-input" id="profileBio" rows="2" placeholder="让助理更了解你（可选）"></textarea>
-        </div>
+        <button class="btn-primary" id="addBudgetBtn" style="margin-top: 10px;">添加预算</button>
       </div>
     </section>
 

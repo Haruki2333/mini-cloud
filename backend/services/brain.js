@@ -15,10 +15,12 @@ function buildSystemPrompt(basePrompt, profile) {
   if (profile) {
     const info = [];
     if (profile.name) info.push("称呼：" + profile.name);
-    if (profile.age) info.push("年龄：" + profile.age);
-    if (profile.gender) info.push("性别：" + profile.gender);
-    if (profile.hobbies) info.push("爱好：" + profile.hobbies);
-    if (profile.bio) info.push("个人简介：" + profile.bio);
+    if (profile.budgets && profile.budgets.length > 0) {
+      const lines = profile.budgets
+        .map((b) => b.category + "：¥" + b.amount + "/" + b.period)
+        .join("、");
+      info.push("预算设置：" + lines);
+    }
     if (info.length > 0) {
       parts.push("\n用户资料：\n" + info.join("\n"));
     }
