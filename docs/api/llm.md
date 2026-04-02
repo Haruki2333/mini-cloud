@@ -126,9 +126,8 @@ console.log(result.content);
 ```
 
 同时需要：
-1. 更新前端 `backend/demo/food-tracker/js/types.js` 中的 `MODEL_CONFIG`
-2. 更新前端 `backend/demo/food-tracker/settings.html` 添加新厂商的 API Key 输入（如果是新厂商）
-3. 更新本文档的模型注册表
+1. 更新前端 `backend/demo/finance-assistant/js/types.js` 中的 `MODEL_CONFIG`（如果存在）
+2. 更新本文档的模型注册表
 
 ## 实现位置
 

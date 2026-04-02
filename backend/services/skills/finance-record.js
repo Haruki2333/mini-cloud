@@ -248,15 +248,6 @@ async function executeQuery(params) {
   };
 }
 
-// ===== 查询接口（供路由使用） =====
-
-function getRecords(type, date) {
-  const store = stores[type];
-  if (!store) return [];
-  if (date) return store.records.filter((r) => r.date === date);
-  return store.records;
-}
-
 // ===== update_profile 工具定义 =====
 
 const updateProfileDefinition = {
@@ -319,5 +310,4 @@ module.exports = {
   executeRecord,
   executeQuery,
   executeUpdateProfile,
-  getRecords,
 };
