@@ -127,6 +127,18 @@ function getRecordsSummaryByMonth(month) {
   };
 }
 
+function getExpenseByCategoryByMonth(month) {
+  var expenses = getRecordsByMonth("expense", month);
+  var byCategory = {};
+  var total = 0;
+  for (var i = 0; i < expenses.length; i++) {
+    total += expenses[i].amount;
+    var cat = expenses[i].category;
+    byCategory[cat] = (byCategory[cat] || 0) + expenses[i].amount;
+  }
+  return { byCategory: byCategory, total: total };
+}
+
 function getRecordsSummary(date) {
   var expenses = getRecordsByDate("expense", date);
   var incomes = getRecordsByDate("income", date);

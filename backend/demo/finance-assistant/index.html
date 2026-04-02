@@ -69,23 +69,41 @@
         </div>
       </section>
 
-      <!-- AI 回复卡片 -->
-      <section class="terminal-panel" id="assistantPanel">
+      <!-- 支出分类柱状图 -->
+      <section class="terminal-panel" id="expenseChartPanel">
         <div class="terminal-panel-header">
           <span class="terminal-dot"></span>
-          ASSISTANT_REPLY
+          EXPENSE_BREAKDOWN
         </div>
         <div class="terminal-panel-body">
-          <div id="thinkingArea"></div>
-          <div id="assistantReply" class="assistant-reply"></div>
+          <div id="expenseChart" class="expense-chart">
+            <div class="expense-chart-empty">暂无支出数据</div>
+          </div>
         </div>
       </section>
 
     </div>
+  </main>
 
-    <!-- 固定底部输入栏 -->
-    <div class="home-input-bar">
-      <div class="input-bar">
+  <div class="toast" id="toast"></div>
+
+  <!-- 悬浮记账按钮 -->
+  <button class="fab-btn" id="fabBtn" title="记账 / 提问">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>
+  </button>
+
+  <!-- 输入浮层 -->
+  <div class="input-overlay" id="inputOverlay">
+    <div class="input-overlay-backdrop" id="inputOverlayBackdrop"></div>
+    <div class="input-overlay-sheet">
+      <div class="input-overlay-header">
+        <span class="input-overlay-title">RECORD &gt;</span>
+        <button class="input-overlay-close" id="inputOverlayClose">✕</button>
+      </div>
+      <div class="input-overlay-body">
         <input class="chat-input" id="chatInput" type="text" placeholder="记一笔账、查收支..." autocomplete="off">
         <button class="send-btn" id="sendBtn" type="button" title="发送">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -95,9 +113,20 @@
         </button>
       </div>
     </div>
-  </main>
+  </div>
 
-  <div class="toast" id="toast"></div>
+  <!-- AI 思考浮层 -->
+  <div class="thinking-overlay" id="thinkingOverlay">
+    <div class="thinking-overlay-panel">
+      <div class="thinking-overlay-header">
+        <span class="terminal-dot"></span>
+        AI_PROCESSING
+      </div>
+      <div class="thinking-overlay-body">
+        <div id="thinkingArea"></div>
+      </div>
+    </div>
+  </div>
 
   <script src="js/types.js"></script>
   <script src="js/storage.js"></script>

@@ -1,12 +1,17 @@
 (function () {
   var homeContent = document.getElementById("homeContent");
   var thinkingArea = document.getElementById("thinkingArea");
-  var assistantReply = document.getElementById("assistantReply");
   var chatInput = document.getElementById("chatInput");
   var sendBtn = document.getElementById("sendBtn");
   var profileBadge = document.getElementById("profileBadge");
   var toastEl = document.getElementById("toast");
   var dateInput = document.getElementById("dateInput");
+  var fabBtn = document.getElementById("fabBtn");
+  var inputOverlay = document.getElementById("inputOverlay");
+  var inputOverlayBackdrop = document.getElementById("inputOverlayBackdrop");
+  var inputOverlayClose = document.getElementById("inputOverlayClose");
+  var thinkingOverlay = document.getElementById("thinkingOverlay");
+  var expenseChartEl = document.getElementById("expenseChart");
 
   var totalExpenseEl = document.getElementById("totalExpense");
   var totalIncomeEl = document.getElementById("totalIncome");
@@ -25,10 +30,13 @@
   // ===== 初始化 =====
   function init() {
     checkApiKey();
-    showWelcome();
     initDatePicker();
     refreshData();
     bindSummaryClicks();
+
+    fabBtn.addEventListener("click", openInputOverlay);
+    inputOverlayClose.addEventListener("click", closeInputOverlay);
+    inputOverlayBackdrop.addEventListener("click", closeInputOverlay);
 
     sendBtn.addEventListener("click", handleSendText);
     chatInput.addEventListener("keydown", function (e) {
@@ -71,16 +79,70 @@
       var net = summary.netIncome || 0;
       netIncomeEl.textContent = (net >= 0 ? "¥" : "-¥") + Math.abs(net);
     }
+
+    renderExpenseChart(month);
   }
 
-  // ===== 文字输入发送 =====
-  function handleSendText() {
+  // ===== 支出分类柱状图 =====
+  function renderExpenseChart(month) {
+    var result = getExpenseByCategoryByMonth(month);
+    var cats = Object.keys(result.byCategory);
+
+    if (cats.length === 0) {
+      expenseChartEl.innerHTML = '<div class="expense-chart-empty">暂无支出数据</div>';
+      return;
+    }
+
+    cats.sort(function (a, b) { return result.byCategory[b] - result.byCategory[a]; });
+    var max = result.byCategory[cats[0]];
+
+    var html = cats.map(function (cat) {
+      var amt = result.byCategory[cat];
+      var pct = max > 0 ? Math.round(amt / max * 100) : 0;
+      return (
+        '<div class="expense-bar-row">' +
+          '<span class="expense-bar-label">' + escapeHtml(cat) + '</span>' +
+          '<div class="expense-bar-track">' +
+            '<div class="expense-bar-fill" style="width:' + pct + '%"></div>' +
+          '</div>' +
+          '<span class="expense-bar-amount">¥' + amt + '</span>' +
+        '</div>'
+      );
+    }).join("");
+
+    expenseChartEl.innerHTML = html;
+
+    // 触发 CSS 动画：先将宽度置 0，再设置目标宽度
+    requestAnimationFrame(function () {
+      var fills = expenseChartEl.querySelectorAll(".expense-bar-fill");
+      for (var i = 0; i < fills.length; i++) {
+        fills[i].style.width = fills[i].style.width; // 读取，强制布局
+      }
+    });
+  }
+
+  // ===== 输入浮层 =====
+  function openInputOverlay() {
     if (isWaitingLLM) return;
-    var text = chatInput.value.trim();
-    if (!text) return;
-    chatInput.value = "";
-    pendingUserText = text;
-    sendToLLM();
+    inputOverlay.classList.add("open");
+    setTimeout(function () { chatInput.focus(); }, 300);
+  }
+
+  function closeInputOverlay() {
+    inputOverlay.classList.remove("open");
+    chatInput.blur();
+  }
+
+  // ===== 思考浮层 =====
+  function openThinkingOverlay() {
+    thinkingArea.innerHTML = "";
+    thinkingMsgEl = null;
+    thinkingStepCount = 0;
+    thinkingOverlay.classList.add("open");
+  }
+
+  function closeThinkingOverlay() {
+    thinkingOverlay.classList.remove("open");
   }
 
   function checkApiKey() {
@@ -105,28 +167,16 @@
     }, 2500);
   }
 
-  // ===== 欢迎消息 =====
-  function showWelcome() {
-    var profile = getProfile();
-    var greeting = profile.name
-      ? profile.name + "，你好！我是光明财务助理，可以帮你记账、分析收支。"
-      : "你好！我是光明财务助理，可以帮你记账、分析收支。";
-
-    assistantReply.classList.remove("assistant-reply--typing");
-    assistantReply.innerHTML = formatAssistantContent(greeting);
-  }
-
-  function formatAssistantContent(content) {
-    var html = escapeHtml(content);
-    html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    html = html.replace(/\n/g, "<br>");
-    return html;
-  }
-
-  function scrollToBottom() {
-    requestAnimationFrame(function () {
-      homeContent.scrollTop = homeContent.scrollHeight;
-    });
+  // ===== 文字输入发送 =====
+  function handleSendText() {
+    if (isWaitingLLM) return;
+    var text = chatInput.value.trim();
+    if (!text) return;
+    chatInput.value = "";
+    pendingUserText = text;
+    closeInputOverlay();
+    openThinkingOverlay();
+    sendToLLM();
   }
 
   // ===== SSE 解析 =====
@@ -153,23 +203,21 @@
   var LOADING_TEXTS = ["正在思考...", "正在分析...", "正在处理...", "正在生成回复..."];
 
   function createThinkingBubble() {
-    thinkingStepCount = 0;
-    thinkingArea.innerHTML = "";
     thinkingMsgEl = document.createElement("div");
     thinkingMsgEl.className = "chat-msg--thinking";
     thinkingMsgEl.innerHTML =
       '<span class="thinking-dots"><span></span><span></span><span></span></span> 正在思考...';
     thinkingArea.appendChild(thinkingMsgEl);
-    scrollToBottom();
   }
 
-  function showThinkingStep(event) {
-    if (!thinkingMsgEl) return;
+  function showThinkingStep() {
+    if (!thinkingMsgEl) {
+      createThinkingBubble();
+    }
     var text = LOADING_TEXTS[Math.min(thinkingStepCount, LOADING_TEXTS.length - 1)];
     thinkingMsgEl.innerHTML =
       '<span class="thinking-dots"><span></span><span></span><span></span></span> ' + text;
     thinkingStepCount++;
-    scrollToBottom();
   }
 
   function showToolResult(event) {
@@ -183,31 +231,21 @@
       }
       refreshData();
     }
-  }
 
-  function collapseThinking() {
-    thinkingArea.innerHTML = "";
-    thinkingMsgEl = null;
-  }
-
-  function removeThinking() {
-    thinkingArea.innerHTML = "";
-    thinkingMsgEl = null;
+    // 在思考浮层中显示工具执行提示
+    if (thinkingMsgEl) {
+      var label = SKILL_LABELS[event.name] || event.name;
+      var ok = event.result && event.result.success;
+      thinkingMsgEl.innerHTML =
+        '<span class="thinking-dots"><span></span><span></span><span></span></span> ' +
+        label + (ok ? ' 完成' : ' 失败');
+    }
   }
 
   // ===== LLM 调用（SSE 流式） =====
   function sendToLLM() {
     isWaitingLLM = true;
-    sendBtn.style.opacity = "0.5";
-    sendBtn.style.pointerEvents = "none";
-    chatInput.disabled = true;
-
-    // 清空上一条回复
-    assistantReply.innerHTML = "";
-    assistantReply.classList.remove("assistant-reply--typing");
-    assistantReply.classList.add("assistant-reply--loading");
     createThinkingBubble();
-    scrollToBottom();
 
     var settings = getSettings();
     var model = settings.model || DEFAULT_MODEL;
@@ -216,9 +254,9 @@
     profile.budgets = getAllRecords().budget || [];
 
     if (!apiKey) {
-      removeThinking();
-      assistantReply.innerHTML = '<span style="color:var(--color-danger)">[ERROR] 缺少 API Key，请在个人资料页配置</span>';
+      closeThinkingOverlay();
       profileBadge.classList.add("show");
+      showToast("缺少 API Key，请在个人资料页配置");
       finishLLM();
       return;
     }
@@ -268,8 +306,7 @@
 
             readChunk();
           }).catch(function (err) {
-            removeThinking();
-            assistantReply.innerHTML = '<span style="color:var(--color-danger)">[ERROR] 读取响应流失败: ' + escapeHtml(err.message) + '</span>';
+            showToast("[ERROR] 读取响应流失败: " + err.message);
             finishLLM();
           });
         }
@@ -277,8 +314,7 @@
         readChunk();
       })
       .catch(function (err) {
-        removeThinking();
-        assistantReply.innerHTML = '<span style="color:var(--color-danger)">[ERROR] ' + escapeHtml(err.message) + '</span>';
+        showToast("[ERROR] " + err.message);
         finishLLM();
       });
   }
@@ -286,22 +322,17 @@
   function handleSSEEvent(event) {
     switch (event.type) {
       case "thinking":
-        showThinkingStep(event);
+        showThinkingStep();
         break;
       case "tool_result":
         showToolResult(event);
         break;
       case "answer":
-        collapseThinking();
-        if (event.content) {
-          typeAssistantReply(event.content);
-        } else {
-          finishLLM();
-        }
+        // AI 已处理完成，直接关闭思考浮层，数据已通过 tool_result 更新
+        finishLLM();
         break;
       case "error":
-        removeThinking();
-        assistantReply.innerHTML = '<span style="color:var(--color-danger)">[ERROR] ' + escapeHtml(event.message || "未知错误") + '</span>';
+        showToast("[ERROR] " + (event.message || "未知错误"));
         finishLLM();
         break;
       case "done":
@@ -309,34 +340,12 @@
     }
   }
 
-  function typeAssistantReply(text) {
-    assistantReply.classList.add("assistant-reply--typing");
-    assistantReply.innerHTML = "";
-
-    var i = 0;
-    function typeNext() {
-      if (i < text.length) {
-        assistantReply.innerHTML = formatAssistantContent(text.substring(0, i + 1));
-        i++;
-        setTimeout(typeNext, 20 + Math.random() * 15);
-      } else {
-        saveChatHistory([
-          { role: "user", content: pendingUserText, time: new Date().toISOString() },
-          { role: "assistant", content: text, time: new Date().toISOString() },
-        ]);
-        finishLLM();
-      }
-    }
-    typeNext();
-  }
-
   function finishLLM() {
     isWaitingLLM = false;
-    assistantReply.classList.remove("assistant-reply--loading");
-    sendBtn.style.opacity = "";
-    sendBtn.style.pointerEvents = "";
-    chatInput.disabled = false;
-    chatInput.focus();
+    setTimeout(function () {
+      closeThinkingOverlay();
+      refreshData();
+    }, 600);
   }
 
   // 启动

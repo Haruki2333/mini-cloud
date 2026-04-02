@@ -1329,3 +1329,247 @@ textarea.form-input {
   background: rgba(34, 197, 94, 0.1);
   color: var(--color-success);
 }
+
+/* ========== 支出分类柱状图 ========== */
+
+.expense-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.expense-chart-empty {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  letter-spacing: 0.5px;
+  padding: var(--spacing-sm) 0;
+}
+
+.expense-bar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.expense-bar-label {
+  width: 52px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.3px;
+  text-align: right;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expense-bar-track {
+  flex: 1;
+  height: 10px;
+  background: var(--color-bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.expense-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 2px;
+  width: 0;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.expense-bar-amount {
+  width: 58px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+/* ========== FAB 悬浮按钮 ========== */
+
+.fab-btn {
+  position: fixed;
+  bottom: 28px;
+  right: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 16px rgba(229, 160, 13, 0.4);
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--duration-fast) var(--easing-default), box-shadow var(--duration-fast) var(--easing-default);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fab-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.fab-btn:active {
+  transform: scale(0.9);
+  box-shadow: 0 2px 8px rgba(229, 160, 13, 0.3);
+}
+
+.fab-btn.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.8);
+}
+
+/* ========== 输入浮层 ========== */
+
+.input-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.input-overlay.open {
+  pointer-events: all;
+}
+
+.input-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--easing-default);
+}
+
+.input-overlay.open .input-overlay-backdrop {
+  opacity: 1;
+}
+
+.input-overlay-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--color-card);
+  border-radius: 16px 16px 0 0;
+  padding: var(--spacing-base);
+  padding-bottom: calc(var(--spacing-base) + env(safe-area-inset-bottom, 0px));
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-top: 1px solid var(--color-border);
+}
+
+.input-overlay.open .input-overlay-sheet {
+  transform: translateY(0);
+}
+
+.input-overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+}
+
+.input-overlay-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  letter-spacing: 1.5px;
+}
+
+.input-overlay-close {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast) var(--easing-default);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.input-overlay-close:active {
+  background: var(--color-bg);
+  transform: scale(0.92);
+}
+
+.input-overlay-body {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+/* ========== AI 思考浮层 ========== */
+
+.thinking-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(248, 247, 244, 0.88);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-base) var(--easing-default);
+}
+
+.thinking-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.thinking-overlay-panel {
+  width: calc(100% - 48px);
+  max-width: 360px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transform: translateY(12px);
+  transition: transform var(--duration-base) var(--easing-default);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.thinking-overlay.open .thinking-overlay-panel {
+  transform: translateY(0);
+}
+
+.thinking-overlay-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-base);
+  font-family: var(--font-display);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.thinking-overlay-body {
+  padding: var(--spacing-base);
+  min-height: 80px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+/* 思考浮层内的消息气泡复用 .chat-msg--thinking */
