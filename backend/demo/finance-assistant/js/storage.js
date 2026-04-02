@@ -1,7 +1,10 @@
 var SETTINGS_KEY = "finance-assistant-settings";
 var PROFILE_KEY = "finance-assistant-profile";
 var CHAT_KEY = "finance-assistant-chat";
+var CATEGORIES_KEY = "finance-assistant-categories";
 var MAX_MESSAGES = 50;
+var MAX_CATEGORIES = 20;
+var DEFAULT_EXPENSE_CATEGORIES = ["餐饮", "交通", "购物", "娱乐", "医疗", "居住", "教育", "通讯", "日用", "其他"];
 
 function getSettings() {
   var raw = localStorage.getItem(SETTINGS_KEY);
@@ -168,6 +171,23 @@ function getRecordsSummary(date) {
     budget: { count: budgets.length },
     netIncome: totalIncome - totalExpense,
   };
+}
+
+// ===== 支出分类持久化 =====
+
+function getExpenseCategories() {
+  var raw = localStorage.getItem(CATEGORIES_KEY);
+  if (!raw) return DEFAULT_EXPENSE_CATEGORIES.slice();
+  try {
+    var cats = JSON.parse(raw);
+    return Array.isArray(cats) && cats.length > 0 ? cats : DEFAULT_EXPENSE_CATEGORIES.slice();
+  } catch (e) {
+    return DEFAULT_EXPENSE_CATEGORIES.slice();
+  }
+}
+
+function saveExpenseCategories(cats) {
+  localStorage.setItem(CATEGORIES_KEY, JSON.stringify(cats));
 }
 
 function getApiKeyForModel(model) {
