@@ -11,6 +11,8 @@
   var inputOverlayBackdrop = document.getElementById("inputOverlayBackdrop");
   var inputOverlayClose = document.getElementById("inputOverlayClose");
   var thinkingOverlay = document.getElementById("thinkingOverlay");
+  var thinkingUserEchoEl = document.getElementById("thinkingUserEcho");
+  var thinkingStatusDotEl = document.getElementById("thinkingStatusDot");
   var expenseChartEl = document.getElementById("expenseChart");
 
   var totalExpenseEl = document.getElementById("totalExpense");
@@ -140,6 +142,11 @@
     thinkingArea.innerHTML = "";
     thinkingMsgEl = null;
     thinkingStepCount = 0;
+    if (thinkingUserEchoEl) thinkingUserEchoEl.textContent = pendingUserText;
+    if (thinkingStatusDotEl) {
+      thinkingStatusDotEl.style.background = "";
+      thinkingStatusDotEl.style.animation = "";
+    }
     thinkingOverlay.classList.add("open");
   }
 
@@ -202,14 +209,20 @@
   }
 
   // ===== 思考步骤展示 =====
-  var LOADING_TEXTS = ["正在思考...", "正在分析...", "正在处理...", "正在生成回复..."];
+  var LOADING_TEXTS = ["正在分析...", "调用工具中...", "处理数据...", "生成回复..."];
 
   function createThinkingBubble() {
     thinkingMsgEl = document.createElement("div");
-    thinkingMsgEl.className = "chat-msg--thinking";
+    thinkingMsgEl.className = "thinking-step-item";
     thinkingMsgEl.innerHTML =
-      '<span class="thinking-dots"><span></span><span></span><span></span></span> 正在思考...';
+      '<div class="step-icon step-icon--loading"></div>' +
+      '<div class="step-text">正在分析...</div>';
     thinkingArea.appendChild(thinkingMsgEl);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        thinkingMsgEl && thinkingMsgEl.classList.add("visible");
+      });
+    });
   }
 
   function showThinkingStep() {
@@ -217,8 +230,8 @@
       createThinkingBubble();
     }
     var text = LOADING_TEXTS[Math.min(thinkingStepCount, LOADING_TEXTS.length - 1)];
-    thinkingMsgEl.innerHTML =
-      '<span class="thinking-dots"><span></span><span></span><span></span></span> ' + text;
+    var stepTextEl = thinkingMsgEl.querySelector(".step-text");
+    if (stepTextEl) stepTextEl.textContent = text;
     thinkingStepCount++;
   }
 
@@ -265,13 +278,19 @@
       }
     }
 
-    // 在思考浮层中显示工具执行提示
+    // 将工具执行结果更新到当前步骤，并准备接受下一个步骤
     if (thinkingMsgEl) {
       var label = SKILL_LABELS[event.name] || event.name;
       var ok = event.result && event.result.success;
-      thinkingMsgEl.innerHTML =
-        '<span class="thinking-dots"><span></span><span></span><span></span></span> ' +
-        label + (ok ? ' 完成' : ' 失败');
+      thinkingMsgEl.classList.add(ok ? "done" : "fail");
+      var iconEl = thinkingMsgEl.querySelector(".step-icon");
+      if (iconEl) {
+        iconEl.className = "step-icon";
+        iconEl.textContent = ok ? "✓" : "✗";
+      }
+      var textEl = thinkingMsgEl.querySelector(".step-text");
+      if (textEl) textEl.textContent = label + (ok ? " 完成" : " 失败");
+      thinkingMsgEl = null;
     }
   }
 
@@ -376,10 +395,15 @@
 
   function finishLLM() {
     isWaitingLLM = false;
+    // 短暂显示成功状态，再关闭浮层
+    if (thinkingStatusDotEl) {
+      thinkingStatusDotEl.style.background = "var(--color-success)";
+      thinkingStatusDotEl.style.animation = "none";
+    }
     setTimeout(function () {
       closeThinkingOverlay();
       refreshData();
-    }, 600);
+    }, 700);
   }
 
   // 启动

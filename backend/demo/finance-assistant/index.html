@@ -118,10 +118,12 @@
   <!-- AI 思考浮层 -->
   <div class="thinking-overlay" id="thinkingOverlay">
     <div class="thinking-overlay-panel">
+      <div class="thinking-drag-handle"></div>
       <div class="thinking-overlay-header">
-        <span class="terminal-dot"></span>
-        AI_PROCESSING
+        <div class="thinking-status-dot" id="thinkingStatusDot"></div>
+        <span class="thinking-overlay-title">AI_PROCESSING</span>
       </div>
+      <div class="thinking-user-echo" id="thinkingUserEcho"></div>
       <div class="thinking-overlay-body">
         <div id="thinkingArea"></div>
       </div>
