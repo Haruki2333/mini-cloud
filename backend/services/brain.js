@@ -21,11 +21,34 @@ function buildSystemPrompt(basePrompt, profile) {
         .join("、");
       info.push("预算设置：" + lines);
     }
+    if (profile.expenseCategories && profile.expenseCategories.length > 0) {
+      info.push("支出分类：" + profile.expenseCategories.join("、"));
+    }
     if (info.length > 0) {
       parts.push("\n用户资料：\n" + info.join("\n"));
     }
   }
   return parts.join("");
+}
+
+function buildToolDefs(skills, profile) {
+  if (!profile || !profile.expenseCategories || profile.expenseCategories.length === 0) {
+    return skills.definitions;
+  }
+  const categories = profile.expenseCategories;
+  return skills.definitions.map((def) => {
+    if (def.function && def.function.name === "record") {
+      const cloned = JSON.parse(JSON.stringify(def));
+      const itemProps = cloned.function.parameters.properties.records.items.properties;
+      if (itemProps.category) {
+        itemProps.category.enum = categories;
+        itemProps.category.description =
+          "分类（expense/budget 必填），可选值：" + categories.join("、");
+      }
+      return cloned;
+    }
+    return def;
+  });
 }
 
 /**
@@ -56,7 +79,7 @@ function createBrain({ systemPrompt, skills }) {
 
     for (let i = 0; i < MAX_ITERATIONS; i++) {
       const result = await chat(model, conversationMessages, apiKey, {
-        tools: skills.definitions,
+        tools: buildToolDefs(skills, profile),
       });
 
       // 没有 tool_calls → 推理完成，返回最终回复

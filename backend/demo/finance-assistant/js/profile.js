@@ -6,17 +6,26 @@
   var saveBtn = document.getElementById("saveBtn");
   var clearChatBtn = document.getElementById("clearChatBtn");
   var toastEl = document.getElementById("toast");
+  var categoryTags = document.getElementById("categoryTags");
+  var categoryInput = document.getElementById("categoryInput");
+  var categoryAddBtn = document.getElementById("categoryAddBtn");
 
   var monthlyBudget = document.getElementById("monthlyBudget");
   var currentModel = DEFAULT_MODEL;
+  var currentCategories = [];
 
   function init() {
     loadProfile();
     loadSettings();
     renderModelOptions();
     loadMonthlyBudget();
+    loadCategories();
     saveBtn.addEventListener("click", save);
     clearChatBtn.addEventListener("click", confirmClearChat);
+    categoryAddBtn.addEventListener("click", addCategory);
+    categoryInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); addCategory(); }
+    });
   }
 
   // ===== Toast =====
@@ -95,6 +104,53 @@
     saveAllRecords(all);
   }
 
+  // ===== 支出分类 =====
+  function loadCategories() {
+    currentCategories = getExpenseCategories();
+    renderCategories();
+  }
+
+  function renderCategories() {
+    categoryTags.innerHTML = "";
+    currentCategories.forEach(function (cat, idx) {
+      var tag = document.createElement("span");
+      tag.className = "category-tag";
+      tag.innerHTML =
+        escapeHtml(cat) +
+        '<button class="category-tag-remove" data-idx="' + idx + '" aria-label="删除">×</button>';
+      tag.querySelector(".category-tag-remove").addEventListener("click", function () {
+        removeCategory(parseInt(this.getAttribute("data-idx")));
+      });
+      categoryTags.appendChild(tag);
+    });
+
+    var atLimit = currentCategories.length >= MAX_CATEGORIES;
+    categoryInput.disabled = atLimit;
+    categoryAddBtn.disabled = atLimit;
+    categoryInput.placeholder = atLimit ? "已达上限 " + MAX_CATEGORIES + " 项" : "新分类名称";
+  }
+
+  function addCategory() {
+    var name = categoryInput.value.trim();
+    if (!name) return;
+    if (currentCategories.length >= MAX_CATEGORIES) {
+      showToast("最多只能添加 " + MAX_CATEGORIES + " 个分类");
+      return;
+    }
+    if (currentCategories.indexOf(name) !== -1) {
+      showToast("该分类已存在");
+      return;
+    }
+    currentCategories.push(name);
+    categoryInput.value = "";
+    renderCategories();
+  }
+
+  function removeCategory(idx) {
+    currentCategories.splice(idx, 1);
+    renderCategories();
+  }
+
   // ===== 保存 =====
   function save() {
     saveProfile({
@@ -110,6 +166,7 @@
     });
 
     saveMonthlyBudget();
+    saveExpenseCategories(currentCategories);
 
     showToast("设置已保存");
   }

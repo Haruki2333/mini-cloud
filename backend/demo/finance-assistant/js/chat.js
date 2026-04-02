@@ -252,6 +252,7 @@
     var apiKey = getApiKeyForModel(model);
     var profile = getProfile();
     profile.budgets = getAllRecords().budget || [];
+    profile.expenseCategories = getExpenseCategories();
 
     if (!apiKey) {
       closeThinkingOverlay();
