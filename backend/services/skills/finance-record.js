@@ -257,10 +257,67 @@ function getRecords(type, date) {
   return store.records;
 }
 
+// ===== update_profile 工具定义 =====
+
+const updateProfileDefinition = {
+  type: "function",
+  function: {
+    name: "update_profile",
+    description: "更新用户的个人资料，支持修改名称、月预算和支出分类",
+    parameters: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "新的用户名称",
+        },
+        monthly_budget: {
+          type: "number",
+          description: "月预算金额（元），设为 0 表示清除预算",
+        },
+        expense_categories: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "完整的支出分类列表（将完整替换原有分类）。如需增减分类，应基于当前分类列表修改后传入",
+        },
+      },
+    },
+  },
+};
+
+async function executeUpdateProfile(params) {
+  const updates = {};
+  if (params.name !== undefined) updates.name = String(params.name).trim();
+  if (params.monthly_budget !== undefined)
+    updates.monthly_budget = Number(params.monthly_budget);
+  if (params.expense_categories !== undefined)
+    updates.expense_categories = params.expense_categories.map((c) => String(c).trim()).filter(Boolean);
+
+  if (Object.keys(updates).length === 0) {
+    return { success: false, message: "未提供任何需要更新的字段" };
+  }
+
+  const messages = [];
+  if (updates.name !== undefined) messages.push(`名称更新为"${updates.name}"`);
+  if (updates.monthly_budget !== undefined)
+    messages.push(
+      updates.monthly_budget > 0
+        ? `月预算设为 ¥${updates.monthly_budget}`
+        : "月预算已清除"
+    );
+  if (updates.expense_categories !== undefined)
+    messages.push(`支出分类更新为：${updates.expense_categories.join("、")}`);
+
+  return { success: true, updates, message: messages.join("；") };
+}
+
 module.exports = {
   recordDefinition,
   queryDefinition,
+  updateProfileDefinition,
   executeRecord,
   executeQuery,
+  executeUpdateProfile,
   getRecords,
 };

@@ -25,6 +25,7 @@
   var SKILL_LABELS = {
     record: "记录",
     query: "查询",
+    update_profile: "更新资料",
   };
 
   // ===== 初始化 =====
@@ -125,7 +126,8 @@
   function openInputOverlay() {
     if (isWaitingLLM) return;
     inputOverlay.classList.add("open");
-    setTimeout(function () { chatInput.focus(); }, 300);
+    // iOS 要求 focus() 必须在用户手势的同步调用栈内执行，否则键盘无法弹出
+    chatInput.focus();
   }
 
   function closeInputOverlay() {
@@ -230,6 +232,37 @@
         }
       }
       refreshData();
+    }
+
+    // 将 update_profile 工具的结果持久化到 localStorage
+    if (event.name === "update_profile" && event.result && event.result.success) {
+      var updates = event.result.updates;
+      if (updates.name !== undefined) {
+        var p = getProfile();
+        p.name = updates.name;
+        saveProfile(p);
+      }
+      if (updates.monthly_budget !== undefined) {
+        var all = getAllRecords();
+        if (updates.monthly_budget <= 0) {
+          all.budget = [];
+        } else {
+          all.budget = [{
+            id: "monthly",
+            type: "budget",
+            category: "月预算",
+            amount: updates.monthly_budget,
+            period: "月",
+            date: new Date().toISOString().slice(0, 10),
+            createdAt: new Date().toISOString(),
+          }];
+        }
+        saveAllRecords(all);
+        refreshData();
+      }
+      if (updates.expense_categories !== undefined) {
+        saveExpenseCategories(updates.expense_categories);
+      }
     }
 
     // 在思考浮层中显示工具执行提示
