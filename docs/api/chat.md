@@ -10,6 +10,8 @@
 |------|------|------|
 | X-Api-Key | 是 | 对应模型厂商的 API Key |
 | Content-Type | 是 | application/json |
+| X-Wx-OpenId | 二选一 | 微信小程序用户标识（由微信云托管注入） |
+| X-Anon-Token | 二选一 | H5 Demo 匿名令牌（前端生成的 UUID） |
 
 ### 请求体
 
@@ -18,15 +20,7 @@
   "messages": [
     { "role": "user", "content": "今天午饭花了35元" }
   ],
-  "model": "qwen3.5-plus",
-  "profile": {
-    "name": "小明",
-    "monthly_budget": 3000,
-    "expenseCategories": ["餐饮", "交通", "购物", "娱乐", "其他"],
-    "budgets": [
-      { "category": "餐饮", "amount": 800, "period": "月" }
-    ]
-  }
+  "model": "qwen3.5-plus"
 }
 ```
 
@@ -34,11 +28,8 @@
 |------|------|------|------|
 | messages | Array | 是 | OpenAI 格式的消息数组 |
 | model | string | 否 | 模型 ID，默认 `qwen3.5-plus` |
-| profile | object | 否 | 用户个人资料，注入 system prompt 并动态调整工具定义 |
-| profile.name | string | 否 | 用户称呼 |
-| profile.monthly_budget | number | 否 | 月预算金额（元） |
-| profile.expenseCategories | string[] | 否 | 支出分类列表，传入后将替换工具中的默认分类枚举 |
-| profile.budgets | object[] | 否 | 预算列表，每项含 `category`、`amount`、`period` |
+
+> 用户资料（名称、分类、预算）由服务端根据请求头中的用户标识从数据库自动加载，无需在请求体中传入。
 
 ### 响应（SSE 流式）
 
@@ -117,7 +108,7 @@ data: [DONE]\n\n
 | 状态码 | 说明 |
 |--------|------|
 | 400 | 参数错误（消息为空、不支持的模型） |
-| 401 | 缺少 API Key |
+| 401 | 缺少 API Key，或缺少用户标识请求头 |
 | 500 | LLM 调用失败 |
 
 ### 实现位置

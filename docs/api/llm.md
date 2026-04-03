@@ -33,12 +33,13 @@
 **返回值**
 
 ```js
-{ content: string, usage: object | null }
+{ content: string, tool_calls: Array | null, usage: object | null }
 ```
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | content | string | 模型返回的文本内容 |
+| tool_calls | Array \| null | 模型请求调用的工具列表（OpenAI 格式），无工具调用时为 `null` |
 | usage | object \| null | token 用量信息（由厂商返回，格式各异） |
 
 **错误**

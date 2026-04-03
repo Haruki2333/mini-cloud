@@ -342,19 +342,6 @@ async function updateProfile(userId, params) {
 }
 
 /**
- * 获取用户自定义分类列表
- */
-async function getUserCategories(userId) {
-  const { UserCategory } = getModels();
-  const rows = await UserCategory.findAll({
-    where: { user_id: userId },
-    order: [["sort_order", "ASC"]],
-    raw: true,
-  });
-  return rows.map((r) => r.name);
-}
-
-/**
  * 获取用户完整资料（name、expenseCategories、budgets）
  * @param {number} userId
  * @returns {{ name: string, expenseCategories: string[], budgets: Array, monthly_budget: number }}
@@ -476,7 +463,6 @@ module.exports = {
   createRecords,
   queryRecords,
   updateProfile,
-  getUserCategories,
   getUserProfile,
   refreshMonthlySummary,
 };
