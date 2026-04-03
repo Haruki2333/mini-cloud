@@ -1439,65 +1439,29 @@ textarea.form-input {
   color: var(--color-success);
 }
 
-/* ========== 支出分类柱状图 ========== */
+/* ========== 流水明细卡片 ========== */
 
-.expense-chart {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
+.transaction-list {
+  height: 220px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-.expense-chart-empty {
-  font-family: var(--font-display);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  letter-spacing: 0.5px;
-  padding: var(--spacing-sm) 0;
+.transaction-list::-webkit-scrollbar {
+  width: 3px;
 }
 
-.expense-bar-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
+.transaction-list::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.expense-bar-label {
-  width: 52px;
-  font-family: var(--font-display);
-  font-size: 10px;
-  color: var(--color-text-secondary);
-  letter-spacing: 0.3px;
-  text-align: right;
-  flex-shrink: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.transaction-list::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
 }
 
-.expense-bar-track {
-  flex: 1;
-  height: 10px;
-  background: var(--color-bg);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.expense-bar-fill {
-  height: 100%;
-  background: var(--color-primary);
-  border-radius: 2px;
-  width: 0;
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.expense-bar-amount {
-  width: 58px;
-  font-family: var(--font-display);
-  font-size: 10px;
-  color: var(--color-text-secondary);
-  letter-spacing: 0.3px;
-  flex-shrink: 0;
-  text-align: right;
+.record-amount--income {
+  color: var(--color-success);
 }
 
 /* ========== FAB 悬浮按钮 ========== */
