@@ -13,7 +13,7 @@
   var thinkingOverlay = document.getElementById("thinkingOverlay");
   var thinkingUserEchoEl = document.getElementById("thinkingUserEcho");
   var thinkingStatusDotEl = document.getElementById("thinkingStatusDot");
-  var expenseChartEl = document.getElementById("expenseChart");
+  var transactionListEl = document.getElementById("transactionList");
 
   var totalExpenseEl = document.getElementById("totalExpense");
   var totalIncomeEl = document.getElementById("totalIncome");
@@ -74,9 +74,10 @@
   function refreshData() {
     var month = dateInput.value;
     if (!month) return;
+    var token = getOrCreateAnonToken();
 
     fetch("/api/finance-chat/data/summary?month=" + month, {
-      headers: { "X-Anon-Token": getOrCreateAnonToken() },
+      headers: { "X-Anon-Token": token },
     })
       .then(function (res) { return res.json(); })
       .then(function (data) {
@@ -85,48 +86,64 @@
         totalIncomeEl.textContent = "¥" + (data.income.total || 0);
         var net = data.netIncome || 0;
         netIncomeEl.textContent = (net >= 0 ? "¥" : "-¥") + Math.abs(net);
-        renderExpenseChart(data.expense.byCategory || {});
       })
       .catch(function (err) {
         console.error("获取月度摘要失败:", err);
       });
+
+    fetch("/api/finance-chat/data/records?month=" + month + "&type=all", {
+      headers: { "X-Anon-Token": token },
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data.success) return;
+        renderTransactionList(data.records || []);
+      })
+      .catch(function (err) {
+        console.error("获取流水明细失败:", err);
+      });
   }
 
-  // ===== 支出分类柱状图 =====
-  function renderExpenseChart(byCategory) {
-    var cats = Object.keys(byCategory);
-
-    if (cats.length === 0) {
-      expenseChartEl.innerHTML = '<div class="expense-chart-empty">暂无支出数据</div>';
+  // ===== 流水明细卡片 =====
+  function renderTransactionList(records) {
+    if (records.length === 0) {
+      transactionListEl.innerHTML = '<div class="record-empty">&gt; 暂无记录</div>';
       return;
     }
 
-    cats.sort(function (a, b) { return byCategory[b] - byCategory[a]; });
-    var max = byCategory[cats[0]];
-
-    var html = cats.map(function (cat) {
-      var amt = byCategory[cat];
-      var pct = max > 0 ? Math.round(amt / max * 100) : 0;
-      return (
-        '<div class="expense-bar-row">' +
-          '<span class="expense-bar-label">' + escapeHtml(cat) + '</span>' +
-          '<div class="expense-bar-track">' +
-            '<div class="expense-bar-fill" style="width:' + pct + '%"></div>' +
-          '</div>' +
-          '<span class="expense-bar-amount">¥' + amt + '</span>' +
-        '</div>'
-      );
-    }).join("");
-
-    expenseChartEl.innerHTML = html;
-
-    // 触发 CSS 动画：先将宽度置 0，再设置目标宽度
-    requestAnimationFrame(function () {
-      var fills = expenseChartEl.querySelectorAll(".expense-bar-fill");
-      for (var i = 0; i < fills.length; i++) {
-        fills[i].style.width = fills[i].style.width; // 读取，强制布局
-      }
+    records.sort(function (a, b) {
+      return (b.date || "").localeCompare(a.date || "");
     });
+
+    var html = "";
+    var currentDate = "";
+
+    for (var i = 0; i < records.length; i++) {
+      var r = records[i];
+      var dateStr = r.date || "未知日期";
+
+      if (dateStr !== currentDate) {
+        currentDate = dateStr;
+        html += '<div class="record-date-label">' + escapeHtml(dateStr) + '</div>';
+      }
+
+      var tagText = r._kind === "income" ? (r.source || "") : (r.category || "");
+      var kindClass = r._kind === "income" ? "record-kind--income" : "record-kind--expense";
+      var kindLabel = r._kind === "income" ? "收" : "支";
+      var amountClass = r._kind === "income" ? "record-amount--income" : "";
+
+      html +=
+        '<div class="record-item">' +
+          '<span class="record-desc">' + escapeHtml(r.description || "") + '</span>' +
+          '<span class="record-tag">' + escapeHtml(tagText) + '</span>' +
+          '<span class="record-kind ' + kindClass + '">' + kindLabel + '</span>' +
+          '<span class="record-amount ' + amountClass + '">' +
+            (r._kind === "income" ? "+" : "-") + '¥' + (r.amount || 0) +
+          '</span>' +
+        '</div>';
+    }
+
+    transactionListEl.innerHTML = html;
   }
 
   // ===== 输入浮层 =====
