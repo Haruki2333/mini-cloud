@@ -15,11 +15,9 @@
   var currentCategories = [];
 
   function init() {
-    loadProfile();
     loadSettings();
     renderModelOptions();
-    loadMonthlyBudget();
-    loadCategories();
+    loadFromDB();
     saveBtn.addEventListener("click", save);
     clearChatBtn.addEventListener("click", confirmClearChat);
     categoryAddBtn.addEventListener("click", addCategory);
@@ -39,17 +37,34 @@
     }, 2500);
   }
 
-  // ===== 加载数据 =====
-  function loadProfile() {
-    var p = getProfile();
-    profileName.value = p.name || "";
-  }
-
+  // ===== 加载设置（本地） =====
   function loadSettings() {
     var s = getSettings();
     currentModel = s.model || DEFAULT_MODEL;
     apiKeyQwen.value = s.apiKeys.qwen || "";
     apiKeyZhipu.value = s.apiKeys.zhipu || "";
+  }
+
+  // ===== 从数据库加载资料 =====
+  function loadFromDB() {
+    fetch("/api/finance-chat/data/profile", {
+      headers: { "X-Anon-Token": getOrCreateAnonToken() },
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data.success) return;
+        profileName.value = data.name || "";
+        monthlyBudget.value = data.monthly_budget > 0 ? data.monthly_budget : "";
+        currentCategories = (data.expense_categories && data.expense_categories.length > 0)
+          ? data.expense_categories
+          : DEFAULT_EXPENSE_CATEGORIES.slice();
+        renderCategories();
+      })
+      .catch(function (err) {
+        console.error("加载资料失败:", err);
+        currentCategories = DEFAULT_EXPENSE_CATEGORIES.slice();
+        renderCategories();
+      });
   }
 
   // ===== 模型选择 =====
@@ -75,41 +90,7 @@
     });
   }
 
-  // ===== 月预算 =====
-  function loadMonthlyBudget() {
-    var budgets = getAllRecords().budget || [];
-    var entry = null;
-    for (var i = 0; i < budgets.length; i++) {
-      if (budgets[i].id === "monthly") { entry = budgets[i]; break; }
-    }
-    monthlyBudget.value = entry ? entry.amount : "";
-  }
-
-  function saveMonthlyBudget() {
-    var amount = parseFloat(monthlyBudget.value);
-    var all = getAllRecords();
-    if (!amount || amount <= 0) {
-      all.budget = [];
-    } else {
-      all.budget = [{
-        id: "monthly",
-        type: "budget",
-        category: "月预算",
-        amount: amount,
-        period: "月",
-        date: new Date().toISOString().slice(0, 10),
-        createdAt: new Date().toISOString(),
-      }];
-    }
-    saveAllRecords(all);
-  }
-
   // ===== 支出分类 =====
-  function loadCategories() {
-    currentCategories = getExpenseCategories();
-    renderCategories();
-  }
-
   function renderCategories() {
     categoryTags.innerHTML = "";
     currentCategories.forEach(function (cat, idx) {
@@ -153,10 +134,7 @@
 
   // ===== 保存 =====
   function save() {
-    saveProfile({
-      name: profileName.value.trim(),
-    });
-
+    // 设置（模型、API Key）保存到本地
     saveSettings({
       model: currentModel,
       apiKeys: {
@@ -165,10 +143,33 @@
       },
     });
 
-    saveMonthlyBudget();
-    saveExpenseCategories(currentCategories);
+    // 资料（名称、预算、分类）保存到数据库
+    var budget = parseFloat(monthlyBudget.value);
+    var profileData = {
+      name: profileName.value.trim(),
+      monthly_budget: (!isNaN(budget) && budget > 0) ? budget : 0,
+      expense_categories: currentCategories,
+    };
 
-    showToast("设置已保存");
+    fetch("/api/finance-chat/data/profile", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Anon-Token": getOrCreateAnonToken(),
+      },
+      body: JSON.stringify(profileData),
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          showToast("设置已保存");
+        } else {
+          showToast("保存失败: " + (data.message || data.error || "未知错误"));
+        }
+      })
+      .catch(function (err) {
+        showToast("保存失败: " + err.message);
+      });
   }
 
   // ===== 清除聊天记录 =====

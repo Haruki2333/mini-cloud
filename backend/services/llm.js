@@ -67,6 +67,14 @@ async function chat(modelId, messages, apiKey, options = {}) {
     ...options,
   };
 
+  // 打印完整输入
+  console.log(
+    `[LLM] >>> 请求 ${model.label} (${modelId})\n` +
+    `消息数: ${messages.length}` +
+    (options.tools ? `，工具: ${options.tools.map((t) => t.function.name).join(", ")}` : "") +
+    `\n输入消息:\n${JSON.stringify(messages, null, 2)}`
+  );
+
   const res = await fetch(model.endpoint, {
     method: "POST",
     headers: {
@@ -91,6 +99,15 @@ async function chat(modelId, messages, apiKey, options = {}) {
   const message = data.choices && data.choices[0] && data.choices[0].message;
   const content = (message && message.content) || "";
   const tool_calls = (message && message.tool_calls) || null;
+
+  // 打印完整输出
+  console.log(
+    `[LLM] <<< 响应 ${model.label} (${modelId})\n` +
+    (data.usage
+      ? `Token 用量: 输入=${data.usage.prompt_tokens}, 输出=${data.usage.completion_tokens}\n`
+      : "") +
+    `输出消息:\n${JSON.stringify(message, null, 2)}`
+  );
 
   return { content, tool_calls, usage: data.usage || null };
 }

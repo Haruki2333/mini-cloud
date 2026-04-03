@@ -70,37 +70,42 @@
     }
   }
 
-  // ===== 数据刷新 =====
+  // ===== 数据刷新（从数据库读取） =====
   function refreshData() {
     var month = dateInput.value;
     if (!month) return;
 
-    var summary = getRecordsSummaryByMonth(month);
-    if (summary.success) {
-      totalExpenseEl.textContent = "¥" + (summary.expense.total || 0);
-      totalIncomeEl.textContent = "¥" + (summary.income.total || 0);
-      var net = summary.netIncome || 0;
-      netIncomeEl.textContent = (net >= 0 ? "¥" : "-¥") + Math.abs(net);
-    }
-
-    renderExpenseChart(month);
+    fetch("/api/finance-chat/data/summary?month=" + month, {
+      headers: { "X-Anon-Token": getOrCreateAnonToken() },
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data.success) return;
+        totalExpenseEl.textContent = "¥" + (data.expense.total || 0);
+        totalIncomeEl.textContent = "¥" + (data.income.total || 0);
+        var net = data.netIncome || 0;
+        netIncomeEl.textContent = (net >= 0 ? "¥" : "-¥") + Math.abs(net);
+        renderExpenseChart(data.expense.byCategory || {});
+      })
+      .catch(function (err) {
+        console.error("获取月度摘要失败:", err);
+      });
   }
 
   // ===== 支出分类柱状图 =====
-  function renderExpenseChart(month) {
-    var result = getExpenseByCategoryByMonth(month);
-    var cats = Object.keys(result.byCategory);
+  function renderExpenseChart(byCategory) {
+    var cats = Object.keys(byCategory);
 
     if (cats.length === 0) {
       expenseChartEl.innerHTML = '<div class="expense-chart-empty">暂无支出数据</div>';
       return;
     }
 
-    cats.sort(function (a, b) { return result.byCategory[b] - result.byCategory[a]; });
-    var max = result.byCategory[cats[0]];
+    cats.sort(function (a, b) { return byCategory[b] - byCategory[a]; });
+    var max = byCategory[cats[0]];
 
     var html = cats.map(function (cat) {
-      var amt = result.byCategory[cat];
+      var amt = byCategory[cat];
       var pct = max > 0 ? Math.round(amt / max * 100) : 0;
       return (
         '<div class="expense-bar-row">' +
@@ -236,48 +241,6 @@
   }
 
   function showToolResult(event) {
-    // 将 record 工具的结果持久化到 localStorage
-    if (event.name === "record" && event.result && event.result.success && event.result.results) {
-      var results = event.result.results;
-      for (var k = 0; k < results.length; k++) {
-        if (results[k].success && results[k].record) {
-          addRecord(results[k].type, results[k].record);
-        }
-      }
-      refreshData();
-    }
-
-    // 将 update_profile 工具的结果持久化到 localStorage
-    if (event.name === "update_profile" && event.result && event.result.success) {
-      var updates = event.result.updates;
-      if (updates.name !== undefined) {
-        var p = getProfile();
-        p.name = updates.name;
-        saveProfile(p);
-      }
-      if (updates.monthly_budget !== undefined) {
-        var all = getAllRecords();
-        if (updates.monthly_budget <= 0) {
-          all.budget = [];
-        } else {
-          all.budget = [{
-            id: "monthly",
-            type: "budget",
-            category: "月预算",
-            amount: updates.monthly_budget,
-            period: "月",
-            date: new Date().toISOString().slice(0, 10),
-            createdAt: new Date().toISOString(),
-          }];
-        }
-        saveAllRecords(all);
-        refreshData();
-      }
-      if (updates.expense_categories !== undefined) {
-        saveExpenseCategories(updates.expense_categories);
-      }
-    }
-
     // 将工具执行结果更新到当前步骤，并准备接受下一个步骤
     if (thinkingMsgEl) {
       var label = SKILL_LABELS[event.name] || event.name;
@@ -302,9 +265,6 @@
     var settings = getSettings();
     var model = settings.model || DEFAULT_MODEL;
     var apiKey = getApiKeyForModel(model);
-    var profile = getProfile();
-    profile.budgets = getAllRecords().budget || [];
-    profile.expenseCategories = getExpenseCategories();
 
     if (!apiKey) {
       closeThinkingOverlay();
@@ -326,7 +286,6 @@
       body: JSON.stringify({
         messages: recent,
         model: model,
-        profile: profile,
       }),
     })
       .then(function (res) {
@@ -382,7 +341,7 @@
         showToolResult(event);
         break;
       case "answer":
-        // AI 已处理完成，直接关闭思考浮层，数据已通过 tool_result 更新
+        // AI 已处理完成，直接关闭思考浮层，数据已由后端持久化到数据库
         finishLLM();
         break;
       case "error":

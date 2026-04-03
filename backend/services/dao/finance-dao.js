@@ -354,6 +354,43 @@ async function getUserCategories(userId) {
   return rows.map((r) => r.name);
 }
 
+/**
+ * 获取用户完整资料（name、expenseCategories、budgets）
+ * @param {number} userId
+ * @returns {{ name: string, expenseCategories: string[], budgets: Array, monthly_budget: number }}
+ */
+async function getUserProfile(userId) {
+  const { User, UserCategory, FinanceRecord } = getModels();
+
+  const [user, categories, budgetRows] = await Promise.all([
+    User.findByPk(userId, { raw: true }),
+    UserCategory.findAll({
+      where: { user_id: userId },
+      order: [["sort_order", "ASC"]],
+      raw: true,
+    }),
+    FinanceRecord.findAll({
+      where: { user_id: userId, type: "budget" },
+      raw: true,
+    }),
+  ]);
+
+  const monthlyBudgetRow = budgetRows.find((b) => b.category === "月预算");
+
+  return {
+    name: (user && user.name) || "",
+    expenseCategories: categories.map((c) => c.name),
+    budgets: budgetRows.map((b) => ({
+      id: b.id,
+      category: b.category,
+      amount: Number(b.amount),
+      period: b.period,
+      date: b.record_date,
+    })),
+    monthly_budget: monthlyBudgetRow ? Number(monthlyBudgetRow.amount) : 0,
+  };
+}
+
 // ===== 月度汇总刷新 =====
 
 /**
@@ -440,5 +477,6 @@ module.exports = {
   queryRecords,
   updateProfile,
   getUserCategories,
+  getUserProfile,
   refreshMonthlySummary,
 };
