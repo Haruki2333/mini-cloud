@@ -17,7 +17,12 @@ const {
   executeQuery,
   executeUpdateProfile,
 } = require("../services/skills/finance-record");
-const { findOrCreateUser, getUserCategories } = require("../services/dao/finance-dao");
+const {
+  findOrCreateUser,
+  queryRecords,
+  updateProfile,
+  getUserProfile,
+} = require("../services/dao/finance-dao");
 
 // ===== 系统提示词 =====
 
@@ -96,7 +101,7 @@ function createCompletionsHandler(brain, logTag) {
         return res.status(401).json({ error: "缺少 API Key，请在个人资料页配置" });
       }
 
-      var { messages, model, profile } = req.body;
+      var { messages, model } = req.body;
       if (!messages || !Array.isArray(messages) || messages.length === 0) {
         return res.status(400).json({ error: "消息列表不能为空" });
       }
@@ -113,13 +118,8 @@ function createCompletionsHandler(brain, logTag) {
         return res.status(401).json({ error: "缺少用户标识，请刷新页面重试" });
       }
 
-      // 从数据库加载用户自定义分类，合并到 profile 中
-      if (profile) {
-        const dbCategories = await getUserCategories(userId);
-        if (dbCategories.length > 0) {
-          profile.expenseCategories = dbCategories;
-        }
-      }
+      // 从数据库加载完整用户资料
+      const profile = await getUserProfile(userId);
 
       // SSE 流式响应
       res.setHeader("Content-Type", "text/event-stream");
@@ -147,9 +147,116 @@ function createCompletionsHandler(brain, logTag) {
   };
 }
 
+// ===== 数据查询接口（供前端直接读取，不经过 LLM） =====
+
+// GET /api/finance-chat/data/summary?month=YYYY-MM
+async function handleGetSummary(req, res) {
+  try {
+    const userId = await resolveUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: "缺少用户标识" });
+    }
+
+    const month = req.query.month || new Date().toISOString().slice(0, 7);
+    const data = await queryRecords(userId, { month, type: "all" });
+
+    res.json({
+      success: true,
+      month,
+      expense: {
+        total: data.summary.totalExpense,
+        byCategory: data.summary.expenseByCategory,
+      },
+      income: {
+        total: data.summary.totalIncome,
+      },
+      netIncome: data.summary.netIncome,
+    });
+  } catch (err) {
+    console.error("[DataAPI] summary 查询失败:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// GET /api/finance-chat/data/records?month=YYYY-MM&type=all|expense|income
+async function handleGetRecords(req, res) {
+  try {
+    const userId = await resolveUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: "缺少用户标识" });
+    }
+
+    const month = req.query.month || new Date().toISOString().slice(0, 7);
+    const type = req.query.type || "all";
+    const data = await queryRecords(userId, { month, type });
+
+    // 将各类型记录合并，并附加 _kind 字段
+    const records = [];
+    for (const t of ["expense", "income"]) {
+      if (data[t] && data[t].records) {
+        for (const r of data[t].records) {
+          records.push(Object.assign({}, r, { _kind: t }));
+        }
+      }
+    }
+
+    res.json({ success: true, records });
+  } catch (err) {
+    console.error("[DataAPI] records 查询失败:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// GET /api/finance-chat/data/profile
+async function handleGetProfile(req, res) {
+  try {
+    const userId = await resolveUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: "缺少用户标识" });
+    }
+
+    const profile = await getUserProfile(userId);
+    res.json({
+      success: true,
+      name: profile.name,
+      monthly_budget: profile.monthly_budget,
+      expense_categories: profile.expenseCategories,
+    });
+  } catch (err) {
+    console.error("[DataAPI] profile 查询失败:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// PUT /api/finance-chat/data/profile
+async function handlePutProfile(req, res) {
+  try {
+    const userId = await resolveUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: "缺少用户标识" });
+    }
+
+    const { name, monthly_budget, expense_categories } = req.body;
+    const params = {};
+    if (name !== undefined) params.name = name;
+    if (monthly_budget !== undefined) params.monthly_budget = monthly_budget;
+    if (expense_categories !== undefined) params.expense_categories = expense_categories;
+
+    const result = await updateProfile(userId, params);
+    res.json(result);
+  } catch (err) {
+    console.error("[DataAPI] profile 更新失败:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+}
+
 // ===== 路由 =====
 
 const financeRouter = express.Router();
 financeRouter.post("/completions", createCompletionsHandler(financeBrain, "FinanceChat"));
+financeRouter.get("/data/summary", handleGetSummary);
+financeRouter.get("/data/records", handleGetRecords);
+financeRouter.get("/data/profile", handleGetProfile);
+financeRouter.put("/data/profile", handlePutProfile);
 
 module.exports = { financeRouter };

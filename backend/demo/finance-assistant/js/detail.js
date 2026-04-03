@@ -74,54 +74,51 @@
     history.replaceState(null, "", url);
   }
 
-  function getRecords() {
-    if (type === "all") {
-      var expenses = getRecordsByMonth("expense", month).map(function (r) {
-        return Object.assign({}, r, { _kind: "expense" });
-      });
-      var incomes = getRecordsByMonth("income", month).map(function (r) {
-        return Object.assign({}, r, { _kind: "income" });
-      });
-      return expenses.concat(incomes);
-    }
-    return getRecordsByMonth(type, month).map(function (r) {
-      return Object.assign({}, r, { _kind: type });
-    });
-  }
-
   function loadData() {
-    var records = getRecords();
     var keyword = searchInput.value.trim().toLowerCase();
 
-    if (keyword) {
-      records = records.filter(function (r) {
-        var text = (r.description || "") + (r.category || "") + (r.source || "");
-        return text.toLowerCase().indexOf(keyword) !== -1;
+    fetch("/api/finance-chat/data/records?month=" + month + "&type=" + type, {
+      headers: { "X-Anon-Token": getOrCreateAnonToken() },
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data.success) return;
+        var records = data.records;
+
+        if (keyword) {
+          records = records.filter(function (r) {
+            var text = (r.description || "") + (r.category || "") + (r.source || "");
+            return text.toLowerCase().indexOf(keyword) !== -1;
+          });
+        }
+
+        var totalText;
+        if (type === "all") {
+          var income = 0, expense = 0;
+          for (var i = 0; i < records.length; i++) {
+            if (records[i]._kind === "income") income += records[i].amount || 0;
+            else expense += records[i].amount || 0;
+          }
+          var net = income - expense;
+          totalText = (net >= 0 ? "¥" : "-¥") + Math.abs(net);
+        } else if (type === "expense") {
+          var total = 0;
+          for (var i = 0; i < records.length; i++) total += records[i].amount || 0;
+          totalText = "-¥" + total;
+        } else {
+          var total = 0;
+          for (var i = 0; i < records.length; i++) total += records[i].amount || 0;
+          totalText = "¥" + total;
+        }
+        totalAmountEl.textContent = totalText;
+        totalCountEl.textContent = records.length + " 条记录";
+
+        renderRecords(records);
+      })
+      .catch(function (err) {
+        console.error("获取记录失败:", err);
+        recordList.innerHTML = '<div class="record-empty">&gt; 加载失败，请刷新重试</div>';
       });
-    }
-
-    var totalText;
-    if (type === "all") {
-      var income = 0, expense = 0;
-      for (var i = 0; i < records.length; i++) {
-        if (records[i]._kind === "income") income += records[i].amount || 0;
-        else expense += records[i].amount || 0;
-      }
-      var net = income - expense;
-      totalText = (net >= 0 ? "¥" : "-¥") + Math.abs(net);
-    } else if (type === "expense") {
-      var total = 0;
-      for (var i = 0; i < records.length; i++) total += records[i].amount || 0;
-      totalText = "-¥" + total;
-    } else {
-      var total = 0;
-      for (var i = 0; i < records.length; i++) total += records[i].amount || 0;
-      totalText = "¥" + total;
-    }
-    totalAmountEl.textContent = totalText;
-    totalCountEl.textContent = records.length + " 条记录";
-
-    renderRecords(records);
   }
 
   function renderRecords(records) {
