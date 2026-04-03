@@ -1,14 +1,10 @@
 /**
  * 财务记录技能
  * 支持 expense(支出) / income(收入) / budget(预算) 三种记录类型
- * 内存存储，重启后数据清空
+ * 数据持久化到 MySQL
  */
 
-const stores = {
-  expense: { records: [], nextId: 1 },
-  income: { records: [], nextId: 1 },
-  budget: { records: [], nextId: 1 },
-};
+const dao = require("../dao/finance-dao");
 
 // ===== record 工具定义 =====
 
@@ -76,13 +72,17 @@ const queryDefinition = {
   function: {
     name: "query",
     description:
-      "查询用户的财务记录和统计数据。可按日期和类型筛选，返回记录明细和汇总统计。",
+      "查询用户的财务记录和统计数据。可按日期和类型筛选，返回记录明细、汇总统计和月度趋势。",
     parameters: {
       type: "object",
       properties: {
         date: {
           type: "string",
           description: "查询日期 YYYY-MM-DD，不传则查询全部",
+        },
+        month: {
+          type: "string",
+          description: "查询月份 YYYY-MM，按月筛选",
         },
         type: {
           type: "string",
@@ -98,154 +98,59 @@ function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
-// ===== 各类型的处理器 =====
-
-function handleExpense(item, date) {
-  if (!item.amount || !item.category || !item.description) {
-    return { type: "expense", success: false, message: "expense 需要 amount、category、description" };
-  }
-  const store = stores.expense;
-  const record = {
-    id: store.nextId++,
-    amount: item.amount,
-    category: item.category,
-    description: item.description,
-    date,
-    createdAt: new Date().toISOString(),
-  };
-  store.records.push(record);
-  return {
-    type: "expense",
-    success: true,
-    message: `已记录支出：${record.description} ¥${record.amount}（${record.category}）`,
-    record,
-  };
-}
-
-function handleIncome(item, date) {
-  if (!item.amount || !item.source || !item.description) {
-    return { type: "income", success: false, message: "income 需要 amount、source、description" };
-  }
-  const store = stores.income;
-  const record = {
-    id: store.nextId++,
-    amount: item.amount,
-    source: item.source,
-    description: item.description,
-    date,
-    createdAt: new Date().toISOString(),
-  };
-  store.records.push(record);
-  return {
-    type: "income",
-    success: true,
-    message: `已记录收入：${record.description} ¥${record.amount}（${record.source}）`,
-    record,
-  };
-}
-
-function handleBudget(item, date) {
-  if (!item.category || !item.amount || !item.period) {
-    return { type: "budget", success: false, message: "budget 需要 category、amount、period" };
-  }
-  const store = stores.budget;
-  const record = {
-    id: store.nextId++,
-    category: item.category,
-    amount: item.amount,
-    period: item.period,
-    date,
-    createdAt: new Date().toISOString(),
-  };
-  store.records.push(record);
-  return {
-    type: "budget",
-    success: true,
-    message: `已设置预算：${record.category} 每${record.period} ¥${record.amount}`,
-    record,
-  };
-}
-
-const handlers = {
-  expense: handleExpense,
-  income: handleIncome,
-  budget: handleBudget,
-};
-
 // ===== record 主执行函数 =====
 
-async function executeRecord(params) {
+async function executeRecord(params, userId) {
   const items = params.records;
   if (!Array.isArray(items) || items.length === 0) {
     return { success: false, message: "records 数组不能为空" };
   }
 
-  const results = [];
-  let allSuccess = true;
+  // 验证每条记录
+  const validatedRecords = [];
+  const errors = [];
 
   for (const item of items) {
-    const handler = handlers[item.type];
-    if (!handler) {
-      results.push({ type: item.type, success: false, message: `未知类型: ${item.type}` });
-      allSuccess = false;
+    const date = item.date || getToday();
+
+    if (item.type === "expense") {
+      if (!item.amount || !item.category || !item.description) {
+        errors.push({ type: "expense", success: false, message: "expense 需要 amount、category、description" });
+        continue;
+      }
+    } else if (item.type === "income") {
+      if (!item.amount || !item.source || !item.description) {
+        errors.push({ type: "income", success: false, message: "income 需要 amount、source、description" });
+        continue;
+      }
+    } else if (item.type === "budget") {
+      if (!item.category || !item.amount || !item.period) {
+        errors.push({ type: "budget", success: false, message: "budget 需要 category、amount、period" });
+        continue;
+      }
+    } else {
+      errors.push({ type: item.type, success: false, message: `未知类型: ${item.type}` });
       continue;
     }
-    const date = item.date || getToday();
-    const result = handler(item, date);
-    if (!result.success) allSuccess = false;
-    results.push(result);
+
+    validatedRecords.push({ ...item, date });
   }
 
-  return { success: allSuccess, results };
+  if (validatedRecords.length === 0) {
+    return { success: false, results: errors };
+  }
+
+  const results = await dao.createRecords(userId, validatedRecords);
+  const allResults = [...errors, ...results];
+  const allSuccess = allResults.every((r) => r.success);
+
+  return { success: allSuccess, results: allResults };
 }
 
 // ===== query 执行函数 =====
 
-async function executeQuery(params) {
-  const date = params.date || null;
-  const type = params.type || "all";
-  const typesToQuery = type === "all" ? ["expense", "income", "budget"] : [type];
-
-  const result = {};
-
-  for (const t of typesToQuery) {
-    const store = stores[t];
-    if (!store) continue;
-    const records = date
-      ? store.records.filter((r) => r.date === date)
-      : store.records;
-    result[t] = { count: records.length, records };
-  }
-
-  // 计算汇总统计
-  const expenses = result.expense ? result.expense.records : [];
-  const incomes = result.income ? result.income.records : [];
-
-  const totalExpense = expenses.reduce((sum, r) => sum + r.amount, 0);
-  const totalIncome = incomes.reduce((sum, r) => sum + r.amount, 0);
-
-  const expenseByCategory = {};
-  for (const r of expenses) {
-    expenseByCategory[r.category] = (expenseByCategory[r.category] || 0) + r.amount;
-  }
-
-  const incomeBySource = {};
-  for (const r of incomes) {
-    incomeBySource[r.source] = (incomeBySource[r.source] || 0) + r.amount;
-  }
-
-  return {
-    success: true,
-    date: date || "全部",
-    summary: {
-      totalExpense,
-      totalIncome,
-      netIncome: totalIncome - totalExpense,
-      expenseByCategory,
-      incomeBySource,
-    },
-    ...result,
-  };
+async function executeQuery(params, userId) {
+  return dao.queryRecords(userId, params);
 }
 
 // ===== update_profile 工具定义 =====
@@ -277,30 +182,8 @@ const updateProfileDefinition = {
   },
 };
 
-async function executeUpdateProfile(params) {
-  const updates = {};
-  if (params.name !== undefined) updates.name = String(params.name).trim();
-  if (params.monthly_budget !== undefined)
-    updates.monthly_budget = Number(params.monthly_budget);
-  if (params.expense_categories !== undefined)
-    updates.expense_categories = params.expense_categories.map((c) => String(c).trim()).filter(Boolean);
-
-  if (Object.keys(updates).length === 0) {
-    return { success: false, message: "未提供任何需要更新的字段" };
-  }
-
-  const messages = [];
-  if (updates.name !== undefined) messages.push(`名称更新为"${updates.name}"`);
-  if (updates.monthly_budget !== undefined)
-    messages.push(
-      updates.monthly_budget > 0
-        ? `月预算设为 ¥${updates.monthly_budget}`
-        : "月预算已清除"
-    );
-  if (updates.expense_categories !== undefined)
-    messages.push(`支出分类更新为：${updates.expense_categories.join("、")}`);
-
-  return { success: true, updates, message: messages.join("；") };
+async function executeUpdateProfile(params, userId) {
+  return dao.updateProfile(userId, params);
 }
 
 module.exports = {
