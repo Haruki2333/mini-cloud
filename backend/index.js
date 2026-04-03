@@ -2,6 +2,7 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
+const { initDB } = require("./services/db");
 const { financeRouter: financeChatRouter } = require("./routes/chat");
 
 const logger = morgan("tiny");
@@ -27,6 +28,14 @@ app.use("/", express.static(path.join(__dirname, "demo/finance-assistant")));
 
 const port = process.env.PORT || 80;
 
-app.listen(port, () => {
-  console.log("启动成功", port);
+async function start() {
+  await initDB();
+  app.listen(port, () => {
+    console.log("启动成功", port);
+  });
+}
+
+start().catch((err) => {
+  console.error("启动失败:", err);
+  process.exit(1);
 });

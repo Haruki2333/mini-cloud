@@ -18,8 +18,11 @@ mini-cloud/
 │   ├── routes/                     # API 路由
 │   │   └── chat.js                 # 对话路由（导出 financeRouter）
 │   ├── services/                   # 业务服务模块
+│   │   ├── db.js                   # Sequelize 初始化、模型定义、initDB()
 │   │   ├── llm.js                  # LLM 调用封装
 │   │   ├── brain.js                # 通用 ReAct 推理循环工厂（createBrain）
+│   │   ├── dao/                    # 数据访问层
+│   │   │   └── finance-dao.js      # 财务数据 CRUD + 月度汇总
 │   │   └── skills/                 # 技能模块
 │   │       ├── registry.js         # 通用技能注册工厂（createSkillRegistry）
 │   │       └── finance-record.js   # 财务记录技能（expense/income/budget）
@@ -28,7 +31,8 @@ mini-cloud/
 │   └── Dockerfile
 ├── docs/                           # 项目文档/知识库
 │   ├── api/                        # 接口文档（按业务域组织）
-│   ├── db/                         # 数据库表结构文档（预留）
+│   ├── db/                         # 数据库表结构文档
+│   │   └── finance.md              # 财务助理表结构（users/finance_records/monthly_summary）
 │   └── ui/                         # 设计文档
 ├── miniprogs/                      # 小程序前端项目，每个子目录为一个独立小程序
 └── pnpm-workspace.yaml
@@ -55,3 +59,10 @@ mini-cloud/
 - `GET /api/wx_openid` — 获取微信 Open ID（小程序专用）
 
 完整接口文档见 `docs/api/` 目录。
+
+## 数据库
+
+- 使用 MySQL + Sequelize ORM，启动时自动建表（`initDB()`）
+- 环境变量：`MYSQL_ADDRESS`（host:port）、`MYSQL_USERNAME`、`MYSQL_PASSWORD`、`MYSQL_DATABASE`（默认 `mini_cloud`）
+- 表结构文档见 `docs/db/finance.md`
+- 用户标识：微信小程序通过 `x-wx-openid` 请求头，H5 Demo 通过前端生成的 UUID 匿名令牌（`X-Anon-Token`）

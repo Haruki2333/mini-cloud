@@ -2,9 +2,25 @@ var SETTINGS_KEY = "finance-assistant-settings";
 var PROFILE_KEY = "finance-assistant-profile";
 var CHAT_KEY = "finance-assistant-chat";
 var CATEGORIES_KEY = "finance-assistant-categories";
+var ANON_TOKEN_KEY = "finance-assistant-anon-token";
 var MAX_MESSAGES = 50;
 var MAX_CATEGORIES = 20;
 var DEFAULT_EXPENSE_CATEGORIES = ["餐饮", "交通", "购物", "娱乐", "医疗", "居住", "教育", "通讯", "日用", "其他"];
+
+// ===== 匿名用户令牌 =====
+
+function getOrCreateAnonToken() {
+  var token = localStorage.getItem(ANON_TOKEN_KEY);
+  if (token) return token;
+  // 生成 UUID v4
+  token = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    var r = (Math.random() * 16) | 0;
+    var v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+  localStorage.setItem(ANON_TOKEN_KEY, token);
+  return token;
+}
 
 function getSettings() {
   var raw = localStorage.getItem(SETTINGS_KEY);

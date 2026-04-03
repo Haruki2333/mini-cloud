@@ -8,12 +8,12 @@
 function createSkillRegistry(skillModules) {
   const definitions = Object.values(skillModules).map((s) => s.definition);
 
-  async function execute(name, args) {
+  async function execute(name, args, userId) {
     const skill = skillModules[name];
     if (!skill) {
       return { success: false, message: `未知技能: ${name}` };
     }
-    return skill.execute(args);
+    return skill.execute(args, userId);
   }
 
   return { definitions, execute };

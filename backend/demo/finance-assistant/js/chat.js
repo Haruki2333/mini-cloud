@@ -321,6 +321,7 @@
       headers: {
         "Content-Type": "application/json",
         "X-Api-Key": apiKey,
+        "X-Anon-Token": getOrCreateAnonToken(),
       },
       body: JSON.stringify({
         messages: recent,

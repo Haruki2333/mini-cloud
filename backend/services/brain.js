@@ -70,7 +70,7 @@ function createBrain({ systemPrompt, skills }) {
    * @param {object} [params.profile] - 用户资料
    * @yields {{ type: string, ... }} SSE 事件
    */
-  async function* think({ messages, model, apiKey, profile }) {
+  async function* think({ messages, model, apiKey, profile, userId }) {
     const prompt = buildSystemPrompt(systemPrompt, profile);
     const conversationMessages = [
       { role: "system", content: prompt },
@@ -117,7 +117,7 @@ function createBrain({ systemPrompt, skills }) {
         }
 
         const startTime = Date.now();
-        const toolResult = await skills.execute(call.function.name, args);
+        const toolResult = await skills.execute(call.function.name, args, userId);
         const duration = Date.now() - startTime;
 
         yield {
