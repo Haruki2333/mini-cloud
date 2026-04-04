@@ -116,3 +116,134 @@ data: [DONE]\n\n
 - 路由：`backend/routes/chat.js`（`financeRouter`，挂载到 `/api/finance-chat`）
 - 推理循环：`backend/services/brain.js`（`createBrain`）
 - 工具实现：`backend/services/skills/finance-record.js`
+
+---
+
+## GET /api/finance-chat/data/summary
+
+获取指定月份的财务摘要（总支出、总收入、净收支、分类汇总），供前端直接展示，不经过 LLM。
+
+### 请求头
+
+| 名称 | 必填 | 说明 |
+|------|------|------|
+| X-Wx-OpenId | 二选一 | 微信小程序用户标识 |
+| X-Anon-Token | 二选一 | H5 Demo 匿名令牌 |
+
+### 查询参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| month | string | 否 | 月份 `YYYY-MM`，默认当月 |
+
+### 响应
+
+```json
+{
+  "success": true,
+  "month": "2026-04",
+  "expense": {
+    "total": 3200.00,
+    "byCategory": { "餐饮": 800.00, "交通": 400.00 }
+  },
+  "income": {
+    "total": 10000.00
+  },
+  "netIncome": 6800.00
+}
+```
+
+---
+
+## GET /api/finance-chat/data/records
+
+获取指定月份的财务记录明细，供前端直接展示，不经过 LLM。
+
+### 请求头
+
+同 `/data/summary`。
+
+### 查询参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| month | string | 否 | 月份 `YYYY-MM`，默认当月 |
+| type | string | 否 | `expense` / `income` / `all`，默认 `all` |
+
+### 响应
+
+```json
+{
+  "success": true,
+  "records": [
+    {
+      "id": 1,
+      "amount": 35.00,
+      "date": "2026-04-04",
+      "createdAt": "2026-04-04T12:00:00.000Z",
+      "category": "餐饮",
+      "description": "午饭",
+      "_kind": "expense"
+    }
+  ]
+}
+```
+
+`_kind` 字段标识记录类型（`expense` 或 `income`）。
+
+---
+
+## GET /api/finance-chat/data/profile
+
+获取当前用户的个人资料（名称、月预算、支出分类）。
+
+### 请求头
+
+同 `/data/summary`。
+
+### 响应
+
+```json
+{
+  "success": true,
+  "name": "小明",
+  "monthly_budget": 5000,
+  "expense_categories": ["餐饮", "交通", "购物", "娱乐"]
+}
+```
+
+---
+
+## PUT /api/finance-chat/data/profile
+
+更新当前用户的个人资料。与 `update_profile` 工具等效，供前端设置页直接调用。
+
+### 请求头
+
+同 `/data/summary`，另需 `Content-Type: application/json`。
+
+### 请求体
+
+```json
+{
+  "name": "小明",
+  "monthly_budget": 5000,
+  "expense_categories": ["餐饮", "交通", "购物", "娱乐"]
+}
+```
+
+所有字段均为可选，仅传入需要修改的字段。`monthly_budget` 设为 `0` 表示清除预算。
+
+### 响应
+
+```json
+{
+  "success": true,
+  "updates": { "name": "小明" },
+  "message": "名称更新为\"小明\""
+}
+```
+
+### 实现位置
+
+路由：`backend/routes/chat.js`（`handleGetSummary`、`handleGetRecords`、`handleGetProfile`、`handlePutProfile`）

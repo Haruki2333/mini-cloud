@@ -126,7 +126,7 @@ async function createRecords(userId, records) {
  * @returns {object} 查询结果（含明细和汇总）
  */
 async function queryRecords(userId, params) {
-  const { FinanceRecord, MonthlySummary } = getModels();
+  const { FinanceRecord } = getModels();
   const date = params.date || null;
   const month = params.month || null;
   const type = params.type || "all";
@@ -278,7 +278,7 @@ async function getMonthlySummaryTrends(userId, currentMonth, count) {
  * 更新用户资料
  */
 async function updateProfile(userId, params) {
-  const { User, UserCategory } = getModels();
+  const { User, UserCategory, FinanceRecord } = getModels();
   const updates = {};
   const messages = [];
 
@@ -291,7 +291,6 @@ async function updateProfile(userId, params) {
 
   if (params.monthly_budget !== undefined) {
     const amount = Number(params.monthly_budget);
-    const { FinanceRecord } = getModels();
 
     // 删除该用户的旧月预算记录
     await FinanceRecord.destroy({
@@ -384,7 +383,7 @@ async function getUserProfile(userId) {
  * 重新计算指定用户指定月份的汇总数据
  */
 async function refreshMonthlySummary(userId, month) {
-  const { FinanceRecord, MonthlySummary, sequelize } = getModels();
+  const { FinanceRecord, MonthlySummary } = getModels();
 
   const rows = await FinanceRecord.findAll({
     where: {

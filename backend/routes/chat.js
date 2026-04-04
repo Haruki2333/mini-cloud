@@ -96,18 +96,17 @@ async function resolveUserId(req) {
 function createCompletionsHandler(brain, logTag) {
   return async (req, res) => {
     try {
-      var apiKey = req.headers["x-api-key"];
+      const apiKey = req.headers["x-api-key"];
       if (!apiKey) {
         return res.status(401).json({ error: "缺少 API Key，请在个人资料页配置" });
       }
 
-      var { messages, model } = req.body;
+      const { messages } = req.body;
+      let model = req.body.model || "qwen3.5-plus";
       if (!messages || !Array.isArray(messages) || messages.length === 0) {
         return res.status(400).json({ error: "消息列表不能为空" });
       }
-
-      model = model || "qwen3.5-plus";
-      var modelInfo = getModelInfo(model);
+      const modelInfo = getModelInfo(model);
       if (!modelInfo) {
         return res.status(400).json({ error: "不支持的模型: " + model });
       }
