@@ -463,5 +463,4 @@ module.exports = {
   queryRecords,
   updateProfile,
   getUserProfile,
-  refreshMonthlySummary,
 };

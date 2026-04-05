@@ -168,7 +168,7 @@ data: [DONE]\n\n
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | month | string | 否 | 月份 `YYYY-MM`，默认当月 |
-| type | string | 否 | `expense` / `income` / `all`，默认 `all` |
+| type | string | 否 | `expense` / `income` / `budget` / `all`，默认 `all` |
 
 ### 响应
 

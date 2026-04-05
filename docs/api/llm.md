@@ -74,9 +74,9 @@
 
 ---
 
-### `MODEL_REGISTRY`
+### `MODEL_REGISTRY`（内部）
 
-模型注册表对象，key 为模型 ID，value 为 `{ provider, label, endpoint, defaults }`。其中 `defaults` 为模型默认参数（如思考模式开关），使用 function calling 时会自动关闭。一般不建议外部直接操作，优先使用上述函数。
+模型注册表对象，key 为模型 ID，value 为 `{ provider, label, endpoint, defaults }`。其中 `defaults` 为模型默认参数（如思考模式开关），使用 function calling 时会自动关闭。仅供模块内部使用，不对外导出，外部请使用 `getModelInfo()` / `getModels()`。
 
 ## 调用示例
 

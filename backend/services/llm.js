@@ -67,12 +67,10 @@ async function chat(modelId, messages, apiKey, options = {}) {
     ...options,
   };
 
-  // 打印完整输入
   console.log(
-    `[LLM] >>> 请求 ${model.label} (${modelId})\n` +
-    `消息数: ${messages.length}` +
-    (options.tools ? `，工具: ${options.tools.map((t) => t.function.name).join(", ")}` : "") +
-    `\n输入消息:\n${JSON.stringify(messages, null, 2)}`
+    `[LLM] >>> 请求 ${model.label} (${modelId})` +
+    `，消息数: ${messages.length}` +
+    (options.tools ? `，工具: ${options.tools.map((t) => t.function.name).join(", ")}` : "")
   );
 
   const res = await fetch(model.endpoint, {
@@ -100,16 +98,15 @@ async function chat(modelId, messages, apiKey, options = {}) {
   const content = (message && message.content) || "";
   const tool_calls = (message && message.tool_calls) || null;
 
-  // 打印完整输出
   console.log(
-    `[LLM] <<< 响应 ${model.label} (${modelId})\n` +
+    `[LLM] <<< 响应 ${model.label} (${modelId})` +
     (data.usage
-      ? `Token 用量: 输入=${data.usage.prompt_tokens}, 输出=${data.usage.completion_tokens}\n`
+      ? `，Token: 输入=${data.usage.prompt_tokens}, 输出=${data.usage.completion_tokens}`
       : "") +
-    `输出消息:\n${JSON.stringify(message, null, 2)}`
+    (tool_calls ? `，工具调用: ${tool_calls.map((t) => t.function.name).join(", ")}` : "")
   );
 
   return { content, tool_calls, usage: data.usage || null };
 }
 
-module.exports = { MODEL_REGISTRY, getModels, getModelInfo, chat };
+module.exports = { getModels, getModelInfo, chat };
