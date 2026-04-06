@@ -166,22 +166,8 @@ async function queryRecords(userId, params) {
   }
 
   // 计算汇总统计
-  const expenses = rows.filter((r) => r.type === "expense");
-  const incomes = rows.filter((r) => r.type === "income");
+  const { expenses, incomes, totalExpense, totalIncome, expenseByCategory, incomeBySource } = aggregateRecords(rows);
   const budgets = rows.filter((r) => r.type === "budget");
-
-  const totalExpense = expenses.reduce((sum, r) => sum + Number(r.amount), 0);
-  const totalIncome = incomes.reduce((sum, r) => sum + Number(r.amount), 0);
-
-  const expenseByCategory = {};
-  for (const r of expenses) {
-    expenseByCategory[r.category] = (expenseByCategory[r.category] || 0) + Number(r.amount);
-  }
-
-  const incomeBySource = {};
-  for (const r of incomes) {
-    incomeBySource[r.source] = (incomeBySource[r.source] || 0) + Number(r.amount);
-  }
 
   // 计算预算使用情况
   const budgetUsage = {};
@@ -396,21 +382,7 @@ async function refreshMonthlySummary(userId, month) {
     raw: true,
   });
 
-  const expenses = rows.filter((r) => r.type === "expense");
-  const incomes = rows.filter((r) => r.type === "income");
-
-  const totalExpense = expenses.reduce((sum, r) => sum + Number(r.amount), 0);
-  const totalIncome = incomes.reduce((sum, r) => sum + Number(r.amount), 0);
-
-  const expenseByCategory = {};
-  for (const r of expenses) {
-    expenseByCategory[r.category] = (expenseByCategory[r.category] || 0) + Number(r.amount);
-  }
-
-  const incomeBySource = {};
-  for (const r of incomes) {
-    incomeBySource[r.source] = (incomeBySource[r.source] || 0) + Number(r.amount);
-  }
+  const { totalExpense, totalIncome, expenseByCategory, incomeBySource } = aggregateRecords(rows);
 
   // UPSERT: 存在则更新，不存在则插入
   const existing = await MonthlySummary.findOne({
@@ -434,6 +406,26 @@ async function refreshMonthlySummary(userId, month) {
 }
 
 // ===== 辅助函数 =====
+
+/**
+ * 对原始记录行进行聚合统计
+ * @param {Array} rows - FinanceRecord 原始行（raw: true）
+ */
+function aggregateRecords(rows) {
+  const expenses = rows.filter((r) => r.type === "expense");
+  const incomes = rows.filter((r) => r.type === "income");
+  const totalExpense = expenses.reduce((sum, r) => sum + Number(r.amount), 0);
+  const totalIncome = incomes.reduce((sum, r) => sum + Number(r.amount), 0);
+  const expenseByCategory = {};
+  for (const r of expenses) {
+    expenseByCategory[r.category] = (expenseByCategory[r.category] || 0) + Number(r.amount);
+  }
+  const incomeBySource = {};
+  for (const r of incomes) {
+    incomeBySource[r.source] = (incomeBySource[r.source] || 0) + Number(r.amount);
+  }
+  return { expenses, incomes, totalExpense, totalIncome, expenseByCategory, incomeBySource };
+}
 
 function formatRecord(row) {
   const record = {
