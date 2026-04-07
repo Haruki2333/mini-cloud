@@ -112,7 +112,7 @@ function createCompletionsHandler(brain, logTag) {
       }
 
       // 解析用户身份
-      var userId = await resolveUserId(req);
+      const userId = await resolveUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "缺少用户标识，请刷新页面重试" });
       }

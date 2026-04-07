@@ -166,7 +166,7 @@ async function queryRecords(userId, params) {
   }
 
   // 计算汇总统计
-  const { expenses, incomes, totalExpense, totalIncome, expenseByCategory, incomeBySource } = aggregateRecords(rows);
+  const { expenses, totalExpense, totalIncome, expenseByCategory, incomeBySource } = aggregateRecords(rows);
   const budgets = rows.filter((r) => r.type === "budget");
 
   // 计算预算使用情况
@@ -384,25 +384,16 @@ async function refreshMonthlySummary(userId, month) {
 
   const { totalExpense, totalIncome, expenseByCategory, incomeBySource } = aggregateRecords(rows);
 
-  // UPSERT: 存在则更新，不存在则插入
-  const existing = await MonthlySummary.findOne({
-    where: { user_id: userId, month },
-  });
-
-  const data = {
+  await MonthlySummary.upsert({
+    user_id: userId,
+    month,
     total_expense: totalExpense,
     total_income: totalIncome,
     net_income: totalIncome - totalExpense,
     expense_by_category: Object.keys(expenseByCategory).length > 0 ? expenseByCategory : null,
     income_by_source: Object.keys(incomeBySource).length > 0 ? incomeBySource : null,
     record_count: rows.length,
-  };
-
-  if (existing) {
-    await existing.update(data);
-  } else {
-    await MonthlySummary.create({ user_id: userId, month, ...data });
-  }
+  });
 }
 
 // ===== 辅助函数 =====
@@ -424,7 +415,7 @@ function aggregateRecords(rows) {
   for (const r of incomes) {
     incomeBySource[r.source] = (incomeBySource[r.source] || 0) + Number(r.amount);
   }
-  return { expenses, incomes, totalExpense, totalIncome, expenseByCategory, incomeBySource };
+  return { expenses, totalExpense, totalIncome, expenseByCategory, incomeBySource };
 }
 
 function formatRecord(row) {
