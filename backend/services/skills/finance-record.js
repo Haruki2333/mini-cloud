@@ -186,11 +186,100 @@ async function executeUpdateProfile(params, userId) {
   return dao.updateProfile(userId, params);
 }
 
+// ===== update_record 工具定义 =====
+
+const updateRecordDefinition = {
+  type: "function",
+  function: {
+    name: "update_record",
+    description:
+      "修改指定财务记录的字段（金额、分类、描述、日期等）。需先用 query 工具找到记录 ID，再调用本工具。",
+    parameters: {
+      type: "object",
+      properties: {
+        id: {
+          type: "number",
+          description: "要修改的记录 ID（从 query 结果中获取）",
+        },
+        date: {
+          type: "string",
+          description: "新日期 YYYY-MM-DD",
+        },
+        amount: {
+          type: "number",
+          description: "新金额（元）",
+        },
+        category: {
+          type: "string",
+          description: "新分类（expense/budget 记录适用）",
+        },
+        description: {
+          type: "string",
+          description: "新描述（expense/income 记录适用）",
+        },
+        source: {
+          type: "string",
+          enum: ["工资", "兼职", "投资", "红包", "报销", "其他"],
+          description: "新收入来源（income 记录适用）",
+        },
+        period: {
+          type: "string",
+          enum: ["日", "周", "月"],
+          description: "新预算周期（budget 记录适用）",
+        },
+      },
+      required: ["id"],
+    },
+  },
+};
+
+async function executeUpdateRecord(params, userId) {
+  const { id, ...updates } = params;
+  if (!id) {
+    return { success: false, message: "缺少记录 ID" };
+  }
+  return dao.updateRecord(userId, id, updates);
+}
+
+// ===== delete_record 工具定义 =====
+
+const deleteRecordDefinition = {
+  type: "function",
+  function: {
+    name: "delete_record",
+    description:
+      "删除一条或多条财务记录。需先用 query 工具找到记录 ID，再调用本工具。删除操作不可撤销，请在执行前向用户确认。",
+    parameters: {
+      type: "object",
+      properties: {
+        ids: {
+          type: "array",
+          items: { type: "number" },
+          description: "要删除的记录 ID 数组（从 query 结果中获取）",
+        },
+      },
+      required: ["ids"],
+    },
+  },
+};
+
+async function executeDeleteRecord(params, userId) {
+  const ids = params.ids;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return { success: false, message: "ids 数组不能为空" };
+  }
+  return dao.deleteRecord(userId, ids);
+}
+
 module.exports = {
   recordDefinition,
   queryDefinition,
   updateProfileDefinition,
+  updateRecordDefinition,
+  deleteRecordDefinition,
   executeRecord,
   executeQuery,
   executeUpdateProfile,
+  executeUpdateRecord,
+  executeDeleteRecord,
 };
