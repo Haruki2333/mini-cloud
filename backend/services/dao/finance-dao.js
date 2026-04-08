@@ -363,6 +363,89 @@ async function getUserProfile(userId) {
   };
 }
 
+/**
+ * 修改指定财务记录的字段
+ * @param {number} userId
+ * @param {number} recordId
+ * @param {object} updates - 允许修改的字段 { amount?, category?, description?, source?, period?, date? }
+ */
+async function updateRecord(userId, recordId, updates) {
+  const { FinanceRecord } = getModels();
+
+  const record = await FinanceRecord.findOne({
+    where: { id: recordId, user_id: userId },
+    raw: true,
+  });
+
+  if (!record) {
+    return { success: false, message: `记录 #${recordId} 不存在或无权操作` };
+  }
+
+  const affectedMonths = new Set([record.record_date.slice(0, 7)]);
+  const updateFields = {};
+
+  if (updates.amount !== undefined) updateFields.amount = Number(updates.amount);
+  if (updates.category !== undefined) updateFields.category = updates.category;
+  if (updates.description !== undefined) updateFields.description = updates.description;
+  if (updates.source !== undefined) updateFields.source = updates.source;
+  if (updates.period !== undefined) updateFields.period = updates.period;
+  if (updates.date !== undefined) {
+    updateFields.record_date = updates.date;
+    affectedMonths.add(updates.date.slice(0, 7));
+  }
+
+  if (Object.keys(updateFields).length === 0) {
+    return { success: false, message: "未提供任何要更新的字段" };
+  }
+
+  await FinanceRecord.update(updateFields, { where: { id: recordId, user_id: userId } });
+
+  for (const month of affectedMonths) {
+    refreshMonthlySummary(userId, month).catch((err) =>
+      console.error("[DAO] 刷新月度汇总失败:", err.message)
+    );
+  }
+
+  return { success: true, message: `记录 #${recordId} 已更新`, updated: updateFields };
+}
+
+/**
+ * 删除一条或多条财务记录
+ * @param {number} userId
+ * @param {number[]} recordIds
+ */
+async function deleteRecord(userId, recordIds) {
+  const { FinanceRecord } = getModels();
+
+  const records = await FinanceRecord.findAll({
+    where: { id: { [Op.in]: recordIds }, user_id: userId },
+    raw: true,
+  });
+
+  if (records.length === 0) {
+    return { success: false, message: "未找到指定记录或无权操作" };
+  }
+
+  const affectedMonths = new Set(records.map((r) => r.record_date.slice(0, 7)));
+  const foundIds = records.map((r) => r.id);
+  const notFoundIds = recordIds.filter((id) => !foundIds.includes(id));
+
+  await FinanceRecord.destroy({ where: { id: { [Op.in]: foundIds }, user_id: userId } });
+
+  for (const month of affectedMonths) {
+    refreshMonthlySummary(userId, month).catch((err) =>
+      console.error("[DAO] 刷新月度汇总失败:", err.message)
+    );
+  }
+
+  const messages = [`已删除 ${foundIds.length} 条记录`];
+  if (notFoundIds.length > 0) {
+    messages.push(`${notFoundIds.length} 条记录未找到（ID: ${notFoundIds.join(", ")}）`);
+  }
+
+  return { success: true, deleted: foundIds, notFound: notFoundIds, message: messages.join("，") };
+}
+
 // ===== 月度汇总刷新 =====
 
 /**
@@ -444,6 +527,8 @@ module.exports = {
   findOrCreateUser,
   createRecords,
   queryRecords,
+  updateRecord,
+  deleteRecord,
   updateProfile,
   getUserProfile,
 };

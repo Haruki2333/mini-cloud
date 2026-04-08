@@ -13,13 +13,19 @@ const {
   recordDefinition,
   queryDefinition,
   updateProfileDefinition,
+  updateRecordDefinition,
+  deleteRecordDefinition,
   executeRecord,
   executeQuery,
   executeUpdateProfile,
+  executeUpdateRecord,
+  executeDeleteRecord,
 } = require("../services/skills/finance-record");
 const {
   findOrCreateUser,
   queryRecords,
+  updateRecord,
+  deleteRecord,
   updateProfile,
   getUserProfile,
 } = require("../services/dao/finance-dao");
@@ -57,7 +63,18 @@ const FINANCE_SYSTEM_PROMPT = `你是「光明财务助理」，一个专业、�
 3. update_profile 工具 — 修改用户的个人资料：
    - 当用户想改名字、昵称时：传入 name 字段
    - 当用户想设置或修改月预算时：传入 monthly_budget 字段（0 表示清除）
-   - 当用户想增加/删除/修改支出分类时：基于用户资料中的当前分类列表调整后，将完整的新列表传入 expense_categories 字段`;
+   - 当用户想增加/删除/修改支出分类时：基于用户资料中的当前分类列表调整后，将完整的新列表传入 expense_categories 字段
+
+4. update_record 工具 — 修改历史流水记录：
+   - 当用户想修改某条记录的金额、分类、描述、日期等时使用
+   - 需先调用 query 工具查到目标记录及其 ID，再调用本工具
+   - 仅传入需要修改的字段，未传入的字段保持不变
+
+5. delete_record 工具 — 删除历史流水记录：
+   - 当用户想删除某条或多条记录时使用
+   - 需先调用 query 工具查到目标记录及其 ID，再调用本工具
+   - 删除操作不可撤销，执行前应向用户确认（如用户表达明确删除意图则直接执行）
+   - 支持一次传入多个 ID 批量删除`;
 
 // ===== 组装技能集和 Brain 实例 =====
 
@@ -73,6 +90,14 @@ const financeSkills = createSkillRegistry({
   update_profile: {
     definition: updateProfileDefinition,
     execute: executeUpdateProfile,
+  },
+  update_record: {
+    definition: updateRecordDefinition,
+    execute: executeUpdateRecord,
+  },
+  delete_record: {
+    definition: deleteRecordDefinition,
+    execute: executeDeleteRecord,
   },
 });
 
@@ -249,6 +274,57 @@ async function handlePutProfile(req, res) {
   }
 }
 
+// PUT /api/finance-chat/data/records/:id — 直接修改记录（供详情页 UI 调用）
+async function handlePutRecord(req, res) {
+  try {
+    const userId = await resolveUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: "缺少用户标识" });
+    }
+
+    const recordId = Number(req.params.id);
+    if (!recordId) {
+      return res.status(400).json({ error: "无效的记录 ID" });
+    }
+
+    const { amount, category, description, source, period, date } = req.body;
+    const updates = {};
+    if (amount !== undefined) updates.amount = amount;
+    if (category !== undefined) updates.category = category;
+    if (description !== undefined) updates.description = description;
+    if (source !== undefined) updates.source = source;
+    if (period !== undefined) updates.period = period;
+    if (date !== undefined) updates.date = date;
+
+    const result = await updateRecord(userId, recordId, updates);
+    res.json(result);
+  } catch (err) {
+    console.error("[DataAPI] record 修改失败:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// DELETE /api/finance-chat/data/records/:id — 直接删除记录（供详情页 UI 调用）
+async function handleDeleteRecord(req, res) {
+  try {
+    const userId = await resolveUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: "缺少用户标识" });
+    }
+
+    const recordId = Number(req.params.id);
+    if (!recordId) {
+      return res.status(400).json({ error: "无效的记录 ID" });
+    }
+
+    const result = await deleteRecord(userId, [recordId]);
+    res.json(result);
+  } catch (err) {
+    console.error("[DataAPI] record 删除失败:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+}
+
 // ===== 路由 =====
 
 const financeRouter = express.Router();
@@ -257,5 +333,7 @@ financeRouter.get("/data/summary", handleGetSummary);
 financeRouter.get("/data/records", handleGetRecords);
 financeRouter.get("/data/profile", handleGetProfile);
 financeRouter.put("/data/profile", handlePutProfile);
+financeRouter.put("/data/records/:id", handlePutRecord);
+financeRouter.delete("/data/records/:id", handleDeleteRecord);
 
 module.exports = { financeRouter };

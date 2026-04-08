@@ -1305,6 +1305,31 @@ textarea.form-input {
   letter-spacing: 0.5px;
 }
 
+.record-delete {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast), background var(--duration-fast);
+  opacity: 0;
+  transition: opacity var(--duration-fast), color var(--duration-fast);
+}
+
+.record-item:hover .record-delete,
+.record-item.touch-active .record-delete {
+  opacity: 1;
+}
+
+.record-delete:hover {
+  color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.08);
+}
+
 /* 顶部栏链接组 */
 .topbar-links {
   display: flex;

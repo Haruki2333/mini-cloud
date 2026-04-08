@@ -143,7 +143,7 @@
         html += '<div class="record-date-label">' + escapeHtml(dateStr) + '</div>';
       }
 
-      html += '<div class="record-item">';
+      html += '<div class="record-item" data-id="' + r.id + '">';
       html += '<span class="record-desc">' + escapeHtml(r.description || "") + '</span>';
 
       // 分类/来源标签
@@ -163,10 +163,67 @@
       }
 
       html += '<span class="record-amount">¥' + (r.amount || 0) + '</span>';
+      html += '<button class="record-delete" title="删除" aria-label="删除记录">×</button>';
       html += '</div>';
     }
 
     recordList.innerHTML = html;
+    bindDeleteButtons();
+  }
+
+  function bindDeleteButtons() {
+    var btns = recordList.querySelectorAll(".record-delete");
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener("click", handleDeleteClick);
+    }
+    // 移动端触摸：长按显示删除按钮
+    var items = recordList.querySelectorAll(".record-item");
+    for (var j = 0; j < items.length; j++) {
+      (function (item) {
+        var timer;
+        item.addEventListener("touchstart", function () {
+          timer = setTimeout(function () { item.classList.add("touch-active"); }, 400);
+        });
+        item.addEventListener("touchend", function () { clearTimeout(timer); });
+        item.addEventListener("touchmove", function () { clearTimeout(timer); });
+      })(items[j]);
+    }
+  }
+
+  function handleDeleteClick(e) {
+    e.stopPropagation();
+    var item = e.currentTarget.closest(".record-item");
+    if (!item) return;
+    var recordId = item.getAttribute("data-id");
+    if (!recordId) return;
+    var desc = (item.querySelector(".record-desc") || {}).textContent || "该记录";
+    if (!confirm("确认删除「" + desc + "」？此操作不可撤销。")) return;
+    deleteRecordById(recordId, item);
+  }
+
+  function deleteRecordById(recordId, itemEl) {
+    itemEl.style.opacity = "0.4";
+    itemEl.style.pointerEvents = "none";
+
+    fetch("/api/finance-chat/data/records/" + recordId, {
+      method: "DELETE",
+      headers: { "X-Anon-Token": getOrCreateAnonToken() },
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          loadData();
+        } else {
+          itemEl.style.opacity = "";
+          itemEl.style.pointerEvents = "";
+          alert("删除失败：" + (data.message || "未知错误"));
+        }
+      })
+      .catch(function (err) {
+        itemEl.style.opacity = "";
+        itemEl.style.pointerEvents = "";
+        alert("删除失败：" + err.message);
+      });
   }
 
   init();
