@@ -72,6 +72,7 @@ async function chat(modelId, messages, apiKey, options = {}) {
     `，消息数: ${messages.length}` +
     (options.tools ? `，工具: ${options.tools.map((t) => t.function.name).join(", ")}` : "")
   );
+  console.log("[LLM] >>> 请求体:", JSON.stringify(body, null, 2));
 
   const res = await fetch(model.endpoint, {
     method: "POST",
@@ -105,6 +106,7 @@ async function chat(modelId, messages, apiKey, options = {}) {
       : "") +
     (tool_calls ? `，工具调用: ${tool_calls.map((t) => t.function.name).join(", ")}` : "")
   );
+  console.log("[LLM] <<< 响应体:", JSON.stringify(data, null, 2));
 
   return { content, tool_calls, usage: data.usage || null };
 }
