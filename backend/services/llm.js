@@ -20,6 +20,22 @@ const MODEL_REGISTRY = {
 };
 
 /**
+ * 从 usage 对象中提取缓存命中信息
+ * - 千问：usage.prompt_tokens_details.cached_tokens
+ * - 智谱：usage.prompt_cache_hit_tokens
+ */
+function getCacheInfo(usage) {
+  if (!usage || !usage.prompt_tokens) return null;
+  const cached =
+    usage.prompt_tokens_details?.cached_tokens ??
+    usage.prompt_cache_hit_tokens ??
+    null;
+  if (cached == null) return null;
+  const rate = ((cached / usage.prompt_tokens) * 100).toFixed(1);
+  return { cached, rate };
+}
+
+/**
  * 获取所有可用模型列表
  */
 function getModels() {
@@ -99,11 +115,13 @@ async function chat(modelId, messages, apiKey, options = {}) {
   const content = (message && message.content) || "";
   const tool_calls = (message && message.tool_calls) || null;
 
+  const cacheInfo = getCacheInfo(data.usage);
   console.log(
     `[LLM] <<< 响应 ${model.label} (${modelId})` +
     (data.usage
       ? `，Token: 输入=${data.usage.prompt_tokens}, 输出=${data.usage.completion_tokens}`
       : "") +
+    (cacheInfo ? `，缓存命中: ${cacheInfo.cached}tok (${cacheInfo.rate}%)` : "") +
     (tool_calls ? `，工具调用: ${tool_calls.map((t) => t.function.name).join(", ")}` : "")
   );
   console.log("[LLM] <<< 响应体:", JSON.stringify(data));
