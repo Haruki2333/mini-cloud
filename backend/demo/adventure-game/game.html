@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>冒险进行中</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="page">
+    <!-- 背景图层 -->
+    <div class="game-bg" id="gameBg"></div>
+    <div class="game-bg-overlay"></div>
+
+    <!-- 导航 -->
+    <div class="game-nav">
+      <a href="index.html" class="nav-back" id="navBack">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </a>
+      <span class="nav-title" id="navTitle">STORY_MODE</span>
+      <span class="nav-progress" id="navProgress"></span>
+    </div>
+
+    <!-- 进度条 -->
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+    </div>
+
+    <!-- 游戏内容 -->
+    <div class="game-content" id="gameContent">
+      <!-- 场景历史 -->
+      <div class="scene-history" id="sceneHistory"></div>
+
+      <!-- 当前场景 -->
+      <div class="scene-current" id="sceneCurrent">
+        <div class="scene-narrative" id="sceneNarrative"></div>
+      </div>
+
+      <!-- 结局面板 -->
+      <div class="ending-panel" id="endingPanel" style="display: none;">
+        <div class="ending-title">STORY COMPLETE</div>
+        <div class="ending-narrative" id="endingNarrative"></div>
+        <a href="index.html" class="btn-home">返回首页</a>
+      </div>
+    </div>
+
+    <!-- 选项区 -->
+    <div class="choices-area" id="choicesArea"></div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- 加载浮层 -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-panel">
+      <div class="loading-spinner"></div>
+      <div class="loading-text" id="loadingText">AI_PROCESSING</div>
+      <div class="loading-sub" id="loadingSub">正在构建故事世界...</div>
+    </div>
+  </div>
+
+  <script src="js/types.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
