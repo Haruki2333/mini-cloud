@@ -4,7 +4,7 @@
  * 数据持久化到 MySQL
  */
 
-const dao = require("../dao/finance-dao");
+const dao = require("./dao");
 
 // ===== record 工具定义 =====
 

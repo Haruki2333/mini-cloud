@@ -4,62 +4,26 @@
  * 参考 OpenClaw 设计理念，自实现的 Agent 推理核心。
  * 通过 createBrain 注入系统提示词和技能集，返回 { think } 对象。
  * think 是 async generator，逐步 yield 事件，供上层以 SSE 形式推送给前端。
+ *
+ * 支持可选的 enhancePrompt / enhanceToolDefs 钩子，
+ * 业务模块可通过钩子注入领域定制逻辑，而无需修改本模块。
  */
 
 const { chat } = require("./llm");
 
 const MAX_ITERATIONS = 5;
 
-function buildSystemPrompt(basePrompt, profile) {
-  const parts = [basePrompt];
-  if (profile) {
-    const info = [];
-    if (profile.name) info.push("称呼：" + profile.name);
-    if (profile.budgets && profile.budgets.length > 0) {
-      const lines = profile.budgets
-        .map((b) => b.category + "：¥" + b.amount + "/" + b.period)
-        .join("、");
-      info.push("预算设置：" + lines);
-    }
-    if (profile.expenseCategories && profile.expenseCategories.length > 0) {
-      info.push("支出分类：" + profile.expenseCategories.join("、"));
-    }
-    if (info.length > 0) {
-      parts.push("\n用户资料：\n" + info.join("\n"));
-    }
-  }
-  return parts.join("");
-}
-
-function buildToolDefs(skills, profile) {
-  if (!profile || !profile.expenseCategories || profile.expenseCategories.length === 0) {
-    return skills.definitions;
-  }
-  const categories = profile.expenseCategories;
-  return skills.definitions.map((def) => {
-    if (def.function && def.function.name === "record") {
-      const cloned = JSON.parse(JSON.stringify(def));
-      const itemProps = cloned.function.parameters.properties.records.items.properties;
-      if (itemProps.category) {
-        itemProps.category.enum = categories;
-        itemProps.category.description =
-          "分类（expense/budget 必填），可选值：" + categories.join("、");
-      }
-      return cloned;
-    }
-    return def;
-  });
-}
-
 /**
  * 创建一个 Brain 实例
  *
  * @param {object} config
- * @param {string} config.systemPrompt - 系统提示词
+ * @param {string} config.systemPrompt - 基础系统提示词
  * @param {{ definitions: Array, execute: Function }} config.skills - 技能注册表
+ * @param {Function} [config.enhancePrompt] - 可选钩子：enhancePrompt(basePrompt, context) → string
+ * @param {Function} [config.enhanceToolDefs] - 可选钩子：enhanceToolDefs(definitions, context) → definitions
  * @returns {{ think: AsyncGeneratorFunction }}
  */
-function createBrain({ systemPrompt, skills }) {
+function createBrain({ systemPrompt, skills, enhancePrompt, enhanceToolDefs }) {
   /**
    * ReAct 推理循环
    *
@@ -67,11 +31,18 @@ function createBrain({ systemPrompt, skills }) {
    * @param {Array} params.messages - 用户消息列表
    * @param {string} params.model - 模型 ID
    * @param {string} params.apiKey - API Key
-   * @param {object} [params.profile] - 用户资料
+   * @param {number} [params.userId] - 用户 ID（传给技能执行函数）
+   * @param {object} [params.context] - 业务上下文（透传给钩子函数）
    * @yields {{ type: string, ... }} SSE 事件
    */
-  async function* think({ messages, model, apiKey, profile, userId }) {
-    const prompt = buildSystemPrompt(systemPrompt, profile);
+  async function* think({ messages, model, apiKey, userId, context }) {
+    const prompt = enhancePrompt
+      ? enhancePrompt(systemPrompt, context)
+      : systemPrompt;
+    const tools = enhanceToolDefs
+      ? enhanceToolDefs(skills.definitions, context)
+      : skills.definitions;
+
     const conversationMessages = [
       { role: "system", content: prompt },
       ...messages,
@@ -79,7 +50,7 @@ function createBrain({ systemPrompt, skills }) {
 
     for (let i = 0; i < MAX_ITERATIONS; i++) {
       const result = await chat(model, conversationMessages, apiKey, {
-        tools: buildToolDefs(skills, profile),
+        tools,
       });
 
       // 没有 tool_calls → 推理完成，返回最终回复

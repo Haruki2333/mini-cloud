@@ -17,15 +17,17 @@ mini-cloud/
 │   ├── index.js                    # Express 主入口
 │   ├── routes/                     # API 路由
 │   │   └── chat.js                 # 对话路由（导出 financeRouter）
-│   ├── services/                   # 业务服务模块
-│   │   ├── db.js                   # Sequelize 初始化、模型定义、initDB()
-│   │   ├── llm.js                  # LLM 调用封装
-│   │   ├── brain.js                # 通用 ReAct 推理循环工厂（createBrain）
-│   │   ├── dao/                    # 数据访问层
-│   │   │   └── finance-dao.js      # 财务数据 CRUD + 月度汇总
-│   │   └── skills/                 # 技能模块
-│   │       ├── registry.js         # 通用技能注册工厂（createSkillRegistry）
-│   │       └── finance-record.js   # 财务记录技能（expense/income/budget）
+│   ├── services/                   # 业务服务模块（core/ 通用底层 + 业务专属目录）
+│   │   ├── core/                   # 底层通用模块（与具体业务无关）
+│   │   │   ├── db.js               # Sequelize 连接管理、initDB(modelDefiners)
+│   │   │   ├── llm.js              # LLM 多厂商调用封装
+│   │   │   ├── brain.js            # 通用 ReAct 推理循环工厂（createBrain，支持钩子扩展）
+│   │   │   └── skill-registry.js   # 通用技能注册工厂（createSkillRegistry）
+│   │   └── finance-assistant/      # 财务助理 demo 专属模块
+│   │       ├── brain-config.js     # 系统提示词 + enhancePrompt/enhanceToolDefs 钩子
+│   │       ├── models.js           # 数据库模型定义（User/FinanceRecord/UserCategory/MonthlySummary）
+│   │       ├── dao.js              # 财务数据 CRUD + 月度汇总
+│   │       └── skills.js           # 财务记录技能（expense/income/budget）
 │   ├── demo/                       # H5 Demo 页面（静态文件，根路径 / 访问）
 │   │   └── finance-assistant/      # 财务助理 Demo（文字对话，收支记录与分析）
 │   └── Dockerfile
