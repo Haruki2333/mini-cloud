@@ -7,13 +7,13 @@ const { Op } = require("sequelize");
 
 // 延迟加载模型，避免循环依赖
 function getModels() {
-  const db = require("../db");
+  const models = require("./models");
   return {
-    User: db.User,
-    FinanceRecord: db.FinanceRecord,
-    UserCategory: db.UserCategory,
-    MonthlySummary: db.MonthlySummary,
-    sequelize: db.getSequelize(),
+    User: models.User,
+    FinanceRecord: models.FinanceRecord,
+    UserCategory: models.UserCategory,
+    MonthlySummary: models.MonthlySummary,
+    sequelize: require("../core/db").getSequelize(),
   };
 }
 

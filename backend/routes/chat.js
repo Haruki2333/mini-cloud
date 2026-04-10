@@ -6,9 +6,14 @@
  */
 
 const express = require("express");
-const { getModelInfo } = require("../services/llm");
-const { createBrain } = require("../services/brain");
-const { createSkillRegistry } = require("../services/skills/registry");
+const { getModelInfo } = require("../services/core/llm");
+const { createBrain } = require("../services/core/brain");
+const { createSkillRegistry } = require("../services/core/skill-registry");
+const {
+  FINANCE_SYSTEM_PROMPT,
+  enhancePrompt,
+  enhanceToolDefs,
+} = require("../services/finance-assistant/brain-config");
 const {
   recordDefinition,
   queryDefinition,
@@ -20,7 +25,7 @@ const {
   executeUpdateProfile,
   executeUpdateRecord,
   executeDeleteRecord,
-} = require("../services/skills/finance-record");
+} = require("../services/finance-assistant/skills");
 const {
   findOrCreateUser,
   queryRecords,
@@ -28,53 +33,7 @@ const {
   deleteRecord,
   updateProfile,
   getUserProfile,
-} = require("../services/dao/finance-dao");
-
-// ===== 系统提示词 =====
-
-const FINANCE_SYSTEM_PROMPT = `你是「光明财务助理」，一个专业、简洁、值得信赖的个人财务 AI 助手。
-你的职责是帮助用户记录和分析个人财务数据，包括：收支记录、预算管理、财务分析与建议。
-
-回复要求：
-- 简洁明了，数据说话
-- 语气专业但友好
-- 涉及金额时使用 ¥ 符号
-- 如果用户提供了个人资料，适当结合用户信息给出个性化建议
-- 使用中文回复
-
-你可以使用以下工具：
-
-1. record 工具 — 记录财务数据，records 数组中每条记录通过 type 区分：
-   - type="expense": 当用户提到花钱、消费、买东西、付款等支出时
-   - type="income": 当用户提到收入、工资、报销、红包、投资收益等进账时
-   - type="budget": 当用户提到预算、限额、每月/每周/每天花费上限时
-   如果用户的消息同时涉及多种记录（如"发了工资8000，午饭花了35"），应在一次 record 调用的 records 数组中包含多条记录。
-
-2. query 工具 — 查询和分析财务数据：
-   - 当用户想了解自己的收支情况、花费明细、收入统计时使用
-   - 支持按日期和类型筛选
-   - 返回记录明细和汇总统计（总支出、总收入、净收支、分类统计）
-   - 返回月度趋势数据，可用于分析支出变化
-   - 返回预算使用情况，可提醒用户预算消耗进度
-   - 拿到查询结果后，请用简洁易懂的方式为用户分析总结，善用趋势数据给出洞察
-
-不涉及工具的普通对话（如财务建议、理财知识），直接回复即可，不要强行调用工具。
-
-3. update_profile 工具 — 修改用户的个人资料：
-   - 当用户想改名字、昵称时：传入 name 字段
-   - 当用户想设置或修改月预算时：传入 monthly_budget 字段（0 表示清除）
-   - 当用户想增加/删除/修改支出分类时：基于用户资料中的当前分类列表调整后，将完整的新列表传入 expense_categories 字段
-
-4. update_record 工具 — 修改历史流水记录：
-   - 当用户想修改某条记录的金额、分类、描述、日期等时使用
-   - 需先调用 query 工具查到目标记录及其 ID，再调用本工具
-   - 仅传入需要修改的字段，未传入的字段保持不变
-
-5. delete_record 工具 — 删除历史流水记录：
-   - 当用户想删除某条或多条记录时使用
-   - 需先调用 query 工具查到目标记录及其 ID，再调用本工具
-   - 删除操作不可撤销，执行前应向用户确认（如用户表达明确删除意图则直接执行）
-   - 支持一次传入多个 ID 批量删除`;
+} = require("../services/finance-assistant/dao");
 
 // ===== 组装技能集和 Brain 实例 =====
 
@@ -101,7 +60,12 @@ const financeSkills = createSkillRegistry({
   },
 });
 
-const financeBrain = createBrain({ systemPrompt: FINANCE_SYSTEM_PROMPT, skills: financeSkills });
+const financeBrain = createBrain({
+  systemPrompt: FINANCE_SYSTEM_PROMPT,
+  skills: financeSkills,
+  enhancePrompt,
+  enhanceToolDefs,
+});
 
 // ===== 用户解析 =====
 
@@ -151,7 +115,7 @@ function createCompletionsHandler(brain, logTag) {
       res.setHeader("Connection", "keep-alive");
       res.flushHeaders();
 
-      for await (const event of brain.think({ messages, model, apiKey, profile, userId })) {
+      for await (const event of brain.think({ messages, model, apiKey, userId, context: profile })) {
         res.write("data: " + JSON.stringify(event) + "\n\n");
       }
 
