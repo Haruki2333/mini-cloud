@@ -12,6 +12,12 @@
     <div class="game-bg" id="gameBg"></div>
     <div class="game-bg-overlay"></div>
 
+    <!-- 场景图生成角标 -->
+    <div class="image-loading-badge" id="imageBadge">
+      <div class="image-badge-spinner"></div>
+      <span class="image-badge-text" id="imageBadgeText">场景图生成中…</span>
+    </div>
+
     <!-- 导航 -->
     <div class="game-nav">
       <a href="index.html" class="nav-back" id="navBack">
@@ -46,8 +52,26 @@
       </div>
     </div>
 
-    <!-- 选项区 -->
+    <!-- 世界观选择区（仅第一轮显示按钮） -->
     <div class="choices-area" id="choicesArea"></div>
+
+    <!-- 自由行动输入区（世界观确定后显示） -->
+    <div class="action-input-area" id="actionInputArea" style="display: none;">
+      <div class="inspiration-chips" id="inspirationChips"></div>
+      <div class="action-input-row">
+        <textarea
+          id="actionInput"
+          class="action-input"
+          rows="1"
+          placeholder="你想做什么？（Shift+Enter 换行）"
+          maxlength="300"
+        ></textarea>
+        <button id="actionSend" class="action-send" type="button">
+          <span class="action-send-label">发送</span>
+          <span class="action-send-spinner" id="actionSendSpinner"></span>
+        </button>
+      </div>
+    </div>
   </main>
 
   <div class="toast" id="toast"></div>

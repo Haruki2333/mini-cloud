@@ -31,10 +31,10 @@ mini-cloud/
 │   │   │   └── skills.js           # 财务记录技能（expense/income/budget）
 │   │   └── adventure-game/         # 冒险游戏 demo 专属模块
 │   │       ├── brain-config.js     # 系统提示词 + enhancePrompt 钩子
-│   │       └── skills.js           # 冒险技能（advance_story，含文生图）
+│   │       └── skills.js           # 冒险技能（advance_story；文生图由路由层异步调用）
 │   ├── demo/                       # H5 Demo 页面（静态文件）
 │   │   ├── finance-assistant/      # 财务助理 Demo（根路径 /，文字对话，收支记录与分析）
-│   │   └── adventure-game/         # 冒险游戏 Demo（/adventure，互动叙事，AI 文生图）
+│   │   └── adventure-game/         # 冒险游戏 Demo（/adventure，玩家自由文本驱动 + AI 文生图异步下发）
 │   └── Dockerfile
 ├── docs/                           # 项目文档/知识库
 │   ├── api/                        # 接口文档（按业务域组织）
@@ -63,7 +63,7 @@ mini-cloud/
 ## 后端 API
 
 - `POST /api/finance-chat/completions` — 财务助理 AI 对话（SSE 流式，支持记账/查询工具）
-- `POST /api/adventure/completions` — 冒险游戏 AI 对话（SSE 流式，支持故事推进/文生图工具）
+- `POST /api/adventure/completions` — 冒险游戏 AI 对话（SSE 流式，玩家自由文本驱动故事；背景图通过独立 `scene_image` 事件异步下发，不阻塞叙述）
 - `GET /api/wx_openid` — 获取微信 Open ID（小程序专用）
 
 完整接口文档见 `docs/api/` 目录。
