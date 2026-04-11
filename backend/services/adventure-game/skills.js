@@ -2,7 +2,10 @@
  * 冒险游戏技能
  *
  * advance_story — 推进故事的唯一工具
- * 内含文生图能力：当 image_prompt 非空时调用对应厂商的文生图 API
+ *
+ * 注意：文生图（generateImage）已从工具执行函数中剥离，
+ * 由路由层（adventure.js）在 tool_result 产出后异步触发并通过独立 SSE 事件下发，
+ * 以避免阻塞 narrative 返回、改善前端等待体验。
  */
 
 const fetch = require("node-fetch");
@@ -92,7 +95,7 @@ const advanceStoryDefinition = {
   function: {
     name: "advance_story",
     description:
-      "推进冒险故事。每轮必须调用此工具来展示故事内容和选项。可选设置 image_prompt 在关键场景生成背景图片。",
+      "呈现当前故事情境的唯一工具。每轮必须调用。除第一轮世界观选择外，不要替玩家做决定——叙述应以开放悬念结尾，等待玩家的自由文本行动。",
     parameters: {
       type: "object",
       properties: {
@@ -103,17 +106,19 @@ const advanceStoryDefinition = {
         image_prompt: {
           type: "string",
           description:
-            "英文场景描述，用于生成背景图片。仅在进入重要新场景、遭遇关键角色或高潮时刻时设置。风格：digital fantasy art, cinematic lighting",
+            "英文场景描述，用于生成背景图片。关键节点必须填写：世界观确定后的首个场景、进入全新重要场景、遭遇关键角色/怪物、高潮、结局。普通推进轮次可留空。风格：digital fantasy art, cinematic lighting, detailed environment, 16:9 aspect ratio",
         },
         choices: {
           type: "array",
-          description: "供玩家选择的选项（结局时不提供）",
+          description:
+            "第一轮世界观选择时必填 3 个作为按钮；后续轮次这不是菜单，而是可选的灵感提示（0-2 条），玩家可点击填入输入框作为参考。结局时不提供。",
           items: {
             type: "object",
             properties: {
               id: {
                 type: "string",
-                description: "选项标识（A/B/C/D）",
+                description:
+                  "选项标识。世界观轮用 A/B/C；后续灵感提示用 hint1/hint2",
               },
               text: {
                 type: "string",
@@ -143,20 +148,16 @@ const advanceStoryDefinition = {
 };
 
 /**
- * 创建 advance_story 执行函数（通过闭包绑定 apiKey 和 provider）
+ * 创建 advance_story 执行函数
  *
- * @param {string} apiKey - 文生图 API Key
- * @param {string} provider - 厂商标识
+ * 注意：图片生成已从此处剥离，转由路由层异步处理。
+ * 本函数仅回传 LLM 解析出的故事结构，并将 image_prompt 透传，
+ * 供路由层判断是否需要异步生成背景图。
+ *
  * @returns {Function} execute 函数
  */
-function createAdvanceStoryExecutor(apiKey, provider) {
+function createAdvanceStoryExecutor() {
   return async function executeAdvanceStory(args) {
-    let imageUrl = null;
-
-    if (args.image_prompt && apiKey) {
-      imageUrl = await generateImage(args.image_prompt, apiKey, provider);
-    }
-
     return {
       success: true,
       narrative: args.narrative,
@@ -164,7 +165,7 @@ function createAdvanceStoryExecutor(apiKey, provider) {
       is_ending: args.is_ending || false,
       progress: args.progress || 0,
       title: args.title || null,
-      image_url: imageUrl,
+      image_prompt: args.image_prompt || null,
     };
   };
 }
@@ -172,4 +173,5 @@ function createAdvanceStoryExecutor(apiKey, provider) {
 module.exports = {
   advanceStoryDefinition,
   createAdvanceStoryExecutor,
+  generateImage,
 };

@@ -1,8 +1,11 @@
 /**
  * 对话路由 — 冒险游戏
  *
- * 通过 createBrain 工厂 per-request 创建 brain 实例，
- * 通过闭包将 imageApiKey 绑定到 advance_story 技能。
+ * 通过 createBrain 工厂 per-request 创建 brain 实例。
+ * 文生图已从 advance_story 工具中剥离：路由层在 tool_result 产出后
+ * 立即 fire-and-forget 触发 generateImage，图片就绪后通过独立的
+ * scene_image / scene_image_error 事件异步下发，避免阻塞 narrative。
+ *
  * 导出 adventureRouter（挂载到 /api/adventure）。
  */
 
@@ -16,6 +19,7 @@ const {
 const {
   advanceStoryDefinition,
   createAdvanceStoryExecutor,
+  generateImage,
 } = require("../services/adventure-game/skills");
 
 // ===== SSE 对话处理 =====
@@ -39,14 +43,11 @@ async function handleCompletions(req, res) {
       return res.status(400).json({ error: "不支持的模型: " + model });
     }
 
-    // Per-request 创建技能实例（闭包绑定 apiKey 和 provider）
+    // Per-request 创建技能实例
     const imageApiKey = req.headers["x-image-api-key"] || apiKey;
     const provider = modelInfo.provider;
 
-    const executeAdvanceStory = createAdvanceStoryExecutor(
-      imageApiKey,
-      provider
-    );
+    const executeAdvanceStory = createAdvanceStoryExecutor();
 
     const skills = {
       definitions: [advanceStoryDefinition],
@@ -70,28 +71,97 @@ async function handleCompletions(req, res) {
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
+    // 安全写 SSE：若客户端已断开则忽略
+    let clientClosed = false;
+    req.on("close", () => {
+      clientClosed = true;
+    });
+    function writeEvent(payload) {
+      if (clientClosed) return;
+      try {
+        res.write("data: " + JSON.stringify(payload) + "\n\n");
+      } catch (e) {
+        clientClosed = true;
+      }
+    }
+
+    // 异步图生成任务队列：循环结束后需要 allSettled，避免事件流过早关闭
+    let turnCounter = 0;
+    const pendingImages = [];
+
     for await (const event of brain.think({
       messages,
       model,
       apiKey,
       context: context || {},
     })) {
-      res.write("data: " + JSON.stringify(event) + "\n\n");
+      writeEvent(event);
+
+      if (
+        event.type === "tool_result" &&
+        event.name === "advance_story" &&
+        event.result &&
+        event.result.image_prompt &&
+        imageApiKey
+      ) {
+        const turnId = ++turnCounter;
+        const prompt = event.result.image_prompt;
+
+        // 先告知前端本轮有图在路上（用于显示角标）
+        writeEvent({ type: "scene_image_pending", turn_id: turnId });
+
+        const task = generateImage(prompt, imageApiKey, provider)
+          .then((url) => {
+            if (url) {
+              writeEvent({
+                type: "scene_image",
+                turn_id: turnId,
+                url,
+              });
+            } else {
+              writeEvent({
+                type: "scene_image_error",
+                turn_id: turnId,
+                message: "图像生成失败",
+              });
+            }
+          })
+          .catch((err) => {
+            writeEvent({
+              type: "scene_image_error",
+              turn_id: turnId,
+              message: (err && err.message) || "图像生成异常",
+            });
+          });
+        pendingImages.push(task);
+      }
     }
 
-    res.write("data: [DONE]\n\n");
-    res.end();
+    // 等待所有异步图片任务 settle 后再关闭流
+    await Promise.allSettled(pendingImages);
+    if (!clientClosed) {
+      try {
+        res.write("data: [DONE]\n\n");
+        res.end();
+      } catch (_) {
+        // ignore
+      }
+    }
   } catch (err) {
     console.error("[Adventure] 调用失败:", err.message);
     if (!res.headersSent) {
       res.status(500).json({ error: err.message });
     } else {
-      res.write(
-        "data: " +
-          JSON.stringify({ type: "error", message: err.message }) +
-          "\n\n"
-      );
-      res.end();
+      try {
+        res.write(
+          "data: " +
+            JSON.stringify({ type: "error", message: err.message }) +
+            "\n\n"
+        );
+        res.end();
+      } catch (_) {
+        // ignore
+      }
     }
   }
 }

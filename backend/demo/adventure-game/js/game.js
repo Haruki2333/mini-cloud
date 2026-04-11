@@ -9,6 +9,11 @@
   var sceneCurrent = document.getElementById("sceneCurrent");
   var sceneNarrative = document.getElementById("sceneNarrative");
   var choicesArea = document.getElementById("choicesArea");
+  var actionInputArea = document.getElementById("actionInputArea");
+  var actionInput = document.getElementById("actionInput");
+  var actionSend = document.getElementById("actionSend");
+  var actionSendSpinner = document.getElementById("actionSendSpinner");
+  var inspirationChips = document.getElementById("inspirationChips");
   var endingPanel = document.getElementById("endingPanel");
   var endingNarrative = document.getElementById("endingNarrative");
   var gameContent = document.getElementById("gameContent");
@@ -16,8 +21,11 @@
   var loadingText = document.getElementById("loadingText");
   var loadingSub = document.getElementById("loadingSub");
   var toastEl = document.getElementById("toast");
+  var imageBadge = document.getElementById("imageBadge");
+  var imageBadgeText = document.getElementById("imageBadgeText");
 
   var toastTimer = null;
+  var imageBadgeHideTimer = null;
 
   // ===== 游戏状态 =====
   var gameState = {
@@ -33,6 +41,11 @@
 
   var isWaiting = false;
   var isReadonly = false;
+  // 世界观未确定前，第一轮输出用按钮；确定后切换到自由输入
+  var isWorldSelection = true;
+  // 每次请求自增，用于与异步下发的 scene_image 事件匹配，避免旧图覆盖新场景
+  var turnSeq = 0;
+  var currentTurnId = 0;
 
   // ===== 工具函数 =====
 
@@ -45,14 +58,41 @@
     }, 2500);
   }
 
-  function showLoading(text, sub) {
+  function showInitialLoading(text, sub) {
     loadingText.textContent = text || "AI_PROCESSING";
     loadingSub.textContent = sub || "正在构建故事世界...";
     loadingOverlay.classList.add("visible");
   }
 
-  function hideLoading() {
+  function hideInitialLoading() {
     loadingOverlay.classList.remove("visible");
+  }
+
+  function showImageBadge(text) {
+    if (!imageBadge) return;
+    clearTimeout(imageBadgeHideTimer);
+    imageBadgeText.textContent = text || "场景图生成中…";
+    imageBadge.classList.remove("error");
+    imageBadge.classList.add("visible");
+  }
+
+  function markImageBadgeError(text) {
+    if (!imageBadge) return;
+    imageBadgeText.textContent = text || "配图失败";
+    imageBadge.classList.add("error");
+    imageBadge.classList.add("visible");
+    clearTimeout(imageBadgeHideTimer);
+    imageBadgeHideTimer = setTimeout(function () {
+      imageBadge.classList.remove("visible");
+      imageBadge.classList.remove("error");
+    }, 3000);
+  }
+
+  function hideImageBadge() {
+    if (!imageBadge) return;
+    clearTimeout(imageBadgeHideTimer);
+    imageBadge.classList.remove("visible");
+    imageBadge.classList.remove("error");
   }
 
   function scrollToBottom() {
@@ -74,7 +114,28 @@
       gameBg.style.backgroundImage = 'url("' + url + '")';
       gameBg.classList.add("visible");
     };
+    img.onerror = function () {
+      markImageBadgeError("配图加载失败");
+    };
     img.src = url;
+  }
+
+  function setInputBusy(busy) {
+    if (!actionInput) return;
+    actionInput.disabled = busy;
+    actionSend.disabled = busy;
+    if (busy) {
+      actionSend.classList.add("busy");
+    } else {
+      actionSend.classList.remove("busy");
+    }
+  }
+
+  function autoResizeInput() {
+    if (!actionInput) return;
+    actionInput.style.height = "auto";
+    actionInput.style.height =
+      Math.min(actionInput.scrollHeight, 160) + "px";
   }
 
   // ===== URL 参数解析 =====
@@ -118,7 +179,6 @@
     var html = "";
     for (var i = 0; i < gameState.scenes.length; i++) {
       var scene = gameState.scenes[i];
-      // 截断叙述文字
       var shortNarrative = scene.narrative || "";
       if (shortNarrative.length > 80) {
         shortNarrative = shortNarrative.substring(0, 80) + "...";
@@ -139,10 +199,10 @@
     sceneHistory.innerHTML = html;
   }
 
-  function renderCurrentScene(data) {
-    // 更新叙述
+  function renderNarrativeText(narrative) {
+    hideInitialLoading();
     sceneNarrative.innerHTML = "";
-    var paragraphs = data.narrative.split("\n");
+    var paragraphs = narrative.split("\n");
     for (var i = 0; i < paragraphs.length; i++) {
       var text = paragraphs[i].trim();
       if (!text) continue;
@@ -152,38 +212,58 @@
       sceneNarrative.appendChild(p);
     }
     sceneCurrent.style.display = "block";
+    scrollToBottom();
+  }
 
-    // 更新背景图
+  function renderCurrentScene(data) {
+    // 叙述
+    renderNarrativeText(data.narrative || "");
+
+    // 背景图：旧故事恢复场景时可能带 image_url，新流程下通过独立事件下发
     if (data.image_url) {
       setBackgroundImage(data.image_url);
     }
 
-    // 更新进度
+    // 进度
     if (data.progress) {
       gameState.progress = data.progress;
       updateProgress(data.progress);
     }
 
-    // 更新标题
+    // 标题
     if (data.title) {
       gameState.title = data.title;
       navTitle.textContent = data.title;
     }
 
-    // 渲染选项
-    renderChoices(data.choices, data.is_ending);
-
-    // 处理结局
+    // 选项区 vs 输入区
     if (data.is_ending) {
       gameState.isEnding = true;
+      choicesArea.innerHTML = "";
+      actionInputArea.style.display = "none";
       showEnding(data.narrative);
+      return;
+    }
+
+    if (isWorldSelection) {
+      actionInputArea.style.display = "none";
+      renderWorldChoices(data.choices || []);
+    } else {
+      choicesArea.innerHTML = "";
+      actionInputArea.style.display = "block";
+      renderInspirationChips(data.choices || []);
+      if (!isReadonly) {
+        setTimeout(function () {
+          actionInput.focus();
+        }, 50);
+      }
     }
 
     scrollToBottom();
   }
 
-  function renderChoices(choices, isEnding) {
-    if (isEnding || !choices || choices.length === 0) {
+  function renderWorldChoices(choices) {
+    if (!choices || choices.length === 0) {
       choicesArea.innerHTML = "";
       return;
     }
@@ -207,17 +287,44 @@
     }
     choicesArea.innerHTML = html;
 
-    // 绑定选项点击
     if (!isReadonly) {
       var btns = choicesArea.querySelectorAll(".choice-btn");
       for (var j = 0; j < btns.length; j++) {
-        btns[j].addEventListener("click", handleChoiceClick);
+        btns[j].addEventListener("click", handleWorldChoice);
+      }
+    }
+  }
+
+  function renderInspirationChips(choices) {
+    if (!inspirationChips) return;
+    if (!choices || choices.length === 0) {
+      inspirationChips.innerHTML = "";
+      return;
+    }
+
+    var html = "";
+    for (var i = 0; i < choices.length; i++) {
+      var c = choices[i];
+      html +=
+        '<button class="inspiration-chip" type="button" data-text="' +
+        escapeHtml(c.text) +
+        '">' +
+        escapeHtml(c.text) +
+        "</button>";
+    }
+    inspirationChips.innerHTML = html;
+
+    if (!isReadonly) {
+      var btns = inspirationChips.querySelectorAll(".inspiration-chip");
+      for (var j = 0; j < btns.length; j++) {
+        btns[j].addEventListener("click", handleInspirationClick);
       }
     }
   }
 
   function showEnding(narrative) {
     choicesArea.innerHTML = "";
+    actionInputArea.style.display = "none";
     endingNarrative.textContent = narrative;
     endingPanel.style.display = "block";
     sceneCurrent.style.display = "none";
@@ -244,7 +351,6 @@
     navTitle.textContent = story.title || "STORY_ARCHIVE";
     isReadonly = true;
 
-    // 找出最后一个有图片的场景
     var lastImageUrl = null;
     for (var i = 0; i < story.scenes.length; i++) {
       if (story.scenes[i].imageUrl) {
@@ -255,7 +361,6 @@
       setBackgroundImage(lastImageUrl);
     }
 
-    // 渲染所有场景
     var html = "";
     for (var j = 0; j < story.scenes.length; j++) {
       var scene = story.scenes[j];
@@ -270,7 +375,6 @@
       }
       html += "</div>";
 
-      // 显示用户的选择
       if (scene.selectedChoice) {
         html +=
           '<span class="scene-history-choice" style="margin-top: 8px; display: inline-block;">' +
@@ -278,7 +382,6 @@
           "</span>";
       }
 
-      // 显示场景图片（缩略）
       if (scene.imageUrl) {
         html +=
           '<div style="margin-top: 8px; border-radius: 8px; overflow: hidden; opacity: 0.7;">' +
@@ -292,15 +395,12 @@
     }
     sceneHistory.innerHTML = html;
 
-    // 更新进度条
     var totalScenes = story.scenes.length;
     updateProgress(Math.min(totalScenes, 10));
 
-    // 显示结局
     if (story.scenes.length > 0) {
       var lastScene = story.scenes[story.scenes.length - 1];
       if (!lastScene.selectedChoice) {
-        // 最后一个场景没有选择，就是结局
         endingPanel.style.display = "block";
         endingNarrative.textContent = lastScene.narrative || "";
         sceneCurrent.style.display = "none";
@@ -308,11 +408,12 @@
     }
 
     choicesArea.innerHTML = "";
+    actionInputArea.style.display = "none";
   }
 
-  // ===== 用户选择处理 =====
+  // ===== 用户交互 =====
 
-  function handleChoiceClick() {
+  function handleWorldChoice() {
     if (isWaiting || isReadonly) return;
 
     var choiceId = this.dataset.id;
@@ -324,23 +425,71 @@
       currentScene.selectedChoice = choiceId + ". " + choiceText;
     }
 
-    // 如果是世界观选择（第一轮）
-    if (gameState.progress <= 1 && !gameState.worldSetting) {
-      gameState.worldSetting = choiceText;
-    }
+    gameState.worldSetting = choiceText;
+    // 世界观一旦选定，立刻切到自由输入模式
+    isWorldSelection = false;
 
-    // 构建用户消息
     var userMessage = "我选择了: " + choiceId + ". " + choiceText;
     gameState.messages.push({ role: "user", content: userMessage });
 
-    // 保存当前状态
     saveCurrentStory(gameState);
 
-    // 渲染历史并发送请求
     renderSceneHistory();
     sceneNarrative.innerHTML = "";
     choicesArea.innerHTML = "";
     sendToLLM();
+  }
+
+  function handleInspirationClick() {
+    if (isWaiting || isReadonly || !actionInput) return;
+    var text = this.dataset.text || "";
+    actionInput.value = text;
+    autoResizeInput();
+    actionInput.focus();
+    // 移动光标到末尾
+    actionInput.setSelectionRange(text.length, text.length);
+  }
+
+  function handleFreeAction() {
+    if (isWaiting || isReadonly) return;
+    var raw = (actionInput.value || "").trim();
+    if (!raw) {
+      actionInput.focus();
+      return;
+    }
+
+    // 记录到当前场景作为玩家动作摘要
+    var currentScene = gameState.scenes[gameState.scenes.length - 1];
+    if (currentScene) {
+      var shortAction = raw.length > 40 ? raw.substring(0, 40) + "…" : raw;
+      currentScene.selectedChoice = "▶ " + shortAction;
+    }
+
+    gameState.messages.push({ role: "user", content: raw });
+
+    // 清空输入框 & 灵感
+    actionInput.value = "";
+    autoResizeInput();
+    inspirationChips.innerHTML = "";
+
+    saveCurrentStory(gameState);
+
+    renderSceneHistory();
+    sceneNarrative.innerHTML = "";
+    sendToLLM();
+  }
+
+  if (actionSend) {
+    actionSend.addEventListener("click", handleFreeAction);
+  }
+  if (actionInput) {
+    actionInput.addEventListener("input", autoResizeInput);
+    actionInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleFreeAction();
+      }
+    });
   }
 
   // ===== 与 LLM 通信 =====
@@ -348,6 +497,7 @@
   function sendToLLM() {
     if (isWaiting) return;
     isWaiting = true;
+    currentTurnId = ++turnSeq;
 
     var settings = getSettings();
     var model = settings.model || DEFAULT_MODEL;
@@ -359,15 +509,7 @@
       return;
     }
 
-    var loadingMessages = [
-      "正在编织故事线索...",
-      "构建冒险场景中...",
-      "探索未知领域...",
-      "命运的齿轮开始转动...",
-    ];
-    var randomMsg =
-      loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
-    showLoading("AI_PROCESSING", randomMsg);
+    setInputBusy(true);
 
     var context = {
       worldSetting: gameState.worldSetting || null,
@@ -398,13 +540,17 @@
         var buffer = "";
         var currentSceneData = null;
         var narrativeShown = false;
+        var turnImagePending = false;
+        // 本轮收到的图片 URL：由于 scene_image 可能早于 [DONE]（finishTurn 时机）到达，
+        // 先缓存到局部变量，在 finishTurn 中随新场景一起归档，避免错写到上一场景。
+        var turnImageUrl = null;
 
         function readChunk() {
           reader
             .read()
             .then(function (result) {
               if (result.done) {
-                finishTurn(currentSceneData);
+                finishTurn(currentSceneData, turnImageUrl);
                 return;
               }
 
@@ -431,13 +577,8 @@
                               event.tool_calls[k].arguments
                             );
                             if (args.narrative) {
-                              // 提前显示叙述文字
                               renderNarrativeText(args.narrative);
                               narrativeShown = true;
-                              // 如果有图片生成，显示提示
-                              if (args.image_prompt) {
-                                loadingSub.textContent = "正在生成场景图片...";
-                              }
                             }
                           } catch (e) {}
                         }
@@ -448,18 +589,46 @@
                   if (event.type === "tool_result") {
                     if (event.name === "advance_story" && event.result) {
                       currentSceneData = event.result;
-                      hideLoading();
+                    }
+                  }
+
+                  if (event.type === "scene_image_pending") {
+                    if (event.turn_id === currentTurnId) {
+                      turnImagePending = true;
+                      showImageBadge("场景图生成中…");
+                    }
+                  }
+
+                  if (event.type === "scene_image") {
+                    if (event.turn_id === currentTurnId && event.url) {
+                      setBackgroundImage(event.url);
+                      hideImageBadge();
+                      // 缓存到本轮局部变量：finishTurn 时作为新场景的 imageUrl 归档。
+                      // 若 finishTurn 已经执行过（极端情况下 [DONE] 早于 scene_image），
+                      // 则兜底写到最后一个 scene 记录上。
+                      turnImageUrl = event.url;
+                      if (!isWaiting) {
+                        var last =
+                          gameState.scenes[gameState.scenes.length - 1];
+                        if (last) {
+                          last.imageUrl = event.url;
+                          saveCurrentStory(gameState);
+                        }
+                      }
+                    }
+                  }
+
+                  if (event.type === "scene_image_error") {
+                    if (event.turn_id === currentTurnId) {
+                      markImageBadgeError("配图失败");
                     }
                   }
 
                   if (event.type === "answer") {
-                    // 最终回答，如果还没有 scene data 则用 answer 内容
                     if (!currentSceneData) {
-                      // 尝试解析 JSON
                       try {
                         currentSceneData = JSON.parse(event.content);
                       } catch (e) {
-                        // 纯文本兜底
                         currentSceneData = {
                           narrative: event.content,
                           choices: [],
@@ -468,13 +637,13 @@
                         };
                       }
                     }
-                    hideLoading();
                   }
 
                   if (event.type === "error") {
-                    hideLoading();
                     showToast(event.message || "发生错误");
                     isWaiting = false;
+                    setInputBusy(false);
+                    if (turnImagePending) hideImageBadge();
                     return;
                   }
                 }
@@ -483,54 +652,41 @@
               readChunk();
             })
             .catch(function (err) {
-              hideLoading();
               showToast("读取响应失败: " + err.message);
               isWaiting = false;
+              setInputBusy(false);
+              hideInitialLoading();
             });
         }
 
         readChunk();
       })
       .catch(function (err) {
-        hideLoading();
         showToast(err.message);
         isWaiting = false;
+        setInputBusy(false);
+        hideInitialLoading();
       });
   }
 
-  function renderNarrativeText(narrative) {
-    hideLoading();
-    sceneNarrative.innerHTML = "";
-    var paragraphs = narrative.split("\n");
-    for (var i = 0; i < paragraphs.length; i++) {
-      var text = paragraphs[i].trim();
-      if (!text) continue;
-      var p = document.createElement("p");
-      p.textContent = text;
-      p.style.marginBottom = "var(--spacing-md)";
-      sceneNarrative.appendChild(p);
-    }
-    sceneCurrent.style.display = "block";
-    scrollToBottom();
-  }
-
-  function finishTurn(sceneData) {
+  function finishTurn(sceneData, turnImageUrl) {
     isWaiting = false;
-    hideLoading();
+    setInputBusy(false);
+    hideInitialLoading();
 
     if (!sceneData) {
       showToast("未获取到故事数据");
       return;
     }
 
-    // 渲染完整场景（可能之前已经渲染了叙述，这里补充选项和图片）
+    // 已经在 thinking 阶段提前渲染了 narrative；这里只做进度/选项/输入区等补充
     renderCurrentScene(sceneData);
 
-    // 记录场景到 gameState
+    // 记录场景到 gameState。turnImageUrl 若在 [DONE] 前到达，会一并归档。
     var sceneRecord = {
       narrative: sceneData.narrative,
       choices: sceneData.choices || [],
-      imageUrl: sceneData.image_url || null,
+      imageUrl: turnImageUrl || null,
       selectedChoice: null,
     };
     gameState.scenes.push(sceneRecord);
@@ -541,15 +697,12 @@
       content: sceneData.narrative,
     });
 
-    // 更新标题
     if (sceneData.title && !gameState.title) {
       gameState.title = sceneData.title;
     }
 
-    // 保存当前状态
     saveCurrentStory(gameState);
 
-    // 如果是结局，保存完成的故事
     if (sceneData.is_ending) {
       showEnding(sceneData.narrative);
     }
@@ -588,22 +741,20 @@
       var current = getCurrentStory();
       if (current) {
         gameState = current;
-        // 恢复 UI
+        isWorldSelection = !gameState.worldSetting;
         if (gameState.title) navTitle.textContent = gameState.title;
         updateProgress(gameState.progress);
         renderSceneHistory();
-        // 渲染最后一个场景的选项
         var lastScene = gameState.scenes[gameState.scenes.length - 1];
-        if (lastScene && lastScene.choices && !lastScene.selectedChoice) {
+        if (lastScene && !lastScene.selectedChoice) {
           renderCurrentScene({
             narrative: lastScene.narrative,
-            choices: lastScene.choices,
+            choices: lastScene.choices || [],
             image_url: lastScene.imageUrl,
             progress: gameState.progress,
             is_ending: false,
           });
         }
-        // 恢复背景图
         for (var i = gameState.scenes.length - 1; i >= 0; i--) {
           if (gameState.scenes[i].imageUrl) {
             setBackgroundImage(gameState.scenes[i].imageUrl);
@@ -614,16 +765,18 @@
       }
     }
 
-    // 新游戏
+    // 新游戏：首次加载显示一次全屏 loading，后续由 inline spinner 接管
     gameState.id = generateId();
     gameState.startTime = new Date().toISOString();
     gameState.messages = [
       {
         role: "user",
-        content: "开始一个新的冒险故事，请提供几个不同风格的冒险世界观选项让我选择。",
+        content:
+          "开始一个新的冒险故事，请提供几个不同风格的冒险世界观选项让我选择。",
       },
     ];
     saveCurrentStory(gameState);
+    showInitialLoading("AI_PROCESSING", "正在构建故事世界...");
     sendToLLM();
   }
 
