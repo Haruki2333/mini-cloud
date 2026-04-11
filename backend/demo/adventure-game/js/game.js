@@ -511,9 +511,11 @@
 
     setInputBusy(true);
 
+    var characterProfile = getCharacterProfile();
     var context = {
       worldSetting: gameState.worldSetting || null,
       choiceCount: gameState.scenes.length,
+      characterProfile: characterProfile || null,
     };
 
     fetch(API_BASE + "/completions", {

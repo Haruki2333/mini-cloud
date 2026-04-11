@@ -51,12 +51,36 @@
         </div>
       </section>
 
+      <!-- 人物档案面板（有档案时显示） -->
+      <div class="char-profile-panel" id="charProfilePanel" style="display: none;">
+        <div class="terminal-panel-header">
+          <span class="terminal-dot"></span>
+          CHARACTER_PROFILE
+        </div>
+        <div class="char-profile-body">
+          <div class="char-profile-row">
+            <span class="char-profile-name" id="charProfileName"></span>
+            <button class="char-profile-edit-btn" id="charProfileEditBtn">修改档案</button>
+          </div>
+          <div class="char-profile-tags" id="charProfileTags"></div>
+        </div>
+      </div>
+
       <!-- 开始按钮 -->
       <button class="btn-primary" id="startBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>
         开始新冒险
+      </button>
+
+      <!-- 人物初始化按钮 -->
+      <button class="btn-secondary btn-character" id="charInitBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        人物初始化
       </button>
 
       <!-- 继续按钮（有未完成故事时显示） -->
@@ -107,6 +131,81 @@
           <div class="model-options" id="modelOptions"></div>
         </div>
         <button class="btn-save" id="saveSettingsBtn">保存设置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 人物初始化向导弹层 -->
+  <div class="settings-overlay" id="charOverlay">
+    <div class="settings-backdrop" id="charBackdrop"></div>
+    <div class="settings-sheet">
+      <div class="settings-header">
+        <span class="settings-title">CHARACTER_INIT</span>
+        <button class="settings-close" id="charClose">&times;</button>
+      </div>
+      <div class="settings-body">
+        <!-- 进度指示器 -->
+        <div class="wizard-progress">
+          <div class="wizard-dot active" id="wDot1"></div>
+          <div class="wizard-line"></div>
+          <div class="wizard-dot" id="wDot2"></div>
+          <div class="wizard-line"></div>
+          <div class="wizard-dot" id="wDot3"></div>
+          <div class="wizard-line"></div>
+          <div class="wizard-dot" id="wDot4"></div>
+        </div>
+
+        <!-- 第一步：称呼 -->
+        <div class="wizard-step active" id="wStep1">
+          <p class="wizard-step-num">01 / 04</p>
+          <p class="wizard-question">你希望在故事中<br>如何称呼自己？</p>
+          <input class="form-input" id="charNameInput" type="text" placeholder="勇者、旅人、星际舰长…" maxlength="20" autocomplete="off">
+        </div>
+
+        <!-- 第二步：故事风格 -->
+        <div class="wizard-step" id="wStep2">
+          <p class="wizard-step-num">02 / 04</p>
+          <p class="wizard-question">你偏好哪种<br>故事风格？</p>
+          <div class="option-grid" id="genreGrid">
+            <button class="option-item" data-value="奇幻冒险">奇幻冒险</button>
+            <button class="option-item" data-value="科幻未来">科幻未来</button>
+            <button class="option-item" data-value="武侠江湖">武侠江湖</button>
+            <button class="option-item" data-value="现代都市">现代都市</button>
+            <button class="option-item" data-value="恐怖悬疑">恐怖悬疑</button>
+            <button class="option-item" data-value="历史传奇">历史传奇</button>
+          </div>
+        </div>
+
+        <!-- 第三步：角色类型 -->
+        <div class="wizard-step" id="wStep3">
+          <p class="wizard-step-num">03 / 04</p>
+          <p class="wizard-question">你想扮演<br>什么类型的角色？</p>
+          <div class="option-grid" id="roleGrid">
+            <button class="option-item" data-value="正义英雄">正义英雄</button>
+            <button class="option-item" data-value="神秘智者">神秘智者</button>
+            <button class="option-item" data-value="江湖游侠">江湖游侠</button>
+            <button class="option-item" data-value="机智骗子">机智骗子</button>
+            <button class="option-item" data-value="普通小人物">普通小人物</button>
+          </div>
+        </div>
+
+        <!-- 第四步：故事基调 -->
+        <div class="wizard-step" id="wStep4">
+          <p class="wizard-step-num">04 / 04</p>
+          <p class="wizard-question">你希望故事的<br>基调是什么？</p>
+          <div class="option-grid option-grid--2col" id="toneGrid">
+            <button class="option-item" data-value="热血冒险">热血冒险</button>
+            <button class="option-item" data-value="轻松幽默">轻松幽默</button>
+            <button class="option-item" data-value="严肃深沉">严肃深沉</button>
+            <button class="option-item" data-value="温情浪漫">温情浪漫</button>
+          </div>
+        </div>
+
+        <!-- 导航按钮 -->
+        <div class="wizard-nav">
+          <button class="btn-secondary wizard-nav-btn" id="wizardPrev" style="display: none;">返回</button>
+          <button class="btn-primary wizard-nav-btn" id="wizardNext">下一步</button>
+        </div>
       </div>
     </div>
   </div>
