@@ -6,6 +6,10 @@
  * 立即 fire-and-forget 触发 generateImage，图片就绪后通过独立的
  * scene_image / scene_image_error 事件异步下发，避免阻塞 narrative。
  *
+ * 流式叙述：brain 在流式调用 LLM 时透传 args_delta 事件，路由层通过
+ * createNarrativeExtractor 实时从 advance_story 的参数流中抠出 narrative
+ * 文本，以 narrative_delta 事件逐片下发，前端可立即开始渲染，无需等待全量响应。
+ *
  * 导出 adventureRouter（挂载到 /api/adventure）。
  */
 
@@ -21,6 +25,78 @@ const {
   createAdvanceStoryExecutor,
   generateImage,
 } = require("../services/adventure-game/skills");
+
+// ===== Narrative 流式提取状态机 =====
+
+/**
+ * 从 advance_story 工具的流式参数 JSON 中实时提取 narrative 字段值。
+ *
+ * 参数 JSON 形如：{"narrative":"故事文本...","progress":2,...}
+ * 状态机在流中定位 "narrative":" 起始标记，随后逐字提取文本内容，
+ * 遇到未转义的 " 时结束提取。完整处理 JSON 字符串转义序列。
+ *
+ * @returns {function(chunk: string): string}  feed 函数，返回本次提取到的字符
+ */
+function createNarrativeExtractor() {
+  const TARGET = '"narrative":"';
+  let state = "scanning"; // 'scanning' | 'in_value' | 'done'
+  let pending = "";
+
+  return function feed(chunk) {
+    if (state === "done") return "";
+    pending += chunk;
+    let extracted = "";
+
+    if (state === "scanning") {
+      const idx = pending.indexOf(TARGET);
+      if (idx >= 0) {
+        state = "in_value";
+        pending = pending.slice(idx + TARGET.length);
+      } else {
+        // 保留尾部（TARGET.length-1 个字符）防止跨 chunk 时匹配失败
+        if (pending.length > TARGET.length - 1) {
+          pending = pending.slice(-(TARGET.length - 1));
+        }
+        return "";
+      }
+    }
+
+    if (state === "in_value") {
+      let i = 0;
+      while (i < pending.length) {
+        const ch = pending[i];
+        if (ch === "\\") {
+          if (i + 1 < pending.length) {
+            const next = pending[i + 1];
+            if (next === "n") extracted += "\n";
+            else if (next === "t") extracted += "\t";
+            else if (next === '"') extracted += '"';
+            else if (next === "\\") extracted += "\\";
+            else extracted += ch + next;
+            i += 2;
+          } else {
+            // 转义字符跨 chunk，等待下一片
+            pending = pending.slice(i);
+            return extracted;
+          }
+        } else if (ch === '"') {
+          // narrative 字段结束
+          state = "done";
+          pending = "";
+          break;
+        } else {
+          extracted += ch;
+          i++;
+        }
+      }
+      if (state === "in_value") {
+        pending = ""; // 本批已全部提取
+      }
+    }
+
+    return extracted;
+  };
+}
 
 // ===== SSE 对话处理 =====
 
@@ -85,9 +161,12 @@ async function handleCompletions(req, res) {
       }
     }
 
-    // 异步图生成任务队列：循环结束后需要 allSettled，避免事件流过早关闭
+    // 异步图生成任务队列
     let turnCounter = 0;
     const pendingImages = [];
+
+    // Narrative 流式提取器（每次请求一个实例，仅提取第一轮叙述）
+    const feedNarrative = createNarrativeExtractor();
 
     for await (const event of brain.think({
       messages,
@@ -95,6 +174,17 @@ async function handleCompletions(req, res) {
       apiKey,
       context: context || {},
     })) {
+      // args_delta：从流中提取 narrative 文本并实时下发，不转发原始事件
+      if (event.type === "args_delta") {
+        if (event.name === "advance_story") {
+          const narChunk = feedNarrative(event.chunk);
+          if (narChunk) {
+            writeEvent({ type: "narrative_delta", content: narChunk });
+          }
+        }
+        continue;
+      }
+
       writeEvent(event);
 
       if (
@@ -107,17 +197,12 @@ async function handleCompletions(req, res) {
         const turnId = ++turnCounter;
         const prompt = event.result.image_prompt;
 
-        // 先告知前端本轮有图在路上（用于显示角标）
         writeEvent({ type: "scene_image_pending", turn_id: turnId });
 
         const task = generateImage(prompt, imageApiKey, provider)
           .then((url) => {
             if (url) {
-              writeEvent({
-                type: "scene_image",
-                turn_id: turnId,
-                url,
-              });
+              writeEvent({ type: "scene_image", turn_id: turnId, url });
             } else {
               writeEvent({
                 type: "scene_image_error",

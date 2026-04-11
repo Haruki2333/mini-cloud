@@ -215,9 +215,21 @@
     scrollToBottom();
   }
 
-  function renderCurrentScene(data) {
-    // 叙述
-    renderNarrativeText(data.narrative || "");
+  /**
+   * 渲染当前场景的元数据（进度、标题、选项区等）。
+   *
+   * @param {object} data - 场景数据
+   * @param {boolean} skipNarrative - 若为 true，跳过叙述文本渲染（已由流式提前完成）
+   */
+  function renderCurrentScene(data, skipNarrative) {
+    if (!skipNarrative) {
+      // 非流式路径：完整渲染叙述
+      renderNarrativeText(data.narrative || "");
+    } else {
+      // 流式路径：叙述已逐字渲染完毕，仅确保容器可见
+      hideInitialLoading();
+      sceneCurrent.style.display = "block";
+    }
 
     // 背景图：旧故事恢复场景时可能带 image_url，新流程下通过独立事件下发
     if (data.image_url) {
@@ -546,13 +558,15 @@
         // 本轮收到的图片 URL：由于 scene_image 可能早于 [DONE]（finishTurn 时机）到达，
         // 先缓存到局部变量，在 finishTurn 中随新场景一起归档，避免错写到上一场景。
         var turnImageUrl = null;
+        // 流式叙述：当前正在追加文字的段落元素
+        var streamingParagraph = null;
 
         function readChunk() {
           reader
             .read()
             .then(function (result) {
               if (result.done) {
-                finishTurn(currentSceneData, turnImageUrl);
+                finishTurn(currentSceneData, turnImageUrl, narrativeShown);
                 return;
               }
 
@@ -565,8 +579,36 @@
                 for (var j = 0; j < events.length; j++) {
                   var event = events[j];
 
+                  // 流式叙述：逐片追加到 DOM，无需等待全量响应
+                  if (event.type === "narrative_delta") {
+                    if (!narrativeShown) {
+                      // 第一个 delta 到达：准备叙述容器
+                      hideInitialLoading();
+                      sceneNarrative.innerHTML = "";
+                      sceneCurrent.style.display = "block";
+                      narrativeShown = true;
+                      streamingParagraph = document.createElement("p");
+                      streamingParagraph.style.marginBottom = "var(--spacing-md)";
+                      sceneNarrative.appendChild(streamingParagraph);
+                    }
+                    // 追加字符，按 \n 换段
+                    var deltaChars = event.content;
+                    for (var d = 0; d < deltaChars.length; d++) {
+                      if (deltaChars[d] === "\n") {
+                        if (streamingParagraph && streamingParagraph.textContent.trim()) {
+                          streamingParagraph = document.createElement("p");
+                          streamingParagraph.style.marginBottom = "var(--spacing-md)";
+                          sceneNarrative.appendChild(streamingParagraph);
+                        }
+                      } else if (streamingParagraph) {
+                        streamingParagraph.textContent += deltaChars[d];
+                      }
+                    }
+                    scrollToBottom();
+                  }
+
                   if (event.type === "thinking") {
-                    // 尝试从 tool_calls 参数中提前获取叙述文字
+                    // 流式路径下 narrative 已渲染，此处仅作非流式兜底
                     if (
                       !narrativeShown &&
                       event.tool_calls &&
@@ -671,7 +713,7 @@
       });
   }
 
-  function finishTurn(sceneData, turnImageUrl) {
+  function finishTurn(sceneData, turnImageUrl, narrativeAlreadyStreamed) {
     isWaiting = false;
     setInputBusy(false);
     hideInitialLoading();
@@ -681,8 +723,8 @@
       return;
     }
 
-    // 已经在 thinking 阶段提前渲染了 narrative；这里只做进度/选项/输入区等补充
-    renderCurrentScene(sceneData);
+    // 若叙述已通过 narrative_delta 流式渲染，跳过 narrative 重渲染（防止闪烁）
+    renderCurrentScene(sceneData, narrativeAlreadyStreamed);
 
     // 记录场景到 gameState。turnImageUrl 若在 [DONE] 前到达，会一并归档。
     var sceneRecord = {
