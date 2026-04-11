@@ -30,7 +30,14 @@ AI 冒险故事对话（SSE 流式）。
   "model": "qwen3.5-plus",
   "context": {
     "worldSetting": "奇幻王国",
-    "choiceCount": 3
+    "goal": "夺回被恶龙掳走的公主并安全返回王城",
+    "choiceCount": 3,
+    "characterProfile": {
+      "name": "艾琳",
+      "genre": ["奇幻冒险", "仙侠修真"],
+      "roleType": "正义英雄",
+      "tone": "热血冒险"
+    }
   }
 }
 ```
@@ -39,7 +46,10 @@ AI 冒险故事对话（SSE 流式）。
 |------|------|------|------|
 | `messages` | Array | 是 | 对话消息数组（user/assistant 交替）。世界观轮次后，user 消息为玩家自由文本 |
 | `model` | String | 否 | 模型 ID，默认 `qwen3.5-plus` |
-| `context` | Object | 否 | 故事上下文，包含 `worldSetting`（世界观）和 `choiceCount`（玩家已做行动次数） |
+| `context.worldSetting` | String | 否 | 当前世界观文本 |
+| `context.goal` | String | 否 | 本局目标（玩家在世界观选择时从选项 `goal` 字段确定，贯穿整个故事） |
+| `context.choiceCount` | Number | 否 | 玩家已做行动次数，用于 AI 控制节奏 |
+| `context.characterProfile.genre` | String \| Array | 否 | 偏好故事风格，前端可能传入字符串（旧数据）或数组（多选） |
 
 #### SSE 响应事件
 
@@ -69,10 +79,14 @@ AI 冒险故事对话（SSE 流式）。
     "success": true,
     "narrative": "你站在一片古老的森林边缘...",
     "choices": [
-      { "id": "hint1", "text": "查看地上的脚印" }
+      {
+        "id": "A",
+        "text": "被诅咒的暗影森林",
+        "goal": "找到并净化森林深处失控的古树之心"
+      }
     ],
     "is_ending": false,
-    "progress": 3,
+    "progress": 2,
     "title": "暗影森林的秘密",
     "image_prompt": "dark mystical forest at dusk, ..."
   },
@@ -82,8 +96,8 @@ AI 冒险故事对话（SSE 流式）。
 
 注意：
 - **`result.image_url` 已被移除**。背景图由独立的 `scene_image` 事件异步下发，见下。
-- `result.image_prompt` 是 AI 为本场景填写的英文提示词，仅作前端判断是否显示"场景图生成中"角标。
-- `result.choices` 语义见下文 `advance_story` 工具说明。
+- `result.image_prompt` 仅在两个节点填写：**开局（首场景 + title 已设置）** 和 **结局（is_ending=true）**。其他轮次即使 LLM 误填，路由层也会忽略不生成图片。
+- `result.choices` 语义见下文 `advance_story` 工具说明，第一轮世界观选项的 `choices[i].goal` 字段是本局目标。
 
 ##### `scene_image_pending` — 图片生成已开始（新）
 
@@ -153,7 +167,7 @@ AI 冒险故事对话（SSE 流式）。
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `narrative` | String | 是 | 故事叙述文本（中文，200-400 字） |
-| `image_prompt` | String | 否 | 英文图片描述，**关键节点必须填写**（新场景、关键角色/怪物、高潮、结局、世界观首场景） |
+| `image_prompt` | String | 否 | 英文图片描述，**仅在两个节点填写**：世界观确定后的首个场景（开局图）、结局场景（结局图）。其他轮次必须留空；即使填写也会被路由层过滤。 |
 | `choices` | Array | 否 | 见下文"语义"说明 |
 | `is_ending` | Boolean | 否 | 是否为故事结局 |
 | `progress` | Number | 是 | 故事进度（1-10） |
@@ -161,8 +175,17 @@ AI 冒险故事对话（SSE 流式）。
 
 **`choices` 字段语义（重要变化）：**
 
-- **第一轮（世界观选择，progress=1）**：**必填 3 条**，`id` 用 `A/B/C`，作为按钮供玩家点击。
-- **后续轮次**：**不是菜单**，而是"灵感提示"（0-2 条），`id` 用 `hint1/hint2`。玩家点击后**只会填入输入框**，不会自动提交，玩家仍以自由文本驱动故事。建议大多数情况下留空。
+- **第一轮（世界观选择，progress=1）**：**必填 3 条**，`id` 用 `A/B/C`，且每项必须同时提供 `text`（世界观/开局概述，10-20 字）和 `goal`（本局玩家需要达成的**具体、可判定完成**的目标，15-40 字）。作为按钮供玩家点击，玩家选定后 `goal` 会被写入 `context.goal` 并贯穿整个故事。
+- **后续轮次**：**不是菜单**，而是"灵感提示"（0-2 条），`id` 用 `hint1/hint2`，不需要 `goal` 字段。玩家点击后**只会填入输入框**，不会自动提交，玩家仍以自由文本驱动故事。建议大多数情况下留空。
 - **结局时（`is_ending=true`）**：不提供。
+
+**图片生成规则（⚠️ 已大幅收紧）：**
+
+路由层只在以下两种 `tool_result` 上触发文生图：
+
+1. `result.title` 非空（开局后的首个场景）
+2. `result.is_ending === true`（结局场景）
+
+其他所有轮次的 `image_prompt` 将被忽略，即不会下发 `scene_image_pending` / `scene_image` 事件。因此"整局游戏只生成 2 张图片"（开局图 + 结局图）是硬约束。
 
 **返回值：** `{ success, narrative, choices, is_ending, progress, title, image_prompt }`。不再返回 `image_url`——背景图通过 `scene_image` 事件独立下发。

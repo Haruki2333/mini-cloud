@@ -29,7 +29,16 @@
   var currentWizardStep = 1;
   var totalWizardSteps = 4;
   // 向导临时存储（保存中间选择，关闭弹层时丢弃）
-  var wizardDraft = { name: "", genre: "", roleType: "", tone: "" };
+  // genre 为数组（多选），其他字段仍为单选字符串
+  var wizardDraft = { name: "", genre: [], roleType: "", tone: "" };
+
+  // 将可能来自旧数据/不同形态的 genre 归一化为字符串数组
+  function normalizeGenre(value) {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.filter(Boolean);
+    // 旧版单值字符串：转为单元素数组
+    return [value];
+  }
 
   var toastTimer = null;
 
@@ -127,7 +136,10 @@
 
     // 已有档案，展示面板
     charProfileName.textContent = profile.name;
-    var tags = [profile.genre, profile.roleType, profile.tone].filter(Boolean);
+    var genreList = normalizeGenre(profile.genre);
+    var tags = genreList.concat(
+      [profile.roleType, profile.tone].filter(Boolean)
+    );
     var tagsHtml = "";
     for (var i = 0; i < tags.length; i++) {
       tagsHtml += '<span class="char-tag">' + escapeHtml(tags[i]) + "</span>";
@@ -151,14 +163,14 @@
     var existing = getCharacterProfile() || {};
     wizardDraft = {
       name: existing.name || "",
-      genre: existing.genre || "",
+      genre: normalizeGenre(existing.genre),
       roleType: existing.roleType || "",
       tone: existing.tone || "",
     };
     charNameInput.value = wizardDraft.name;
 
     // 恢复选中状态
-    setGridSelection("genreGrid", wizardDraft.genre);
+    setGridSelectionMulti("genreGrid", wizardDraft.genre);
     setGridSelection("roleGrid", wizardDraft.roleType);
     setGridSelection("toneGrid", wizardDraft.tone);
 
@@ -186,11 +198,41 @@
     }
   }
 
+  // 多选版本：values 为字符串数组
+  function setGridSelectionMulti(gridId, values) {
+    var grid = document.getElementById(gridId);
+    if (!grid) return;
+    var set = {};
+    for (var i = 0; i < (values || []).length; i++) {
+      set[values[i]] = true;
+    }
+    var items = grid.querySelectorAll(".option-item");
+    for (var j = 0; j < items.length; j++) {
+      if (set[items[j].dataset.value]) {
+        items[j].classList.add("selected");
+      } else {
+        items[j].classList.remove("selected");
+      }
+    }
+  }
+
   function getGridSelection(gridId) {
     var grid = document.getElementById(gridId);
     if (!grid) return "";
     var selected = grid.querySelector(".option-item.selected");
     return selected ? selected.dataset.value : "";
+  }
+
+  // 多选版本：返回选中的 value 数组
+  function getGridSelectionMulti(gridId) {
+    var grid = document.getElementById(gridId);
+    if (!grid) return [];
+    var items = grid.querySelectorAll(".option-item.selected");
+    var result = [];
+    for (var i = 0; i < items.length; i++) {
+      result.push(items[i].dataset.value);
+    }
+    return result;
   }
 
   function goToStep(step) {
@@ -219,12 +261,12 @@
       }
       wizardDraft.name = name;
     } else if (currentWizardStep === 2) {
-      var genre = getGridSelection("genreGrid");
-      if (!genre) {
-        showToast("请选择一种故事风格");
+      var genres = getGridSelectionMulti("genreGrid");
+      if (!genres || genres.length === 0) {
+        showToast("请至少选择一种故事风格");
         return;
       }
-      wizardDraft.genre = genre;
+      wizardDraft.genre = genres;
     } else if (currentWizardStep === 3) {
       var roleType = getGridSelection("roleGrid");
       if (!roleType) {
@@ -271,6 +313,17 @@
     });
   }
 
+  // 多选格子：点击切换自身 selected，不清其他项
+  function bindOptionGridMulti(gridId) {
+    var grid = document.getElementById(gridId);
+    if (!grid) return;
+    grid.addEventListener("click", function (e) {
+      var item = e.target.closest(".option-item");
+      if (!item) return;
+      item.classList.toggle("selected");
+    });
+  }
+
   charInitBtn.addEventListener("click", openCharWizard);
   charProfileEditBtn.addEventListener("click", openCharWizard);
   charBackdrop.addEventListener("click", closeCharWizard);
@@ -278,7 +331,7 @@
   wizardNext.addEventListener("click", handleWizardNext);
   wizardPrev.addEventListener("click", handleWizardPrev);
 
-  bindOptionGrid("genreGrid");
+  bindOptionGridMulti("genreGrid");
   bindOptionGrid("roleGrid");
   bindOptionGrid("toneGrid");
 

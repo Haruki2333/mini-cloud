@@ -187,13 +187,17 @@ async function handleCompletions(req, res) {
 
       writeEvent(event);
 
-      if (
+      // 图片生成策略：整局游戏只在两个节点生成图片 —— 开局（设置了 title 的首场景）
+      // 和结局（is_ending = true）。即便 LLM 意外在其他轮次填入 image_prompt 也会被忽略。
+      const shouldGenerateImage =
         event.type === "tool_result" &&
         event.name === "advance_story" &&
         event.result &&
         event.result.image_prompt &&
-        imageApiKey
-      ) {
+        imageApiKey &&
+        (event.result.title || event.result.is_ending);
+
+      if (shouldGenerateImage) {
         const turnId = ++turnCounter;
         const prompt = event.result.image_prompt;
 

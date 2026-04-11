@@ -23,6 +23,8 @@
   var toastEl = document.getElementById("toast");
   var imageBadge = document.getElementById("imageBadge");
   var imageBadgeText = document.getElementById("imageBadgeText");
+  var goalBanner = document.getElementById("goalBanner");
+  var goalBannerText = document.getElementById("goalBannerText");
 
   var toastTimer = null;
   var imageBadgeHideTimer = null;
@@ -32,6 +34,8 @@
     id: null,
     title: null,
     worldSetting: null,
+    // 本局目标：玩家在世界观选择时确定，贯穿整个故事
+    goal: null,
     scenes: [],
     messages: [],
     startTime: null,
@@ -105,6 +109,16 @@
     var percent = Math.min(progress * 10, 100);
     progressFill.style.width = percent + "%";
     navProgress.textContent = progress + "/10";
+  }
+
+  function showGoalBanner(goal) {
+    if (!goalBanner || !goalBannerText) return;
+    if (!goal) {
+      goalBanner.style.display = "none";
+      return;
+    }
+    goalBannerText.textContent = goal;
+    goalBanner.style.display = "flex";
   }
 
   function setBackgroundImage(url) {
@@ -283,19 +297,29 @@
     var html = "";
     for (var i = 0; i < choices.length; i++) {
       var c = choices[i];
+      var goalText = c.goal || "";
       html +=
-        '<button class="choice-btn" data-id="' +
+        '<button class="choice-btn choice-btn--world" data-id="' +
         escapeHtml(c.id) +
         '" data-text="' +
         escapeHtml(c.text) +
+        '" data-goal="' +
+        escapeHtml(goalText) +
         '">' +
         '<span class="choice-id">' +
         escapeHtml(c.id) +
         "</span>" +
+        '<span class="choice-body">' +
         '<span class="choice-text">' +
         escapeHtml(c.text) +
-        "</span>" +
-        "</button>";
+        "</span>";
+      if (goalText) {
+        html +=
+          '<span class="choice-goal"><span class="choice-goal-label">目标</span>' +
+          escapeHtml(goalText) +
+          "</span>";
+      }
+      html += "</span></button>";
     }
     choicesArea.innerHTML = html;
 
@@ -347,6 +371,7 @@
       id: gameState.id,
       title: gameState.title || "未命名的冒险",
       worldSetting: gameState.worldSetting || "未知世界",
+      goal: gameState.goal || null,
       startTime: gameState.startTime,
       endTime: gameState.endTime,
       scenes: gameState.scenes,
@@ -362,6 +387,9 @@
   function renderReadonly(story) {
     navTitle.textContent = story.title || "STORY_ARCHIVE";
     isReadonly = true;
+
+    // 恢复历史故事的目标条（旧数据可能无 goal 字段，跳过即可）
+    if (story.goal) showGoalBanner(story.goal);
 
     var lastImageUrl = null;
     for (var i = 0; i < story.scenes.length; i++) {
@@ -430,6 +458,7 @@
 
     var choiceId = this.dataset.id;
     var choiceText = this.dataset.text;
+    var choiceGoal = this.dataset.goal || "";
 
     // 记录选择到当前场景
     var currentScene = gameState.scenes[gameState.scenes.length - 1];
@@ -438,10 +467,17 @@
     }
 
     gameState.worldSetting = choiceText;
+    gameState.goal = choiceGoal || null;
     // 世界观一旦选定，立刻切到自由输入模式
     isWorldSelection = false;
 
+    // 将目标展示到顶部条，让玩家随时可见
+    showGoalBanner(gameState.goal);
+
     var userMessage = "我选择了: " + choiceId + ". " + choiceText;
+    if (choiceGoal) {
+      userMessage += "\n本局目标：" + choiceGoal;
+    }
     gameState.messages.push({ role: "user", content: userMessage });
 
     saveCurrentStory(gameState);
@@ -526,6 +562,7 @@
     var characterProfile = getCharacterProfile();
     var context = {
       worldSetting: gameState.worldSetting || null,
+      goal: gameState.goal || null,
       choiceCount: gameState.scenes.length,
       characterProfile: characterProfile || null,
     };
@@ -784,6 +821,8 @@
         isWorldSelection = !gameState.worldSetting;
         if (gameState.title) navTitle.textContent = gameState.title;
         updateProgress(gameState.progress);
+        // 恢复目标条
+        if (gameState.goal) showGoalBanner(gameState.goal);
         renderSceneHistory();
         var lastScene = gameState.scenes[gameState.scenes.length - 1];
         if (lastScene && !lastScene.selectedChoice) {

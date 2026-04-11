@@ -162,17 +162,27 @@
           <input class="form-input" id="charNameInput" type="text" placeholder="勇者、旅人、星际舰长…" maxlength="20" autocomplete="off">
         </div>
 
-        <!-- 第二步：故事风格 -->
+        <!-- 第二步：故事风格（支持多选） -->
         <div class="wizard-step" id="wStep2">
           <p class="wizard-step-num">02 / 04</p>
-          <p class="wizard-question">你偏好哪种<br>故事风格？</p>
-          <div class="option-grid" id="genreGrid">
+          <p class="wizard-question">你偏好哪些<br>故事风格？</p>
+          <p class="wizard-hint">可多选，AI 会根据你勾选的风格组合生成开局</p>
+          <div class="option-grid option-grid--multi" id="genreGrid">
             <button class="option-item" data-value="奇幻冒险">奇幻冒险</button>
             <button class="option-item" data-value="科幻未来">科幻未来</button>
+            <button class="option-item" data-value="赛博朋克">赛博朋克</button>
+            <button class="option-item" data-value="蒸汽朋克">蒸汽朋克</button>
+            <button class="option-item" data-value="末世废土">末世废土</button>
+            <button class="option-item" data-value="太空歌剧">太空歌剧</button>
             <button class="option-item" data-value="武侠江湖">武侠江湖</button>
-            <button class="option-item" data-value="现代都市">现代都市</button>
-            <button class="option-item" data-value="恐怖悬疑">恐怖悬疑</button>
+            <button class="option-item" data-value="仙侠修真">仙侠修真</button>
             <button class="option-item" data-value="历史传奇">历史传奇</button>
+            <button class="option-item" data-value="现代都市">现代都市</button>
+            <button class="option-item" data-value="校园青春">校园青春</button>
+            <button class="option-item" data-value="恐怖悬疑">恐怖悬疑</button>
+            <button class="option-item" data-value="克苏鲁神话">克苏鲁神话</button>
+            <button class="option-item" data-value="推理破案">推理破案</button>
+            <button class="option-item" data-value="超能力学院">超能力学院</button>
           </div>
         </div>
 

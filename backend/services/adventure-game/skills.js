@@ -209,12 +209,12 @@ const advanceStoryDefinition = {
         image_prompt: {
           type: "string",
           description:
-            "英文场景描述，用于生成背景图片。关键节点必须填写：世界观确定后的首个场景、进入全新重要场景、遭遇关键角色/怪物、高潮、结局。普通推进轮次可留空。风格：digital fantasy art, cinematic lighting, detailed environment, 16:9 aspect ratio",
+            "英文场景描述，用于生成背景图片。⚠️ 整局游戏仅两处需要填写：(1) 世界观确定后的首个场景（开局），(2) 结局场景（is_ending=true）。其他所有推进轮次必须留空。风格：digital fantasy art, cinematic lighting, detailed environment, 16:9 aspect ratio",
         },
         choices: {
           type: "array",
           description:
-            "第一轮世界观选择时必填 3 个作为按钮；后续轮次这不是菜单，而是可选的灵感提示（0-2 条），玩家可点击填入输入框作为参考。结局时不提供。",
+            "第一轮世界观选择时必填 3 个作为按钮，每个选项必须同时提供 goal（本局游戏目标）；后续轮次这不是菜单，而是可选的灵感提示（0-2 条），玩家可点击填入输入框作为参考。结局时不提供。",
           items: {
             type: "object",
             properties: {
@@ -226,6 +226,11 @@ const advanceStoryDefinition = {
               text: {
                 type: "string",
                 description: "选项文字（10-20字）",
+              },
+              goal: {
+                type: "string",
+                description:
+                  "仅第一轮世界观选项必填：玩家在本局游戏中需要达成的明确目标（15-40字，中文）。例如：'夺回被恶龙掳走的公主并安全返回王城'。后续轮次的灵感提示不需要此字段。",
               },
             },
             required: ["id", "text"],
