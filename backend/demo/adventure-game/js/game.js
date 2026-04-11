@@ -637,14 +637,12 @@
                   }
 
                   if (event.type === "scene_image_pending") {
-                    if (event.turn_id === currentTurnId) {
-                      turnImagePending = true;
-                      showImageBadge("场景图生成中…");
-                    }
+                    turnImagePending = true;
+                    showImageBadge("场景图生成中…");
                   }
 
                   if (event.type === "scene_image") {
-                    if (event.turn_id === currentTurnId && event.url) {
+                    if (event.url) {
                       setBackgroundImage(event.url);
                       hideImageBadge();
                       // 缓存到本轮局部变量：finishTurn 时作为新场景的 imageUrl 归档。
@@ -663,9 +661,7 @@
                   }
 
                   if (event.type === "scene_image_error") {
-                    if (event.turn_id === currentTurnId) {
-                      markImageBadgeError("配图失败");
-                    }
+                    markImageBadgeError("配图失败");
                   }
 
                   if (event.type === "answer") {
