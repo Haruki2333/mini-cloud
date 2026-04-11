@@ -7,9 +7,12 @@
  *
  * 支持可选的 enhancePrompt / enhanceToolDefs 钩子，
  * 业务模块可通过钩子注入领域定制逻辑，而无需修改本模块。
+ *
+ * 流式模式：使用 chatStream 逐块处理 LLM 响应，并透传 args_delta 事件，
+ * 供路由层从工具参数流中实时提取内容，减少用户等待时间。
  */
 
-const { chat } = require("./llm");
+const { chatStream } = require("./llm");
 
 const MAX_ITERATIONS = 5;
 
@@ -25,7 +28,7 @@ const MAX_ITERATIONS = 5;
  */
 function createBrain({ systemPrompt, skills, enhancePrompt, enhanceToolDefs }) {
   /**
-   * ReAct 推理循环
+   * ReAct 推理循环（流式版本）
    *
    * @param {object} params
    * @param {Array} params.messages - 用户消息列表
@@ -34,6 +37,8 @@ function createBrain({ systemPrompt, skills, enhancePrompt, enhanceToolDefs }) {
    * @param {number} [params.userId] - 用户 ID（传给技能执行函数）
    * @param {object} [params.context] - 业务上下文（透传给钩子函数）
    * @yields {{ type: string, ... }} SSE 事件
+   *   除原有事件外，新增：
+   *   - { type: "args_delta", index, name, chunk } — 工具参数流片段，由路由层消费
    */
   async function* think({ messages, model, apiKey, userId, context }) {
     const prompt = enhancePrompt
@@ -49,9 +54,20 @@ function createBrain({ systemPrompt, skills, enhancePrompt, enhanceToolDefs }) {
     ];
 
     for (let i = 0; i < MAX_ITERATIONS; i++) {
-      const result = await chat(model, conversationMessages, apiKey, {
-        tools,
-      });
+      // 流式调用 LLM，累积完整结果
+      let doneResult = null;
+
+      for await (const streamEvent of chatStream(model, conversationMessages, apiKey, { tools })) {
+        if (streamEvent.type === "args_delta") {
+          // 透传工具参数增量给路由层（路由层据此提取 narrative 等字段实时推送）
+          yield streamEvent;
+        } else if (streamEvent.type === "done") {
+          doneResult = streamEvent;
+        }
+        // content_delta 在工具调用场景下通常为空，不透传
+      }
+
+      const result = doneResult || { content: "", tool_calls: null };
 
       // 没有 tool_calls → 推理完成，返回最终回复
       if (!result.tool_calls || result.tool_calls.length === 0) {
@@ -59,7 +75,7 @@ function createBrain({ systemPrompt, skills, enhancePrompt, enhanceToolDefs }) {
         return;
       }
 
-      // 有 tool_calls → 通知前端正在思考
+      // 有 tool_calls → 通知前端正在思考（含完整参数供回退渲染）
       yield {
         type: "thinking",
         iteration: i + 1,
