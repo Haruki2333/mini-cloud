@@ -14,8 +14,8 @@ const fetch = require("node-fetch");
 
 const IMAGE_PROVIDERS = {
   zhipu: {
+    type: "sync",
     endpoint: "https://open.bigmodel.cn/api/paas/v4/images/generations",
-    model: "cogview-4-250304",
     buildBody: (prompt) => ({
       model: "cogview-4-250304",
       prompt,
@@ -24,15 +24,22 @@ const IMAGE_PROVIDERS = {
     extractUrl: (data) => data.data && data.data[0] && data.data[0].url,
   },
   qwen: {
-    endpoint:
-      "https://dashscope.aliyuncs.com/compatible-mode/v1/images/generations",
-    model: "wanx2.1-t2i-turbo",
+    // wanx 模型不支持 compatible-mode 图片端点，需使用 DashScope 原生异步 API
+    type: "async",
+    submitEndpoint:
+      "https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis",
+    taskEndpoint: "https://dashscope.aliyuncs.com/api/v1/tasks",
     buildBody: (prompt) => ({
       model: "wanx2.1-t2i-turbo",
-      prompt,
-      size: "1024*576",
+      input: { prompt },
+      parameters: { size: "1024*576", n: 1 },
     }),
-    extractUrl: (data) => data.data && data.data[0] && data.data[0].url,
+    extractTaskId: (data) => data.output && data.output.task_id,
+    extractUrl: (data) =>
+      data.output &&
+      data.output.results &&
+      data.output.results[0] &&
+      data.output.results[0].url,
   },
 };
 
@@ -51,41 +58,137 @@ async function generateImage(prompt, apiKey, provider) {
     return null;
   }
 
+  console.log(
+    `[AdventureSkill] >>> 文生图请求 (${provider}): ${prompt.substring(0, 80)}...`
+  );
+  const startTime = Date.now();
+
   try {
-    console.log(
-      `[AdventureSkill] >>> 文生图请求 (${provider}): ${prompt.substring(0, 80)}...`
-    );
-    const startTime = Date.now();
-
-    const res = await fetch(config.endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(config.buildBody(prompt)),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error(
-        `[AdventureSkill] 文生图失败 (${res.status}):`,
-        errText.substring(0, 200)
-      );
-      return null;
+    let url;
+    if (config.type === "async") {
+      url = await generateImageAsync(prompt, apiKey, config, provider);
+    } else {
+      url = await generateImageSync(prompt, apiKey, config, provider);
     }
-
-    const data = await res.json();
-    const url = config.extractUrl(data);
     const duration = Date.now() - startTime;
     console.log(
       `[AdventureSkill] <<< 文生图完成 (${duration}ms): ${url ? "成功" : "无URL"}`
     );
-    return url || null;
+    return url;
   } catch (err) {
     console.error("[AdventureSkill] 文生图异常:", err.message);
     return null;
   }
+}
+
+/**
+ * 同步文生图（智谱 CogView）
+ */
+async function generateImageSync(prompt, apiKey, config, provider) {
+  const res = await fetch(config.endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(config.buildBody(prompt)),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error(
+      `[AdventureSkill] 文生图失败 (${res.status}):`,
+      errText.substring(0, 200)
+    );
+    return null;
+  }
+
+  const data = await res.json();
+  return config.extractUrl(data) || null;
+}
+
+/**
+ * 异步文生图（千问 wanx）：提交任务 → 轮询结果
+ *
+ * DashScope 原生异步 API：
+ *   1. POST submitEndpoint（带 X-DashScope-Async: enable）拿到 task_id
+ *   2. GET taskEndpoint/{task_id} 轮询，直到 SUCCEEDED 或 FAILED
+ */
+async function generateImageAsync(prompt, apiKey, config, provider) {
+  // 1. 提交任务
+  const submitRes = await fetch(config.submitEndpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      "X-DashScope-Async": "enable",
+    },
+    body: JSON.stringify(config.buildBody(prompt)),
+  });
+
+  if (!submitRes.ok) {
+    const errText = await submitRes.text();
+    console.error(
+      `[AdventureSkill] 文生图提交失败 (${submitRes.status}):`,
+      errText.substring(0, 200)
+    );
+    return null;
+  }
+
+  const submitData = await submitRes.json();
+  const taskId = config.extractTaskId(submitData);
+  if (!taskId) {
+    console.error(
+      "[AdventureSkill] 文生图未返回 task_id:",
+      JSON.stringify(submitData).substring(0, 200)
+    );
+    return null;
+  }
+
+  console.log(`[AdventureSkill] 文生图任务已提交，task_id: ${taskId}`);
+
+  // 2. 轮询任务状态（最多 10 次，每次间隔 3 秒，共约 30 秒）
+  const MAX_POLLS = 10;
+  const POLL_INTERVAL_MS = 3000;
+
+  for (let i = 0; i < MAX_POLLS; i++) {
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+
+    const taskRes = await fetch(`${config.taskEndpoint}/${taskId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+
+    if (!taskRes.ok) {
+      console.error(
+        `[AdventureSkill] 任务查询失败 (${taskRes.status})，task_id: ${taskId}`
+      );
+      return null;
+    }
+
+    const taskData = await taskRes.json();
+    const status = taskData.output && taskData.output.task_status;
+
+    if (status === "SUCCEEDED") {
+      return config.extractUrl(taskData) || null;
+    }
+
+    if (status === "FAILED") {
+      const code = taskData.output && taskData.output.code;
+      const msg = taskData.output && taskData.output.message;
+      console.error(
+        `[AdventureSkill] 文生图任务失败 (${code}): ${msg}`
+      );
+      return null;
+    }
+
+    // PENDING / RUNNING：继续等待
+    console.log(
+      `[AdventureSkill] 任务状态: ${status}，第 ${i + 1}/${MAX_POLLS} 次轮询`
+    );
+  }
+
+  console.error(`[AdventureSkill] 文生图任务超时，task_id: ${taskId}`);
+  return null;
 }
 
 // ===== advance_story 工具定义 =====
