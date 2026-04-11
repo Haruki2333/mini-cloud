@@ -7,7 +7,7 @@
 ## 项目概述
 
 - 这是一个微信小程序 Monorepo 项目，多个小程序前端共用一个后端服务，使用 pnpm workspaces 管理，小程序不纳入 pnpm workspace，它们由微信开发者工具独立管理。
-- 后端同时托管 H5 Demo 页面，H5 Demo 页面放在 `backend/demo/` 下，由 Express 静态文件中间件提供服务（根路径 `/` 对应 finance-assistant）
+- 后端同时托管 H5 Demo 页面，H5 Demo 页面放在 `backend/demo/` 下，由 Express 静态文件中间件提供服务（根路径 `/` 对应 finance-assistant，`/adventure` 对应 adventure-game）
 
 ## 项目结构
 
@@ -16,20 +16,25 @@ mini-cloud/
 ├── backend/                        # 后端服务（Express.js + MySQL），部署到微信云托管
 │   ├── index.js                    # Express 主入口
 │   ├── routes/                     # API 路由
-│   │   └── chat.js                 # 对话路由（导出 financeRouter）
+│   │   ├── chat.js                 # 财务助理对话路由（导出 financeRouter）
+│   │   └── adventure.js            # 冒险游戏对话路由（导出 adventureRouter）
 │   ├── services/                   # 业务服务模块（core/ 通用底层 + 业务专属目录）
 │   │   ├── core/                   # 底层通用模块（与具体业务无关）
 │   │   │   ├── db.js               # Sequelize 连接管理、initDB(modelDefiners)
 │   │   │   ├── llm.js              # LLM 多厂商调用封装
 │   │   │   ├── brain.js            # 通用 ReAct 推理循环工厂（createBrain，支持钩子扩展）
 │   │   │   └── skill-registry.js   # 通用技能注册工厂（createSkillRegistry）
-│   │   └── finance-assistant/      # 财务助理 demo 专属模块
-│   │       ├── brain-config.js     # 系统提示词 + enhancePrompt/enhanceToolDefs 钩子
-│   │       ├── models.js           # 数据库模型定义（User/FinanceRecord/UserCategory/MonthlySummary）
-│   │       ├── dao.js              # 财务数据 CRUD + 月度汇总
-│   │       └── skills.js           # 财务记录技能（expense/income/budget）
-│   ├── demo/                       # H5 Demo 页面（静态文件，根路径 / 访问）
-│   │   └── finance-assistant/      # 财务助理 Demo（文字对话，收支记录与分析）
+│   │   ├── finance-assistant/      # 财务助理 demo 专属模块
+│   │   │   ├── brain-config.js     # 系统提示词 + enhancePrompt/enhanceToolDefs 钩子
+│   │   │   ├── models.js           # 数据库模型定义（User/FinanceRecord/UserCategory/MonthlySummary）
+│   │   │   ├── dao.js              # 财务数据 CRUD + 月度汇总
+│   │   │   └── skills.js           # 财务记录技能（expense/income/budget）
+│   │   └── adventure-game/         # 冒险游戏 demo 专属模块
+│   │       ├── brain-config.js     # 系统提示词 + enhancePrompt 钩子
+│   │       └── skills.js           # 冒险技能（advance_story，含文生图）
+│   ├── demo/                       # H5 Demo 页面（静态文件）
+│   │   ├── finance-assistant/      # 财务助理 Demo（根路径 /，文字对话，收支记录与分析）
+│   │   └── adventure-game/         # 冒险游戏 Demo（/adventure，互动叙事，AI 文生图）
 │   └── Dockerfile
 ├── docs/                           # 项目文档/知识库
 │   ├── api/                        # 接口文档（按业务域组织）
@@ -58,6 +63,7 @@ mini-cloud/
 ## 后端 API
 
 - `POST /api/finance-chat/completions` — 财务助理 AI 对话（SSE 流式，支持记账/查询工具）
+- `POST /api/adventure/completions` — 冒险游戏 AI 对话（SSE 流式，支持故事推进/文生图工具）
 - `GET /api/wx_openid` — 获取微信 Open ID（小程序专用）
 
 完整接口文档见 `docs/api/` 目录。
