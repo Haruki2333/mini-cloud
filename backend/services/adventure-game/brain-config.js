@@ -71,6 +71,23 @@ choices 字段语义（⚠️ 关键变化）：
 function enhancePrompt(basePrompt, context) {
   const parts = [basePrompt];
 
+  // 注入玩家角色档案，引导大模型根据玩家偏好定制故事
+  if (context && context.characterProfile) {
+    const p = context.characterProfile;
+    const lines = [];
+    if (p.name) lines.push("玩家称呼：" + p.name);
+    if (p.genre) lines.push("偏好故事风格：" + p.genre);
+    if (p.roleType) lines.push("偏好角色类型：" + p.roleType);
+    if (p.tone) lines.push("偏好故事基调：" + p.tone);
+    if (lines.length > 0) {
+      parts.push(
+        "\n\n玩家档案：\n" +
+          lines.join("\n") +
+          "\n请在世界观选项和故事中融入玩家的偏好风格，并以玩家设定的称呼来指代玩家角色。"
+      );
+    }
+  }
+
   if (context && context.worldSetting) {
     parts.push("\n\n当前世界观设定：" + context.worldSetting);
   }

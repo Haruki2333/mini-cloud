@@ -1276,3 +1276,165 @@ body {
 .action-send.busy .action-send-spinner {
   display: inline-block;
 }
+
+/* ===== 人物初始化 ===== */
+
+/* 人物档案面板 */
+.char-profile-panel {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-top: var(--spacing-lg);
+}
+
+.char-profile-body {
+  padding: var(--spacing-base);
+}
+
+.char-profile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+}
+
+.char-profile-name {
+  font-size: var(--font-size-lg);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.char-profile-edit-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.char-profile-edit-btn:active {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.char-profile-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.char-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+}
+
+/* 向导进度条 */
+.wizard-progress {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.wizard-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-border);
+  flex-shrink: 0;
+  transition: background var(--duration-base);
+}
+
+.wizard-dot.active {
+  background: var(--color-primary);
+  box-shadow: 0 0 6px var(--color-primary-glow);
+}
+
+.wizard-line {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* 向导步骤 */
+.wizard-step {
+  display: none;
+}
+
+.wizard-step.active {
+  display: block;
+}
+
+.wizard-step-num {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+  letter-spacing: 1px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.wizard-question {
+  font-size: var(--font-size-xl);
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.5;
+  margin-bottom: var(--spacing-lg);
+}
+
+/* 选项格子 */
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.option-grid--2col {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.option-item {
+  padding: var(--spacing-md) var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  background: var(--color-card);
+  color: var(--color-text-secondary);
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-default);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.option-item:active {
+  transform: scale(0.96);
+}
+
+.option-item.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+/* 向导导航按钮 */
+.wizard-nav {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.wizard-nav-btn {
+  flex: 1;
+  margin-top: 0;
+}

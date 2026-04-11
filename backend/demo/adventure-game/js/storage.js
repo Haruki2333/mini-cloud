@@ -96,3 +96,25 @@ function saveCurrentStory(story) {
 function clearCurrentStory() {
   localStorage.removeItem(CURRENT_STORY_KEY);
 }
+
+// ===== 人物档案存储 =====
+
+var CHARACTER_KEY = "adventure-game-character";
+
+function getCharacterProfile() {
+  var raw = localStorage.getItem(CHARACTER_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveCharacterProfile(profile) {
+  localStorage.setItem(CHARACTER_KEY, JSON.stringify(profile));
+}
+
+function clearCharacterProfile() {
+  localStorage.removeItem(CHARACTER_KEY);
+}
