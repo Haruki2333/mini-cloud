@@ -63,7 +63,7 @@ mini-cloud/
 ## 后端 API
 
 - `POST /api/finance-chat/completions` — 财务助理 AI 对话（SSE 流式，支持记账/查询工具）
-- `POST /api/adventure/completions` — 冒险游戏 AI 对话（SSE 流式，玩家自由文本驱动故事；背景图通过独立 `scene_image` 事件异步下发，不阻塞叙述）
+- `POST /api/adventure/completions` — 冒险游戏 AI 对话（SSE 流式，玩家自由文本驱动故事；每局仅在开局与结局各生成一张背景图，通过独立 `scene_image` 事件异步下发，由路由层基于 `title`/`is_ending` 判断是否触发；开局时每个世界观选项附带一个明确的本局目标，贯穿整局并在结局处给出收束）
 - `GET /api/wx_openid` — 获取微信 Open ID（小程序专用）
 
 完整接口文档见 `docs/api/` 目录。
