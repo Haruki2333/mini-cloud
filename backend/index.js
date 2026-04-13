@@ -4,7 +4,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const { initDB } = require("./services/core/db");
 const financeModels = require("./services/finance-assistant/models");
-const { financeRouter: financeChatRouter } = require("./routes/chat");
+const { financeRouter: financeChatRouter } = require("./routes/finance");
 const { adventureRouter } = require("./routes/adventure");
 
 const logger = morgan("tiny");

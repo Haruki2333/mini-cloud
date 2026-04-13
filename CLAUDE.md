@@ -15,8 +15,8 @@
 mini-cloud/
 ├── backend/                        # 后端服务（Express.js + MySQL），部署到微信云托管
 │   ├── index.js                    # Express 主入口
-│   ├── routes/                     # API 路由
-│   │   ├── chat.js                 # 财务助理对话路由（导出 financeRouter）
+│   ├── routes/                     # API 路由（每个文件对应一个业务域，以业务域名称命名）
+│   │   ├── finance.js              # 财务助理对话路由（导出 financeRouter）
 │   │   └── adventure.js            # 冒险游戏对话路由（导出 adventureRouter）
 │   ├── services/                   # 业务服务模块（core/ 通用底层 + 业务专属目录）
 │   │   ├── core/                   # 底层通用模块（与具体业务无关）
@@ -56,6 +56,7 @@ mini-cloud/
 - 对于较为重大的更新，需同步变更 CLAUDE.md
 - 新增小程序：在 `miniprogs/` 下创建子目录，用微信开发者工具打开
 - 新增 API 时：在 `docs/api/` 中对应业务文件里追加章节，新业务域则新建文件
+- 新增路由时：在 `backend/routes/` 下以**业务域名称**命名文件（如 `finance.js`、`adventure.js`），不使用通用词（`chat`、`api`、`handler` 等）；同时在 `services/` 下建对应的业务目录
 - 新增数据表时：在 `docs/db/` 下新建对应文件
 - 修改 API 行为或表结构时：同步更新对应文档
 - 新建前端页面遵循 `docs/ui/design-spec.md` 中的设计规范
