@@ -66,9 +66,9 @@ async function generateImage(prompt, apiKey, provider) {
   try {
     let url;
     if (config.type === "async") {
-      url = await generateImageAsync(prompt, apiKey, config, provider);
+      url = await generateImageAsync(prompt, apiKey, config);
     } else {
-      url = await generateImageSync(prompt, apiKey, config, provider);
+      url = await generateImageSync(prompt, apiKey, config);
     }
     const duration = Date.now() - startTime;
     console.log(
@@ -84,7 +84,7 @@ async function generateImage(prompt, apiKey, provider) {
 /**
  * 同步文生图（智谱 CogView）
  */
-async function generateImageSync(prompt, apiKey, config, provider) {
+async function generateImageSync(prompt, apiKey, config) {
   const res = await fetch(config.endpoint, {
     method: "POST",
     headers: {
@@ -114,7 +114,7 @@ async function generateImageSync(prompt, apiKey, config, provider) {
  *   1. POST submitEndpoint（带 X-DashScope-Async: enable）拿到 task_id
  *   2. GET taskEndpoint/{task_id} 轮询，直到 SUCCEEDED 或 FAILED
  */
-async function generateImageAsync(prompt, apiKey, config, provider) {
+async function generateImageAsync(prompt, apiKey, config) {
   // 1. 提交任务
   const submitRes = await fetch(config.submitEndpoint, {
     method: "POST",

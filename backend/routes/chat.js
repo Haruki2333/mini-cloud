@@ -137,17 +137,27 @@ function createCompletionsHandler(brain, logTag) {
 
 // ===== 数据查询接口（供前端直接读取，不经过 LLM） =====
 
-// GET /api/finance-chat/data/summary?month=YYYY-MM
-async function handleGetSummary(req, res) {
+/**
+ * 公共 try/catch + userId 解析包装，消除各 handler 的重复样板
+ */
+async function withUser(req, res, logTag, fn) {
   try {
     const userId = await resolveUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "缺少用户标识" });
     }
+    await fn(userId);
+  } catch (err) {
+    console.error(`[DataAPI] ${logTag}:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+}
 
+// GET /api/finance-chat/data/summary?month=YYYY-MM
+async function handleGetSummary(req, res) {
+  await withUser(req, res, "summary 查询失败", async (userId) => {
     const month = req.query.month || new Date().toISOString().slice(0, 7);
     const data = await queryRecords(userId, { month, type: "all" });
-
     res.json({
       success: true,
       month,
@@ -160,20 +170,12 @@ async function handleGetSummary(req, res) {
       },
       netIncome: data.summary.netIncome,
     });
-  } catch (err) {
-    console.error("[DataAPI] summary 查询失败:", err.message);
-    res.status(500).json({ error: err.message });
-  }
+  });
 }
 
 // GET /api/finance-chat/data/records?month=YYYY-MM&type=all|expense|income
 async function handleGetRecords(req, res) {
-  try {
-    const userId = await resolveUserId(req);
-    if (!userId) {
-      return res.status(401).json({ error: "缺少用户标识" });
-    }
-
+  await withUser(req, res, "records 查询失败", async (userId) => {
     const month = req.query.month || new Date().toISOString().slice(0, 7);
     const type = req.query.type || "all";
     const data = await queryRecords(userId, { month, type });
@@ -187,22 +189,13 @@ async function handleGetRecords(req, res) {
         }
       }
     }
-
     res.json({ success: true, records });
-  } catch (err) {
-    console.error("[DataAPI] records 查询失败:", err.message);
-    res.status(500).json({ error: err.message });
-  }
+  });
 }
 
 // GET /api/finance-chat/data/profile
 async function handleGetProfile(req, res) {
-  try {
-    const userId = await resolveUserId(req);
-    if (!userId) {
-      return res.status(401).json({ error: "缺少用户标识" });
-    }
-
+  await withUser(req, res, "profile 查询失败", async (userId) => {
     const profile = await getUserProfile(userId);
     res.json({
       success: true,
@@ -210,47 +203,28 @@ async function handleGetProfile(req, res) {
       monthly_budget: profile.monthly_budget,
       expense_categories: profile.expenseCategories,
     });
-  } catch (err) {
-    console.error("[DataAPI] profile 查询失败:", err.message);
-    res.status(500).json({ error: err.message });
-  }
+  });
 }
 
 // PUT /api/finance-chat/data/profile
 async function handlePutProfile(req, res) {
-  try {
-    const userId = await resolveUserId(req);
-    if (!userId) {
-      return res.status(401).json({ error: "缺少用户标识" });
-    }
-
+  await withUser(req, res, "profile 更新失败", async (userId) => {
     const { name, monthly_budget, expense_categories } = req.body;
     const params = {};
     if (name !== undefined) params.name = name;
     if (monthly_budget !== undefined) params.monthly_budget = monthly_budget;
     if (expense_categories !== undefined) params.expense_categories = expense_categories;
-
-    const result = await updateProfile(userId, params);
-    res.json(result);
-  } catch (err) {
-    console.error("[DataAPI] profile 更新失败:", err.message);
-    res.status(500).json({ error: err.message });
-  }
+    res.json(await updateProfile(userId, params));
+  });
 }
 
 // PUT /api/finance-chat/data/records/:id — 直接修改记录（供详情页 UI 调用）
 async function handlePutRecord(req, res) {
-  try {
-    const userId = await resolveUserId(req);
-    if (!userId) {
-      return res.status(401).json({ error: "缺少用户标识" });
-    }
-
+  await withUser(req, res, "record 修改失败", async (userId) => {
     const recordId = Number(req.params.id);
     if (!recordId) {
       return res.status(400).json({ error: "无效的记录 ID" });
     }
-
     const { amount, category, description, source, period, date } = req.body;
     const updates = {};
     if (amount !== undefined) updates.amount = amount;
@@ -259,34 +233,19 @@ async function handlePutRecord(req, res) {
     if (source !== undefined) updates.source = source;
     if (period !== undefined) updates.period = period;
     if (date !== undefined) updates.date = date;
-
-    const result = await updateRecord(userId, recordId, updates);
-    res.json(result);
-  } catch (err) {
-    console.error("[DataAPI] record 修改失败:", err.message);
-    res.status(500).json({ error: err.message });
-  }
+    res.json(await updateRecord(userId, recordId, updates));
+  });
 }
 
 // DELETE /api/finance-chat/data/records/:id — 直接删除记录（供详情页 UI 调用）
 async function handleDeleteRecord(req, res) {
-  try {
-    const userId = await resolveUserId(req);
-    if (!userId) {
-      return res.status(401).json({ error: "缺少用户标识" });
-    }
-
+  await withUser(req, res, "record 删除失败", async (userId) => {
     const recordId = Number(req.params.id);
     if (!recordId) {
       return res.status(400).json({ error: "无效的记录 ID" });
     }
-
-    const result = await deleteRecord(userId, [recordId]);
-    res.json(result);
-  } catch (err) {
-    console.error("[DataAPI] record 删除失败:", err.message);
-    res.status(500).json({ error: err.message });
-  }
+    res.json(await deleteRecord(userId, [recordId]));
+  });
 }
 
 // ===== 路由 =====
