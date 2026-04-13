@@ -36,15 +36,6 @@ function getCacheInfo(usage) {
 }
 
 /**
- * 获取所有可用模型列表
- */
-function getModels() {
-  return Object.entries(MODEL_REGISTRY).map(function ([id, info]) {
-    return { id, provider: info.provider, label: info.label };
-  });
-}
-
-/**
  * 获取单个模型信息
  */
 function getModelInfo(modelId) {
@@ -52,87 +43,9 @@ function getModelInfo(modelId) {
 }
 
 /**
- * 通用大模型对话调用
- *
- * 智谱和千问均兼容 OpenAI Chat Completions API 格式，
- * 因此使用统一的请求结构。
- *
- * @param {string} modelId - 模型 ID（如 "glm-4.6v"）
- * @param {Array} messages - OpenAI 格式的 messages 数组
- * @param {string} apiKey - 对应厂商的 API Key
- * @param {object} [options] - 可选参数（max_tokens 等）
- * @returns {Promise<{content: string, usage: object|null}>}
- */
-async function chat(modelId, messages, apiKey, options = {}) {
-  const model = MODEL_REGISTRY[modelId];
-  if (!model) {
-    throw new Error(`不支持的模型: ${modelId}`);
-  }
-
-  // 当使用 function calling 时，关闭思考模式（部分模型不兼容）
-  const defaults = { ...model.defaults };
-  if (options.tools) {
-    delete defaults.enable_thinking;
-    delete defaults.thinking;
-  }
-
-  const body = {
-    model: modelId,
-    messages,
-    ...defaults,
-    ...options,
-  };
-
-  console.log(
-    `[LLM] >>> 请求 ${model.label} (${modelId})` +
-    `，消息数: ${messages.length}` +
-    (options.tools ? `，工具: ${options.tools.map((t) => t.function.name).join(", ")}` : "")
-  );
-  console.log("[LLM] >>> 请求体:", JSON.stringify(body));
-
-  const res = await fetch(model.endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error(`${model.label} API 错误 (${res.status}):`, errText);
-    let errDetail = errText;
-    try {
-      const errJson = JSON.parse(errText);
-      errDetail = errJson.error?.message || errJson.message || errText;
-    } catch (_) {}
-    throw new Error(`${model.label} 调用失败 (${res.status}): ${errDetail}`);
-  }
-
-  const data = await res.json();
-  const message = data.choices && data.choices[0] && data.choices[0].message;
-  const content = (message && message.content) || "";
-  const tool_calls = (message && message.tool_calls) || null;
-
-  const cacheInfo = getCacheInfo(data.usage);
-  console.log(
-    `[LLM] <<< 响应 ${model.label} (${modelId})` +
-    (data.usage
-      ? `，Token: 输入=${data.usage.prompt_tokens}, 输出=${data.usage.completion_tokens}`
-      : "") +
-    (cacheInfo ? `，缓存命中: ${cacheInfo.cached}tok (${cacheInfo.rate}%)` : "") +
-    (tool_calls ? `，工具调用: ${tool_calls.map((t) => t.function.name).join(", ")}` : "")
-  );
-  console.log("[LLM] <<< 响应体:", JSON.stringify(data));
-
-  return { content, tool_calls, usage: data.usage || null };
-}
-
-/**
  * 流式大模型对话调用（stream: true）
  *
- * 与 chat() 接口一致，但以 async generator 逐块 yield 事件：
+ * 以 async generator 逐块 yield 事件：
  *   - { type: "args_delta", index, name, chunk }  — 工具参数增量片段
  *   - { type: "done", content, tool_calls, usage }  — 流结束，含完整累积结果
  *
@@ -265,4 +178,4 @@ async function* chatStream(modelId, messages, apiKey, options = {}) {
   yield { type: "done", content: accContent, tool_calls, usage };
 }
 
-module.exports = { getModels, getModelInfo, chat, chatStream };
+module.exports = { getModelInfo, chatStream };
