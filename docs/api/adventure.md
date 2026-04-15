@@ -2,9 +2,17 @@
 
 ## 概述
 
-冒险游戏 API 提供 AI 驱动的互动冒险故事生成能力。通过 SSE 流式响应，前端实时接收故事内容、可选的灵感提示以及异步下发的背景图片。
+冒险游戏 API 提供 AI 驱动的互动冒险故事生成能力，支持 **50+ 场景、跨天续玩** 的长篇冒险。
 
-**交互形态**：世界观初选为按钮式，进入故事后由玩家**自由文本输入**推动情节，AI 只负责呈现情境与演绎后果。文生图由路由层异步触发，不阻塞叙述返回。
+**核心架构**：
+- MySQL 虚拟文件树作为记忆载体（角色档案、章节摘要等）
+- 每轮从 `advance_story` 的 `memory_updates` 字段自动抽取落库
+- `enhancePrompt` 钩子装配分层上下文注入 system prompt
+- 章节制进度（chapter 1-5，beat 1-10）替代原有 progress 1-10
+
+**交互形态**：世界观初选为按钮式，进入故事后由玩家**自由文本输入**推动情节。文生图由路由层异步触发，不阻塞叙述返回。
+
+---
 
 ## 端点
 
@@ -18,12 +26,16 @@ AI 冒险故事对话（SSE 流式）。
 |------|------|------|
 | `Content-Type` | 是 | `application/json` |
 | `X-Api-Key` | 是 | LLM 厂商 API Key（同时用于文生图） |
+| `X-Anon-Token` | 是* | 匿名用户标识（H5 Demo 必填，小程序通过 `x-wx-openid` 自动注入） |
 | `X-Image-Api-Key` | 否 | 文生图专用 API Key（不传则复用 X-Api-Key） |
+
+*H5 Demo 由前端 `storage.js` 的 `getAnonToken()` 自动生成并持久化。
 
 #### 请求体
 
 ```json
 {
+  "story_id": "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx",
   "messages": [
     { "role": "user", "content": "我拔剑冲向哥布林" }
   ],
@@ -31,7 +43,8 @@ AI 冒险故事对话（SSE 流式）。
   "context": {
     "worldSetting": "奇幻王国",
     "goal": "夺回被恶龙掳走的公主并安全返回王城",
-    "choiceCount": 3,
+    "chapter": 2,
+    "beat": 5,
     "characterProfile": {
       "name": "艾琳",
       "genre": ["奇幻冒险", "仙侠修真"],
@@ -44,14 +57,30 @@ AI 冒险故事对话（SSE 流式）。
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `messages` | Array | 是 | 对话消息数组（user/assistant 交替）。世界观轮次后，user 消息为玩家自由文本 |
+| `story_id` | String | 否 | 续玩时必填。缺省则创建新档，服务端通过 `story_created` 事件返回新 ID |
+| `messages` | Array | 是 | 对话消息数组。前端只传最近 K=6 条交互（12 条消息），服务端已从 DB 补全长期记忆 |
 | `model` | String | 否 | 模型 ID，默认 `qwen3.5-plus` |
-| `context.worldSetting` | String | 否 | 当前世界观文本 |
-| `context.goal` | String | 否 | 本局目标（玩家在世界观选择时从选项 `goal` 字段确定，贯穿整个故事） |
-| `context.choiceCount` | Number | 否 | 玩家已做行动次数，用于 AI 控制节奏 |
-| `context.characterProfile.genre` | String \| Array | 否 | 偏好故事风格，前端可能传入字符串（旧数据）或数组（多选） |
+| `context.worldSetting` | String | 否 | 当前世界观（服务端从 DB 加载优先） |
+| `context.goal` | String | 否 | 本局目标（服务端从 DB 加载优先） |
+| `context.chapter` | Number | 否 | 当前章节（服务端从 DB 加载优先） |
+| `context.beat` | Number | 否 | 当前节拍（服务端从 DB 加载优先） |
+| `context.characterProfile` | Object | 否 | 玩家档案（服务端从 DB 加载优先） |
 
 #### SSE 响应事件
+
+##### `story_created` — 新存档创建（新）
+
+```json
+{ "type": "story_created", "story_id": "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx" }
+```
+
+当 `story_id` 未传时（新游戏）首先下发，前端应保存此 ID 用于后续续玩。
+
+##### `narrative_delta` — 叙述文本流式片段
+
+```json
+{ "type": "narrative_delta", "content": "你站在" }
+```
 
 ##### `thinking` — AI 推理中
 
@@ -59,15 +88,9 @@ AI 冒险故事对话（SSE 流式）。
 {
   "type": "thinking",
   "iteration": 1,
-  "maxIterations": 5,
-  "content": "",
-  "tool_calls": [
-    { "name": "advance_story", "arguments": "{...}" }
-  ]
+  "tool_calls": [{ "name": "advance_story", "arguments": "{...}" }]
 }
 ```
-
-前端可从 `tool_calls[0].arguments` 提前解析出 `narrative` 字段，在工具真正执行前就先行渲染文字。
 
 ##### `tool_result` — 工具执行结果
 
@@ -78,114 +101,230 @@ AI 冒险故事对话（SSE 流式）。
   "result": {
     "success": true,
     "narrative": "你站在一片古老的森林边缘...",
-    "choices": [
-      {
-        "id": "A",
-        "text": "被诅咒的暗影森林",
-        "goal": "找到并净化森林深处失控的古树之心"
-      }
-    ],
+    "chapter": 2,
+    "beat": 3,
+    "is_chapter_end": false,
+    "progress": 3,
+    "choices": [{ "id": "hint1", "text": "深入密林" }],
     "is_ending": false,
-    "progress": 2,
-    "title": "暗影森林的秘密",
-    "image_prompt": "dark mystical forest at dusk, ..."
-  },
-  "duration": 120
+    "title": null,
+    "image_prompt": null,
+    "memory_updates": [
+      { "op": "upsert", "path": "/characters/goblin-chief.md", "node_type": "character", "content": "哥布林酋长..." }
+    ]
+  }
 }
 ```
 
-注意：
-- **`result.image_url` 已被移除**。背景图由独立的 `scene_image` 事件异步下发，见下。
-- `result.image_prompt` 仅在两个节点填写：**开局（首场景 + title 已设置）** 和 **结局（is_ending=true）**。其他轮次即使 LLM 误填，路由层也会忽略不生成图片。
-- `result.choices` 语义见下文 `advance_story` 工具说明，第一轮世界观选项的 `choices[i].goal` 字段是本局目标。
-
-##### `scene_image_pending` — 图片生成已开始（新）
+##### `story_saved` — 场景已落库（新）
 
 ```json
-{
-  "type": "scene_image_pending",
-  "turn_id": 3
-}
+{ "type": "story_saved", "story_id": "xxx", "scene_seq": 5 }
 ```
 
-路由层在 `tool_result` 产出且检测到 `image_prompt` 非空时立即下发，通知前端显示"场景图生成中…"角标。`turn_id` 是请求范围内单调递增的编号，用于与后续 `scene_image` / `scene_image_error` 配对。
-
-##### `scene_image` — 图片生成成功（新）
+##### `memory_updated` — 记忆文件已更新（新）
 
 ```json
-{
-  "type": "scene_image",
-  "turn_id": 3,
-  "url": "https://bigmodel-..."
-}
+{ "type": "memory_updated", "count": 2 }
 ```
 
-异步下发，前端收到后可直接设置为背景图；若 `turn_id` 与当前交互轮次不匹配，前端应忽略以避免旧图覆盖新场景。
-
-##### `scene_image_error` — 图片生成失败（新）
+##### `chapter_compacted` — 章节摘要生成完成（新）
 
 ```json
-{
-  "type": "scene_image_error",
-  "turn_id": 3,
-  "message": "图像生成失败"
-}
+{ "type": "chapter_compacted", "chapter": 2 }
 ```
 
-文生图调用失败或返回空 URL 时下发，不影响主对话流继续进行。
+异步，可能在 `[DONE]` 之后到达（章节压缩 LLM 调用耗时约 10-30s）。
+
+##### `scene_image_pending` — 图片生成已开始
+
+```json
+{ "type": "scene_image_pending", "turn_id": 1 }
+```
+
+##### `scene_image` — 图片生成成功
+
+```json
+{ "type": "scene_image", "turn_id": 1, "url": "https://..." }
+```
+
+##### `scene_image_error` — 图片生成失败
+
+```json
+{ "type": "scene_image_error", "turn_id": 1, "message": "图像生成失败" }
+```
 
 ##### `answer` — 最终回复
 
 ```json
-{
-  "type": "answer",
-  "content": "故事已推进"
-}
+{ "type": "answer", "content": "故事已推进" }
 ```
 
 ##### `error` — 错误
 
 ```json
-{
-  "type": "error",
-  "message": "错误描述"
-}
+{ "type": "error", "message": "错误描述" }
 ```
 
 流结束标记：`data: [DONE]\n\n`
 
-> **事件顺序**：同一轮通常为 `thinking` → `tool_result` → `scene_image_pending`（若有图）→ `answer` → `scene_image` / `scene_image_error`（图片就绪后） → `[DONE]`。路由层会在 `brain.think` 循环结束后 `await Promise.allSettled` 所有在途图片任务，再关闭流。
+> **事件顺序**：`story_created`（新档）→ `narrative_delta`（多次）→ `thinking` → `tool_result` → `story_saved` → `memory_updated`（若有）→ `scene_image_pending`（若有图）→ `answer` → `scene_image`（异步）→ `chapter_compacted`（若章末）→ `[DONE]`
+
+---
+
+### GET `/api/adventure/stories`
+
+获取用户存档列表（按最近游玩时间倒序）。
+
+#### 请求头
+
+`X-Anon-Token` 或 `x-wx-openid`（必填）
+
+#### 查询参数
+
+| 参数 | 默认 | 说明 |
+|------|------|------|
+| `limit` | 20 | 每页数量（最大 50） |
+| `offset` | 0 | 分页偏移 |
+
+#### 响应
+
+```json
+{
+  "stories": [
+    {
+      "story_id": "xxx",
+      "title": "暗影森林的秘密",
+      "status": "active",
+      "current_chapter": 2,
+      "current_beat": 5,
+      "scene_count": 15,
+      "world_setting": "被诅咒的奇幻王国",
+      "goal": "夺回被封印的星辰之心",
+      "character_profile": { "name": "艾琳", "genre": ["奇幻冒险"] },
+      "last_played_at": "2026-04-15T10:30:00.000Z",
+      "created_at": "2026-04-14T08:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### GET `/api/adventure/stories/:id`
+
+获取单个故事详情（含近期场景，用于恢复游戏）。
+
+#### 请求头
+
+`X-Anon-Token` 或 `x-wx-openid`（必填）
+
+#### 响应
+
+```json
+{
+  "story": {
+    "story_id": "xxx",
+    "title": "暗影森林的秘密",
+    "status": "active",
+    "current_chapter": 2,
+    "current_beat": 5,
+    "world_setting": "被诅咒的奇幻王国",
+    "goal": "夺回被封印的星辰之心",
+    "character_profile": { "name": "艾琳" }
+  },
+  "recentScenes": [
+    {
+      "seq": 14,
+      "chapter": 2,
+      "beat": 4,
+      "player_action": "我试着与精灵交流",
+      "narrative": "你缓缓开口...",
+      "choices": [],
+      "image_url": null,
+      "is_ending": false
+    }
+  ]
+}
+```
+
+`recentScenes` 最多返回 12 个场景（6 轮对话），按 seq 正序排列，用于前端重建消息历史。
+
+---
 
 ## 工具说明
 
 ### `advance_story`
 
-呈现当前故事情境的唯一工具。AI 每轮必须调用此工具。
+**字段输出顺序（必须严格遵守）**：
+`narrative → chapter → beat → is_chapter_end → progress → choices → is_ending → title → image_prompt → memory_updates`
 
 **参数：**
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `narrative` | String | 是 | 故事叙述文本（中文，200-400 字） |
-| `image_prompt` | String | 否 | 英文图片描述，**仅在两个节点填写**：世界观确定后的首个场景（开局图）、结局场景（结局图）。其他轮次必须留空；即使填写也会被路由层过滤。 |
+| `narrative` | String | 是 | 故事叙述文本（中文，200-400 字）。**第一个字段** |
+| `chapter` | Number | 是 | 当前章节（1-5） |
+| `beat` | Number | 是 | 当前章内节拍（1-10），同时作为 progress |
+| `is_chapter_end` | Boolean | 否 | 是否为章末（触发异步章节压缩） |
+| `progress` | Number | 否 | 与 beat 一致（供前端进度条使用） |
 | `choices` | Array | 否 | 见下文"语义"说明 |
-| `is_ending` | Boolean | 否 | 是否为故事结局 |
-| `progress` | Number | 是 | 故事进度（1-10） |
-| `title` | String | 否 | 故事标题（世界观确定后的首个场景设置） |
+| `is_ending` | Boolean | 否 | 是否为结局。**仅 chapter=5 && beat>=9 时允许** |
+| `title` | String | 否 | 故事标题（世界观确定后首场景设置） |
+| `image_prompt` | String | 否 | 英文图片描述，**仅开局和结局填写** |
+| `memory_updates` | Array | 否 | 记忆文件更新（每轮最多 3 条） |
 
 **`choices` 字段语义（重要变化）：**
 
-- **第一轮（世界观选择，progress=1）**：**必填 3 条**，`id` 用 `A/B/C`，且每项必须同时提供 `text`（世界观/开局概述，10-20 字）和 `goal`（本局玩家需要达成的**具体、可判定完成**的目标，15-40 字）。作为按钮供玩家点击，玩家选定后 `goal` 会被写入 `context.goal` 并贯穿整个故事。
-- **后续轮次**：**不是菜单**，而是"灵感提示"（0-2 条），`id` 用 `hint1/hint2`，不需要 `goal` 字段。玩家点击后**只会填入输入框**，不会自动提交，玩家仍以自由文本驱动故事。建议大多数情况下留空。
-- **结局时（`is_ending=true`）**：不提供。
+- **第一轮（世界观选择）**：必填 3 条，id 用 `A/B/C`，每项必须包含 `text`（世界观/开局概述）和 `goal`（本局目标，15-40 字）
+- **后续轮次**：不是菜单，是"灵感提示"（0-2 条），id 用 `hint1/hint2`，不需要 `goal`
+- **结局时**：不提供
 
-**图片生成规则（⚠️ 已大幅收紧）：**
+**`memory_updates` 字段：**
+
+```json
+[
+  { "op": "upsert", "path": "/characters/alice.md", "node_type": "character", "content": "Alice 是一名精灵弓手..." },
+  { "op": "append", "path": "/scratch.md", "content": "发现了地图碎片" },
+  { "op": "archive", "path": "/items/broken-sword.md" }
+]
+```
+
+- 支持操作：`upsert`（创建/覆盖）、`append`（追加）、`archive`（软删除）
+- 角色首次出场必须 upsert 其档案
+- 不允许修改 `/world.md` 和 `/goal.md`（系统 pinned 文件）
+
+**图片生成规则：**
 
 路由层只在以下两种 `tool_result` 上触发文生图：
-
 1. `result.title` 非空（开局后的首个场景）
 2. `result.is_ending === true`（结局场景）
 
-其他所有轮次的 `image_prompt` 将被忽略，即不会下发 `scene_image_pending` / `scene_image` 事件。因此"整局游戏只生成 2 张图片"（开局图 + 结局图）是硬约束。
+整局游戏共 **2 张图片**（开局图 + 结局图）。
 
-**返回值：** `{ success, narrative, choices, is_ending, progress, title, image_prompt }`。不再返回 `image_url`——背景图通过 `scene_image` 事件独立下发。
+---
+
+## 记忆系统说明
+
+### 分层上下文装配
+
+每轮请求前，服务端从 DB 加载并注入到 system prompt：
+
+| 层级 | 内容 | 策略 |
+|------|------|------|
+| Pinned 核心 | `/world.md`、`/goal.md` | 全文 |
+| 近期实体 | 最近出场的角色/物品/地点 | 全文 |
+| 历史实体 | 早期角色/物品/地点 | 仅首行摘要 |
+| 章节摘要 | `/plot/chapter-N.md` | 全文 |
+| 临时笔记 | `/scratch.md` | 首行摘要 |
+| 记忆索引 | 所有文件路径+大小 | system prompt 末尾 `<memory>` 块 |
+
+### 章节压缩
+
+章末（`is_chapter_end=true`）触发：
+1. 锁定 `compaction_pending_until`（5 分钟）
+2. 读取章内所有场景 narrative
+3. 调用 LLM 生成 ≤600 字摘要
+4. 存入 `/plot/chapter-N.md`
+
+**降级**：压缩进行中时，assembleContext 跳过该章摘要，使用近期原文替代。

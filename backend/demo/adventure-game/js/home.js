@@ -368,9 +368,8 @@
 
   // ===== 历史故事列表 =====
 
-  function renderStories() {
-    var stories = getStories();
-    if (stories.length === 0) {
+  function renderStories(stories) {
+    if (!stories || stories.length === 0) {
       storyList.innerHTML = '<div class="empty-text">&gt; 暂无历史故事</div>';
       return;
     }
@@ -378,35 +377,46 @@
     var html = "";
     for (var i = 0; i < stories.length; i++) {
       var s = stories[i];
-      var sceneCount = s.scenes ? s.scenes.length : 0;
+      // 兼容本地存档（scenes 数组）和服务端存档（scene_count）
+      var sceneCount = s.scene_count != null ? s.scene_count : (s.scenes ? s.scenes.length : 0);
+      // 兼容本地 id 和服务端 story_id
+      var storyId = s.story_id || s.id;
+      var isServerStory = !!s.story_id;
+      var statusBadge = s.status === "ended" ? " <span style='opacity:.5;font-size:11px;'>[完结]</span>" : "";
+      var chapterInfo = s.current_chapter
+        ? "第" + s.current_chapter + "章·" + (s.current_beat || 1) + "/10"
+        : "";
       html +=
         '<div class="story-card" data-id="' +
-        s.id +
+        escapeHtml(storyId) +
+        '" data-server="' +
+        (isServerStory ? "1" : "0") +
         '">' +
         '<div class="story-card-body">' +
         '<div class="story-card-title">' +
         escapeHtml(s.title || "未命名的冒险") +
+        statusBadge +
         "</div>" +
         '<div class="story-card-meta">' +
         '<span class="story-card-tag">' +
-        escapeHtml(s.worldSetting || "未知世界") +
+        escapeHtml(s.world_setting || s.worldSetting || "未知世界") +
         "</span>" +
+        (chapterInfo ? "<span>" + chapterInfo + "</span>" : "<span>" + sceneCount + " 个场景</span>") +
         "<span>" +
-        sceneCount +
-        " 个场景</span>" +
-        "<span>" +
-        formatDate(s.startTime) +
+        formatDate(s.last_played_at || s.startTime) +
         "</span>" +
         "</div>" +
         "</div>" +
-        '<button class="story-card-delete" data-delete="' +
-        s.id +
-        '" title="删除">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-        '<polyline points="3 6 5 6 21 6"/>' +
-        '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>' +
-        "</svg>" +
-        "</button>" +
+        (isServerStory
+          ? "" // 服务端存档暂不提供前端删除（数据在服务端）
+          : '<button class="story-card-delete" data-delete="' +
+            escapeHtml(storyId) +
+            '" title="删除">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<polyline points="3 6 5 6 21 6"/>' +
+            '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>' +
+            "</svg>" +
+            "</button>") +
         "</div>";
     }
     storyList.innerHTML = html;
@@ -415,24 +425,61 @@
     var cards = storyList.querySelectorAll(".story-card");
     for (var j = 0; j < cards.length; j++) {
       cards[j].addEventListener("click", function (e) {
-        // 如果点击的是删除按钮，不跳转
         if (e.target.closest(".story-card-delete")) return;
         var id = this.dataset.id;
-        window.location.href = "game.html?story=" + id + "&readonly=1";
+        var isServer = this.dataset.server === "1";
+        if (isServer) {
+          // 服务端存档：跳转到续玩模式（game.js 会从服务端恢复）
+          window.location.href = "game.html?story_id=" + encodeURIComponent(id) + "&resume=1";
+        } else {
+          window.location.href = "game.html?story=" + encodeURIComponent(id) + "&readonly=1";
+        }
       });
     }
 
-    // 绑定删除事件
+    // 绑定删除事件（仅本地存档）
     var deleteBtns = storyList.querySelectorAll(".story-card-delete");
     for (var k = 0; k < deleteBtns.length; k++) {
       deleteBtns[k].addEventListener("click", function (e) {
         e.stopPropagation();
         var id = this.dataset.delete;
         deleteStory(id);
-        renderStories();
+        loadAndRenderStories();
         showToast("故事已删除");
       });
     }
+  }
+
+  /**
+   * 从服务端加载存档列表（优先），降级到本地存档
+   */
+  function loadAndRenderStories() {
+    var settings = getSettings();
+    var hasKey = settings.apiKeys.qwen || settings.apiKeys.zhipu;
+    if (!hasKey) {
+      renderStories(getStories());
+      return;
+    }
+
+    fetch(API_BASE + "/stories", {
+      headers: { "X-Anon-Token": getAnonToken() },
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error("服务端请求失败");
+        return res.json();
+      })
+      .then(function (data) {
+        var serverStories = (data && data.stories) || [];
+        if (serverStories.length > 0) {
+          renderStories(serverStories);
+        } else {
+          // 服务端无数据时降级到本地
+          renderStories(getStories());
+        }
+      })
+      .catch(function () {
+        renderStories(getStories());
+      });
   }
 
   // ===== 检查未完成故事 =====
@@ -450,6 +497,6 @@
 
   checkApiKey();
   checkCurrentStory();
-  renderStories();
+  loadAndRenderStories();
   renderCharProfile();
 })();

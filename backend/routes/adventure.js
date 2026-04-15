@@ -1,14 +1,17 @@
 /**
  * 对话路由 — 冒险游戏
  *
- * 通过 createBrain 工厂 per-request 创建 brain 实例。
- * 文生图已从 advance_story 工具中剥离：路由层在 tool_result 产出后
- * 立即 fire-and-forget 触发 generateImage，图片就绪后通过独立的
- * scene_image / scene_image_error 事件异步下发，避免阻塞 narrative。
+ * 架构说明：
+ * - 长篇记忆：通过 MySQL 三张表（adventure_stories/memory_files/scenes）持久化
+ * - 请求入参：新增 story_id（缺省 = 开新档）；前端只传最近 K 条消息
+ * - 上下文装配：每轮从 DB 加载记忆文件 + 章节摘要，注入 system prompt
+ * - 场景落库：tool_result 后异步执行 appendScene + applyMemoryUpdates + updateStoryProgress
+ * - 章节压缩：is_chapter_end=true 时 fire-and-forget 触发独立 LLM 调用生成章节摘要
+ * - 并发控制：story 级别乐观锁（lock_token + lock_expires_at）
  *
- * 流式叙述：brain 在流式调用 LLM 时透传 args_delta 事件，路由层通过
- * createNarrativeExtractor 实时从 advance_story 的参数流中抠出 narrative
- * 文本，以 narrative_delta 事件逐片下发，前端可立即开始渲染，无需等待全量响应。
+ * 新增只读端点：
+ * - GET /api/adventure/stories — 列出用户故事
+ * - GET /api/adventure/stories/:id — 获取单个故事（含近期场景，用于恢复游戏）
  *
  * 导出 adventureRouter（挂载到 /api/adventure）。
  */
@@ -25,13 +28,15 @@ const {
   createAdvanceStoryExecutor,
   generateImage,
 } = require("../services/adventure-game/skills");
+const dao = require("../services/adventure-game/dao");
+const memory = require("../services/adventure-game/memory");
 
 // ===== Narrative 流式提取状态机 =====
 
 /**
  * 从 advance_story 工具的流式参数 JSON 中实时提取 narrative 字段值。
  *
- * 参数 JSON 形如：{"narrative":"故事文本...","progress":2,...}
+ * 参数 JSON 形如：{"narrative":"故事文本...","chapter":2,...}
  * 状态机在流中定位 "narrative":" 起始标记，随后逐字提取文本内容，
  * 遇到未转义的 " 时结束提取。完整处理 JSON 字符串转义序列。
  *
@@ -98,16 +103,30 @@ function createNarrativeExtractor() {
   };
 }
 
+// ===== 用户标识提取 =====
+
+function extractUserToken(req) {
+  return req.headers["x-wx-openid"] || req.headers["x-anon-token"] || null;
+}
+
 // ===== SSE 对话处理 =====
 
 async function handleCompletions(req, res) {
+  let storyId = null;
+  let lockToken = null;
+
   try {
     const apiKey = req.headers["x-api-key"];
     if (!apiKey) {
       return res.status(401).json({ error: "缺少 API Key，请在设置中配置" });
     }
 
-    const { messages, context } = req.body;
+    const userToken = extractUserToken(req);
+    if (!userToken) {
+      return res.status(401).json({ error: "缺少用户标识（X-Anon-Token 或 x-wx-openid）" });
+    }
+
+    const { messages, context, story_id: reqStoryId } = req.body;
     let model = req.body.model || "qwen3.5-plus";
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -119,10 +138,57 @@ async function handleCompletions(req, res) {
       return res.status(400).json({ error: "不支持的模型: " + model });
     }
 
-    // Per-request 创建技能实例
+    // ===== 1. 加载或创建故事 =====
+
+    let story;
+    let isNewStory = false;
+
+    if (reqStoryId) {
+      story = await dao.loadStory(reqStoryId, userToken);
+      if (!story) {
+        return res.status(404).json({ error: "故事不存在或无权访问" });
+      }
+    } else {
+      const newId = await dao.createStory({
+        userToken,
+        characterProfile: context && context.characterProfile,
+      });
+      story = await dao.loadStory(newId, userToken);
+      isNewStory = true;
+    }
+    storyId = story.story_id;
+
+    // ===== 2. 并发锁 =====
+
+    lockToken = dao.generateUUID();
+    const locked = await dao.acquireLock(storyId, lockToken);
+    if (!locked) {
+      return res.status(409).json({ error: "游戏请求进行中，请稍等" });
+    }
+
+    // ===== 3. 装配记忆上下文 =====
+
+    const assembled = await memory.assembleContext(storyId, { recentK: 6 });
+    const memoryBlock = memory.buildMemoryBlock(assembled);
+
+    // ===== 4. 构建增强上下文 =====
+
+    const enhancedContext = {
+      ...(context || {}),
+      // 服务端状态优先（过 DB），其次用客户端传入
+      worldSetting: story.world_setting || (context && context.worldSetting),
+      goal: story.goal || (context && context.goal),
+      chapter: story.current_chapter || 1,
+      beat: story.current_beat || 1,
+      characterProfile:
+        story.character_profile || (context && context.characterProfile),
+      memory: memoryBlock,
+    };
+
+    // ===== 5. Per-request 实例 =====
+
     const imageApiKey = req.headers["x-image-api-key"] || apiKey;
     const provider = modelInfo.provider;
-
     const executeAdvanceStory = createAdvanceStoryExecutor();
 
     const skills = {
@@ -141,13 +207,13 @@ async function handleCompletions(req, res) {
       enhancePrompt,
     });
 
-    // SSE 流式响应
+    // ===== 6. SSE 流式响应 =====
+
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
-    // 安全写 SSE：若客户端已断开则忽略
     let clientClosed = false;
     req.on("close", () => {
       clientClosed = true;
@@ -161,20 +227,32 @@ async function handleCompletions(req, res) {
       }
     }
 
-    // 异步图生成任务队列
+    // 新建故事时先通知前端 story_id
+    if (isNewStory) {
+      writeEvent({ type: "story_created", story_id: storyId });
+    }
+
+    // ===== 7. Brain 推理循环 =====
+
     let turnCounter = 0;
     const pendingImages = [];
-
-    // Narrative 流式提取器（每次请求一个实例，仅提取第一轮叙述）
+    const pendingDbOps = [];
     const feedNarrative = createNarrativeExtractor();
+
+    // 提取最后一条用户消息作为 player_action
+    const userMessages = messages.filter((m) => m.role === "user");
+    const playerAction =
+      userMessages.length > 0
+        ? userMessages[userMessages.length - 1].content
+        : null;
 
     for await (const event of brain.think({
       messages,
       model,
       apiKey,
-      context: context || {},
+      context: enhancedContext,
     })) {
-      // args_delta：从流中提取 narrative 文本并实时下发，不转发原始事件
+      // args_delta：流式提取 narrative 文本，不转发原始事件
       if (event.type === "args_delta") {
         if (event.name === "advance_story") {
           const narChunk = feedNarrative(event.chunk);
@@ -185,28 +263,121 @@ async function handleCompletions(req, res) {
         continue;
       }
 
-      writeEvent(event);
+      // tool_result：特殊处理（DB 落库 + 图片生成）
+      if (event.type === "tool_result" && event.name === "advance_story") {
+        writeEvent(event);
 
-      // 图片生成策略：整局游戏只在两个节点生成图片 —— 开局（设置了 title 的首场景）
-      // 和结局（is_ending = true）。即便 LLM 意外在其他轮次填入 image_prompt 也会被忽略。
-      const shouldGenerateImage =
-        event.type === "tool_result" &&
-        event.name === "advance_story" &&
-        event.result &&
-        event.result.image_prompt &&
-        imageApiKey &&
-        (event.result.title || event.result.is_ending);
+        const result = event.result;
 
-      if (shouldGenerateImage) {
-        const turnId = ++turnCounter;
-        const prompt = event.result.image_prompt;
+        // 图片生成策略：仅开局（设了 title）和结局（is_ending=true）生成图片
+        const shouldGenerateImage =
+          result &&
+          result.image_prompt &&
+          imageApiKey &&
+          (result.title || result.is_ending);
 
-        writeEvent({ type: "scene_image_pending", turn_id: turnId });
+        // 场景序号 Promise（appendScene 返回 seq，供图片更新使用）
+        const sceneSeqPromise = dao
+          .appendScene(storyId, {
+            chapter: result.chapter || story.current_chapter,
+            beat: result.beat || story.current_beat,
+            playerAction,
+            narrative: result.narrative,
+            choices: result.choices || [],
+            imagePrompt: result.image_prompt || null,
+            isEnding: result.is_ending || false,
+          })
+          .catch((err) => {
+            console.error("[Adventure] appendScene 失败:", err.message);
+            return null;
+          });
 
-        const task = generateImage(prompt, imageApiKey, provider)
-          .then((url) => {
+        // DB 任务：场景落库 + 进度更新 + 记忆更新 + story_saved 事件
+        const dbTask = (async () => {
+          const seq = await sceneSeqPromise;
+          if (seq == null) return null;
+
+          // 更新故事进度、标题、世界观（若初次设定）
+          const progressUpdate = {
+            chapter: result.chapter || story.current_chapter,
+            beat: result.beat || story.current_beat,
+          };
+          if (result.title && !story.title) progressUpdate.title = result.title;
+          if (result.is_ending) progressUpdate.status = "ended";
+
+          // 若本轮是世界观选定轮（有 title）且故事无世界观，更新世界观和目标
+          // worldSetting 来自 context，此处从 enhancedContext 取
+          if (result.title && !story.world_setting && enhancedContext.worldSetting) {
+            progressUpdate.worldSetting = enhancedContext.worldSetting;
+          }
+
+          await dao.updateStoryProgress(storyId, progressUpdate).catch((err) => {
+            console.error("[Adventure] updateStoryProgress 失败:", err.message);
+          });
+
+          writeEvent({ type: "story_saved", story_id: storyId, scene_seq: seq });
+
+          // 应用记忆更新
+          const memUpdates = result.memory_updates;
+          if (Array.isArray(memUpdates) && memUpdates.length > 0) {
+            try {
+              await memory.extractAndApply(storyId, memUpdates, seq);
+              writeEvent({ type: "memory_updated", count: memUpdates.length });
+            } catch (memErr) {
+              console.error("[Adventure] 记忆更新失败:", memErr.message);
+            }
+          }
+
+          // 世界观首次选定时初始化 pinned 记忆文件（/world.md 和 /goal.md）
+          if (result.title && !story.world_setting) {
+            memory
+              .initStoryMemory(storyId, {
+                worldSetting: enhancedContext.worldSetting,
+                goal: enhancedContext.goal,
+              })
+              .catch((err) => {
+                console.error("[Adventure] initStoryMemory 失败:", err.message);
+              });
+          }
+
+          return seq;
+        })();
+        pendingDbOps.push(dbTask);
+
+        // 章末异步压缩
+        if (result.is_chapter_end) {
+          const chapterNum = result.chapter || story.current_chapter;
+          memory
+            .compactChapter(storyId, chapterNum, { model, apiKey })
+            .then(() => {
+              writeEvent({ type: "chapter_compacted", chapter: chapterNum });
+            })
+            .catch((err) => {
+              console.error("[Adventure] 章节压缩失败:", err.message);
+            });
+        }
+
+        // 图片生成（fire-and-forget，与 DB 并行）
+        if (shouldGenerateImage) {
+          const turnId = ++turnCounter;
+          writeEvent({ type: "scene_image_pending", turn_id: turnId });
+
+          const imageTask = (async () => {
+            const url = await generateImage(
+              result.image_prompt,
+              imageApiKey,
+              provider
+            );
             if (url) {
               writeEvent({ type: "scene_image", turn_id: turnId, url });
+              // 图片 URL 落库（等 seq 就绪后）
+              dbTask
+                .then((seq) => {
+                  if (seq != null) {
+                    dao.updateSceneImageUrl(storyId, seq, url).catch(() => {});
+                  }
+                })
+                .catch(() => {});
             } else {
               writeEvent({
                 type: "scene_image_error",
@@ -214,30 +385,40 @@ async function handleCompletions(req, res) {
                 message: "图像生成失败",
               });
             }
-          })
-          .catch((err) => {
-            writeEvent({
-              type: "scene_image_error",
-              turn_id: turnId,
-              message: (err && err.message) || "图像生成异常",
-            });
-          });
-        pendingImages.push(task);
+          })();
+          pendingImages.push(imageTask);
+        }
+
+        continue; // writeEvent 已在上面调用
       }
+
+      // 其余事件直接转发
+      writeEvent(event);
     }
 
-    // 等待所有异步图片任务 settle 后再关闭流
+    // ===== 8. 等待所有异步任务 =====
+
+    await Promise.allSettled(pendingDbOps);
     await Promise.allSettled(pendingImages);
+
+    // 释放锁
+    await dao.releaseLock(storyId, lockToken).catch(() => {});
+    lockToken = null;
+
     if (!clientClosed) {
       try {
         res.write("data: [DONE]\n\n");
         res.end();
-      } catch (_) {
-        // ignore
-      }
+      } catch (_) {}
     }
   } catch (err) {
     console.error("[Adventure] 调用失败:", err.message);
+
+    // 确保释放锁
+    if (storyId && lockToken) {
+      await dao.releaseLock(storyId, lockToken).catch(() => {});
+    }
+
     if (!res.headersSent) {
       res.status(500).json({ error: err.message });
     } else {
@@ -248,10 +429,61 @@ async function handleCompletions(req, res) {
             "\n\n"
         );
         res.end();
-      } catch (_) {
-        // ignore
-      }
+      } catch (_) {}
     }
+  }
+}
+
+// ===== 只读端点 =====
+
+/**
+ * GET /api/adventure/stories — 列出用户存档
+ */
+async function handleListStories(req, res) {
+  try {
+    const userToken = extractUserToken(req);
+    if (!userToken) {
+      return res.status(401).json({ error: "缺少用户标识" });
+    }
+
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const offset = parseInt(req.query.offset) || 0;
+
+    const stories = await dao.listStories(userToken, { limit, offset });
+    res.json({ stories });
+  } catch (err) {
+    console.error("[Adventure] listStories 失败:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+/**
+ * GET /api/adventure/stories/:id — 获取单个故事（含近期场景，用于恢复游戏）
+ */
+async function handleGetStory(req, res) {
+  try {
+    const userToken = extractUserToken(req);
+    if (!userToken) {
+      return res.status(401).json({ error: "缺少用户标识" });
+    }
+
+    const story = await dao.loadStory(req.params.id, userToken);
+    if (!story) {
+      return res.status(404).json({ error: "故事不存在" });
+    }
+
+    // 返回最近 12 个场景（用于前端重建对话历史）
+    const recentScenes = await dao.getScenes(story.story_id, {
+      limit: 12,
+      desc: true,
+    });
+    // 按 seq 正序返回
+    recentScenes.sort((a, b) => a.seq - b.seq);
+
+    res.json({ story, recentScenes });
+  } catch (err) {
+    console.error("[Adventure] getStory 失败:", err.message);
+    res.status(500).json({ error: err.message });
   }
 }
 
@@ -259,5 +491,7 @@ async function handleCompletions(req, res) {
 
 const adventureRouter = express.Router();
 adventureRouter.post("/completions", handleCompletions);
+adventureRouter.get("/stories", handleListStories);
+adventureRouter.get("/stories/:id", handleGetStory);
 
 module.exports = { adventureRouter };

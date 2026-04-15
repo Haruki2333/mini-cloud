@@ -1,6 +1,20 @@
 var SETTINGS_KEY = "adventure-game-settings";
 var STORIES_KEY = "adventure-game-stories";
 var CURRENT_STORY_KEY = "adventure-game-current";
+var ANON_TOKEN_KEY = "adventure-game-anon-token";
+
+// ===== 匿名用户标识 =====
+
+/**
+ * 获取或创建匿名用户令牌（持久化在 localStorage，用作服务端用户标识）
+ */
+function getAnonToken() {
+  var raw = localStorage.getItem(ANON_TOKEN_KEY);
+  if (raw) return raw;
+  var token = generateId();
+  localStorage.setItem(ANON_TOKEN_KEY, token);
+  return token;
+}
 
 // ===== 设置管理 =====
 
@@ -90,7 +104,12 @@ function getCurrentStory() {
 }
 
 function saveCurrentStory(story) {
-  localStorage.setItem(CURRENT_STORY_KEY, JSON.stringify(story));
+  // 只保存最近 12 条消息（6 轮），避免 localStorage 无限增长
+  var trimmed = Object.assign({}, story);
+  if (trimmed.messages && trimmed.messages.length > 12) {
+    trimmed.messages = trimmed.messages.slice(-12);
+  }
+  localStorage.setItem(CURRENT_STORY_KEY, JSON.stringify(trimmed));
 }
 
 function clearCurrentStory() {

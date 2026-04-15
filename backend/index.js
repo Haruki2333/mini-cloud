@@ -4,6 +4,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const { initDB } = require("./services/core/db");
 const financeModels = require("./services/finance-assistant/models");
+const adventureModels = require("./services/adventure-game/models");
 const { financeRouter: financeChatRouter } = require("./routes/finance");
 const { adventureRouter } = require("./routes/adventure");
 
@@ -36,7 +37,7 @@ app.use(
 const port = process.env.PORT || 80;
 
 async function start() {
-  await initDB(financeModels);
+  await initDB(financeModels, adventureModels);
   app.listen(port, () => {
     console.log("启动成功", port);
   });
