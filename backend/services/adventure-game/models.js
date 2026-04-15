@@ -11,7 +11,7 @@
 
 const { DataTypes } = require("sequelize");
 
-let AdventureStory, AdventureMemoryFile, AdventureScene;
+let AdventureStory, AdventureMemoryFile, AdventureScene, AdventureTokenUsage;
 
 /**
  * 定义模型
@@ -215,6 +215,54 @@ function define(sequelize) {
     },
     { tableName: "adventure_scenes", underscored: true, updatedAt: false }
   );
+
+  AdventureTokenUsage = sequelize.define(
+    "AdventureTokenUsage",
+    {
+      id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        primaryKey: true,
+        autoIncrement: true,
+        comment: "自增主键",
+      },
+      story_id: {
+        type: DataTypes.STRING(36),
+        allowNull: false,
+        comment: "所属故事 ID",
+      },
+      scene_seq: {
+        type: DataTypes.SMALLINT.UNSIGNED,
+        allowNull: true,
+        comment: "关联场景序号（对话轮次；章节压缩时为 null）",
+      },
+      usage_type: {
+        type: DataTypes.ENUM("chat", "compact"),
+        allowNull: false,
+        comment: "chat=对话轮次，compact=章节压缩",
+      },
+      model: {
+        type: DataTypes.STRING(64),
+        allowNull: false,
+        comment: "使用的模型 ID",
+      },
+      input_tokens: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        allowNull: false,
+        comment: "输入 token 数（prompt_tokens）",
+      },
+      output_tokens: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        allowNull: false,
+        comment: "输出 token 数（completion_tokens）",
+      },
+      cached_tokens: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        allowNull: true,
+        comment: "缓存命中 token 数（提供商支持时记录，否则为 null）",
+      },
+    },
+    { tableName: "adventure_token_usage", underscored: true, updatedAt: false }
+  );
 }
 
 /**
@@ -244,6 +292,11 @@ async function afterSync(qi) {
       name: "idx_adv_scene_chapter",
     });
   } catch (_) {}
+  try {
+    await qi.addIndex("adventure_token_usage", ["story_id", "created_at"], {
+      name: "idx_adv_token_story_time",
+    });
+  } catch (_) {}
 }
 
 module.exports = {
@@ -257,5 +310,8 @@ module.exports = {
   },
   get AdventureScene() {
     return AdventureScene;
+  },
+  get AdventureTokenUsage() {
+    return AdventureTokenUsage;
   },
 };

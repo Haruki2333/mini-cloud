@@ -83,6 +83,50 @@
 
 ---
 
+### adventure_token_usage — Token 用量明细
+
+记录每次 LLM 调用的 token 消耗，用于成本分析。每个对话轮次对应一条记录（汇总该轮所有 LLM 迭代），章节压缩单独记录。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | INT UNSIGNED PK AUTO_INCREMENT | 自增主键 |
+| `story_id` | VARCHAR(36) NOT NULL | 所属故事 ID |
+| `scene_seq` | SMALLINT UNSIGNED | 关联场景序号；章节压缩时为 NULL |
+| `usage_type` | ENUM('chat','compact') | chat=对话轮次，compact=章节压缩 |
+| `model` | VARCHAR(64) NOT NULL | 使用的模型 ID（如 qwen3.5-plus） |
+| `input_tokens` | INT UNSIGNED NOT NULL | 输入 token 数（prompt_tokens 累计） |
+| `output_tokens` | INT UNSIGNED NOT NULL | 输出 token 数（completion_tokens 累计） |
+| `cached_tokens` | INT UNSIGNED | 缓存命中 token 数（提供商支持时记录，否则为 NULL） |
+| `created_at` | DATETIME | 记录创建时间 |
+
+**索引**：`idx_adv_token_story_time` (story_id, created_at)
+
+**成本分析示例 SQL**：
+```sql
+-- 查询单个故事的总 token 消耗
+SELECT
+  usage_type,
+  model,
+  SUM(input_tokens)  AS total_input,
+  SUM(output_tokens) AS total_output,
+  SUM(cached_tokens) AS total_cached,
+  COUNT(*)           AS call_count
+FROM adventure_token_usage
+WHERE story_id = ?
+GROUP BY usage_type, model;
+
+-- 查询所有故事按消耗排行
+SELECT
+  story_id,
+  SUM(input_tokens + output_tokens) AS total_tokens,
+  COUNT(*) AS call_count
+FROM adventure_token_usage
+GROUP BY story_id
+ORDER BY total_tokens DESC;
+```
+
+---
+
 ## 并发控制
 
 同一 story_id 同时只允许一个 completions 请求处理。

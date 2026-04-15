@@ -237,6 +237,7 @@ ${sceneTexts.join("\n\n")}
     // 调用 LLM 生成摘要（非流式，直接取 content）
     const { chatStream } = require("../core/llm");
     let summary = "";
+    let compactLlmUsage = null;
     for await (const event of chatStream(
       model,
       [{ role: "user", content: compactionPrompt }],
@@ -244,6 +245,7 @@ ${sceneTexts.join("\n\n")}
     )) {
       if (event.type === "done" && event.content) {
         summary = event.content.trim();
+        compactLlmUsage = event.usage || null;
       }
     }
 
@@ -263,6 +265,26 @@ ${sceneTexts.join("\n\n")}
 
     await dao.clearCompactionPending(storyId);
     console.log(`[Memory] 章节压缩完成 story=${storyId} chapter=${chapter}，摘要 ${summary.length} 字`);
+
+    // 记录章节压缩的 token 用量
+    if (compactLlmUsage) {
+      const cached =
+        compactLlmUsage.prompt_tokens_details?.cached_tokens ??
+        compactLlmUsage.prompt_cache_hit_tokens ??
+        null;
+      await dao
+        .recordTokenUsage(storyId, {
+          sceneSeq: null,
+          usageType: "compact",
+          model,
+          inputTokens: compactLlmUsage.prompt_tokens || 0,
+          outputTokens: compactLlmUsage.completion_tokens || 0,
+          cachedTokens: cached,
+        })
+        .catch((err) => {
+          console.error("[Memory] 记录 token 用量失败:", err.message);
+        });
+    }
   } catch (err) {
     console.error("[Memory] 章节压缩失败:", err.message);
     // 不清除 pending 标记，让它自然过期（5 分钟后降级）

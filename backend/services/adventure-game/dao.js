@@ -393,6 +393,28 @@ async function upsertMemoryFile(storyId, { path, nodeType, content, pinned = fal
   }
 }
 
+// ===== Token 用量 =====
+
+/**
+ * 记录一次 LLM 调用的 token 用量
+ * @param {string} storyId
+ * @param {{ sceneSeq?: number|null, usageType: 'chat'|'compact', model: string, inputTokens: number, outputTokens: number, cachedTokens?: number|null }} data
+ */
+async function recordTokenUsage(
+  storyId,
+  { sceneSeq, usageType, model, inputTokens, outputTokens, cachedTokens }
+) {
+  await models.AdventureTokenUsage.create({
+    story_id: storyId,
+    scene_seq: sceneSeq ?? null,
+    usage_type: usageType,
+    model,
+    input_tokens: inputTokens || 0,
+    output_tokens: outputTokens || 0,
+    cached_tokens: cachedTokens ?? null,
+  });
+}
+
 /**
  * 标记章节压缩进行中
  * @param {string} storyId
@@ -433,4 +455,5 @@ module.exports = {
   upsertMemoryFile,
   markCompactionPending,
   clearCompactionPending,
+  recordTokenUsage,
 };
