@@ -198,18 +198,29 @@ const advanceStoryDefinition = {
   function: {
     name: "advance_story",
     description:
-      "呈现当前故事情境的唯一工具。每轮必须调用。除第一轮世界观选择外，不要替玩家做决定——叙述应以开放悬念结尾，等待玩家的自由文本行动。",
+      "呈现当前故事情境的唯一工具。每轮必须调用。除第一轮世界观选择外，不要替玩家做决定——叙述应以开放悬念结尾，等待玩家的自由文本行动。⚠️ 字段输出顺序必须严格按照：narrative → chapter → beat → is_chapter_end → progress → choices → is_ending → title → image_prompt → memory_updates",
     parameters: {
       type: "object",
       properties: {
         narrative: {
           type: "string",
-          description: "本段故事叙述文本（中文，200-400字）",
+          description: "本段故事叙述文本（中文，200-400字）。⚠️ 必须是第一个输出的字段",
         },
-        image_prompt: {
-          type: "string",
-          description:
-            "英文场景描述，用于生成背景图片。⚠️ 整局游戏仅两处需要填写：(1) 世界观确定后的首个场景（开局），(2) 结局场景（is_ending=true）。其他所有推进轮次必须留空。风格：digital fantasy art, cinematic lighting, detailed environment, 16:9 aspect ratio",
+        chapter: {
+          type: "number",
+          description: "当前章节号（1-5）。章节1为开端，章节5为结局章",
+        },
+        beat: {
+          type: "number",
+          description: "当前章内节拍（1-10）。同时作为 progress 的值",
+        },
+        is_chapter_end: {
+          type: "boolean",
+          description: "当前场景是否为本章末尾（触发异步章节摘要生成）",
+        },
+        progress: {
+          type: "number",
+          description: "故事进度，与 beat 保持一致（1-10，供前端进度条显示）",
         },
         choices: {
           type: "array",
@@ -238,19 +249,47 @@ const advanceStoryDefinition = {
         },
         is_ending: {
           type: "boolean",
-          description: "是否为故事结局",
-        },
-        progress: {
-          type: "number",
-          description: "当前故事进度（1-10）",
+          description: "是否为故事结局。仅当 chapter=5 且 beat>=9 时允许设为 true",
         },
         title: {
           type: "string",
           description:
             "故事标题（仅在世界观确定后的第一个场景中设置，用于保存和展示）",
         },
+        image_prompt: {
+          type: "string",
+          description:
+            "英文场景描述，用于生成背景图片。⚠️ 整局游戏仅两处需要填写：(1) 世界观确定后的首个场景（开局），(2) 结局场景（is_ending=true）。其他所有推进轮次必须留空。风格：digital fantasy art, cinematic lighting, detailed environment, 16:9 aspect ratio",
+        },
+        memory_updates: {
+          type: "array",
+          description:
+            "记忆文件更新操作（每轮最多 3 条）。角色首次出场必须 upsert 其档案。支持的路径：/characters/<name>.md、/items/<id>.md、/locations/<id>.md、/scratch.md",
+          items: {
+            type: "object",
+            properties: {
+              op: {
+                type: "string",
+                description: "操作类型：upsert（创建/覆盖）、append（追加）、archive（软删除）",
+              },
+              path: {
+                type: "string",
+                description: "虚拟文件路径，如 /characters/alice.md",
+              },
+              node_type: {
+                type: "string",
+                description: "节点类型：character、item、location、scratch",
+              },
+              content: {
+                type: "string",
+                description: "文件内容（upsert/append 操作时必填，不超过 500 字）",
+              },
+            },
+            required: ["op", "path"],
+          },
+        },
       },
-      required: ["narrative", "progress"],
+      required: ["narrative", "chapter", "beat"],
     },
   },
 };
@@ -269,11 +308,15 @@ function createAdvanceStoryExecutor() {
     return {
       success: true,
       narrative: args.narrative,
+      chapter: args.chapter || 1,
+      beat: args.beat || 1,
+      is_chapter_end: args.is_chapter_end || false,
       choices: args.choices || [],
       is_ending: args.is_ending || false,
-      progress: args.progress || 0,
+      progress: args.progress || args.beat || 0,
       title: args.title || null,
       image_prompt: args.image_prompt || null,
+      memory_updates: args.memory_updates || [],
     };
   };
 }

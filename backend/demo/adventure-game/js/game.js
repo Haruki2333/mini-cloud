@@ -31,7 +31,8 @@
 
   // ===== 游戏状态 =====
   var gameState = {
-    id: null,
+    id: null,       // 客户端生成的临时 ID（仅前端使用）
+    storyId: null,  // 服务端 story_id（持久化存档标识）
     title: null,
     worldSetting: null,
     // 本局目标：玩家在世界观选择时确定，贯穿整个故事
@@ -41,6 +42,8 @@
     startTime: null,
     isEnding: false,
     progress: 0,
+    chapter: 1,
+    beat: 1,
   };
 
   var isWaiting = false;
@@ -105,10 +108,14 @@
     }, 100);
   }
 
-  function updateProgress(progress) {
-    var percent = Math.min(progress * 10, 100);
+  function updateProgress(progress, chapter, beat) {
+    // 总进度：(chapter-1)*10 + beat，共 50 拍（5章×10节）
+    var ch = chapter || Math.ceil(progress / 2) || 1;
+    var bt = beat || progress || 1;
+    var total = Math.min((ch - 1) * 10 + bt, 50);
+    var percent = Math.min(total * 2, 100); // 50拍 = 100%
     progressFill.style.width = percent + "%";
-    navProgress.textContent = progress + "/10";
+    navProgress.textContent = "第" + ch + "章·" + bt + "/10";
   }
 
   function showGoalBanner(goal) {
@@ -250,10 +257,12 @@
       setBackgroundImage(data.image_url);
     }
 
-    // 进度
-    if (data.progress) {
-      gameState.progress = data.progress;
-      updateProgress(data.progress);
+    // 进度（chapter/beat 优先，progress 作为兜底）
+    if (data.chapter) gameState.chapter = data.chapter;
+    if (data.beat) gameState.beat = data.beat;
+    if (data.progress) gameState.progress = data.progress;
+    if (data.chapter || data.beat || data.progress) {
+      updateProgress(data.progress, data.chapter, data.beat);
     }
 
     // 标题
@@ -564,17 +573,27 @@
       worldSetting: gameState.worldSetting || null,
       goal: gameState.goal || null,
       choiceCount: gameState.scenes.length,
+      chapter: gameState.chapter || 1,
+      beat: gameState.beat || 1,
       characterProfile: characterProfile || null,
     };
+
+    // 只发最近 12 条消息（6 轮），减少 token 消耗
+    var recentMessages = gameState.messages;
+    if (recentMessages.length > 12) {
+      recentMessages = recentMessages.slice(-12);
+    }
 
     fetch(API_BASE + "/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Api-Key": apiKey,
+        "X-Anon-Token": getAnonToken(),
       },
       body: JSON.stringify({
-        messages: gameState.messages,
+        story_id: gameState.storyId || null,
+        messages: recentMessages,
         model: model,
         context: context,
       }),
@@ -666,6 +685,22 @@
                       }
                     }
                   }
+
+                  // 服务端创建新存档，记录 story_id
+                  if (event.type === "story_created") {
+                    gameState.storyId = event.story_id;
+                    saveCurrentStory(gameState);
+                  }
+
+                  // 存档保存成功（服务端确认）
+                  if (event.type === "story_saved") {
+                    if (event.story_id && !gameState.storyId) {
+                      gameState.storyId = event.story_id;
+                    }
+                  }
+
+                  // 章节压缩完成（可选：显示提示）
+                  // if (event.type === "chapter_compacted") { ... }
 
                   if (event.type === "tool_result") {
                     if (event.name === "advance_story" && event.result) {
@@ -778,6 +813,10 @@
       gameState.title = sceneData.title;
     }
 
+    // 更新章节/节拍（在 renderCurrentScene 之前，确保进度条正确）
+    if (sceneData.chapter) gameState.chapter = sceneData.chapter;
+    if (sceneData.beat) gameState.beat = sceneData.beat;
+
     saveCurrentStory(gameState);
 
     if (sceneData.is_ending) {
@@ -801,7 +840,7 @@
   function init() {
     var params = getUrlParams();
 
-    // 只读模式：查看历史故事
+    // 只读模式：查看历史故事（本地存档）
     if (params.readonly === "1" && params.story) {
       var story = getStoryById(params.story);
       if (!story) {
@@ -813,14 +852,20 @@
       return;
     }
 
-    // 继续模式：恢复未完成故事
+    // 服务端存档恢复模式
+    if (params.resume === "1" && params.story_id) {
+      resumeFromServer(params.story_id);
+      return;
+    }
+
+    // 继续模式：恢复未完成故事（本地缓存）
     if (params.continue === "1") {
       var current = getCurrentStory();
       if (current) {
         gameState = current;
         isWorldSelection = !gameState.worldSetting;
         if (gameState.title) navTitle.textContent = gameState.title;
-        updateProgress(gameState.progress);
+        updateProgress(gameState.progress, gameState.chapter, gameState.beat);
         // 恢复目标条
         if (gameState.goal) showGoalBanner(gameState.goal);
         renderSceneHistory();
@@ -831,6 +876,8 @@
             choices: lastScene.choices || [],
             image_url: lastScene.imageUrl,
             progress: gameState.progress,
+            chapter: gameState.chapter,
+            beat: gameState.beat,
             is_ending: false,
           });
         }
@@ -846,7 +893,10 @@
 
     // 新游戏：首次加载显示一次全屏 loading，后续由 inline spinner 接管
     gameState.id = generateId();
+    gameState.storyId = null; // 服务端会在首次响应中创建并返回 story_id
     gameState.startTime = new Date().toISOString();
+    gameState.chapter = 1;
+    gameState.beat = 1;
     gameState.messages = [
       {
         role: "user",
@@ -857,6 +907,102 @@
     saveCurrentStory(gameState);
     showInitialLoading("AI_PROCESSING", "正在构建故事世界...");
     sendToLLM();
+  }
+
+  /**
+   * 从服务端存档恢复游戏
+   * @param {string} serverStoryId
+   */
+  function resumeFromServer(serverStoryId) {
+    showInitialLoading("AI_PROCESSING", "正在加载存档...");
+
+    fetch(API_BASE + "/stories/" + encodeURIComponent(serverStoryId), {
+      headers: { "X-Anon-Token": getAnonToken() },
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error("存档加载失败 (" + res.status + ")");
+        return res.json();
+      })
+      .then(function (data) {
+        hideInitialLoading();
+        var story = data.story;
+        var recentScenes = data.recentScenes || [];
+
+        if (!story) {
+          showToast("存档数据异常");
+          window.location.href = "index.html";
+          return;
+        }
+
+        // 恢复 gameState
+        gameState.id = story.story_id;
+        gameState.storyId = story.story_id;
+        gameState.title = story.title || null;
+        gameState.worldSetting = story.world_setting || null;
+        gameState.goal = story.goal || null;
+        gameState.chapter = story.current_chapter || 1;
+        gameState.beat = story.current_beat || 1;
+        gameState.progress = story.current_beat || 1;
+        gameState.startTime = story.created_at || new Date().toISOString();
+        gameState.isEnding = story.status === "ended";
+        gameState.scenes = [];
+        gameState.messages = [];
+
+        isWorldSelection = !gameState.worldSetting;
+
+        // 从场景列表重建 messages 和 scenes
+        for (var i = 0; i < recentScenes.length; i++) {
+          var sc = recentScenes[i];
+          if (sc.player_action) {
+            gameState.messages.push({ role: "user", content: sc.player_action });
+          }
+          gameState.messages.push({ role: "assistant", content: sc.narrative });
+          gameState.scenes.push({
+            narrative: sc.narrative,
+            choices: sc.choices || [],
+            imageUrl: sc.image_url || null,
+            selectedChoice: null,
+          });
+        }
+
+        if (gameState.title) navTitle.textContent = gameState.title;
+        if (gameState.goal) showGoalBanner(gameState.goal);
+        updateProgress(gameState.progress, gameState.chapter, gameState.beat);
+        renderSceneHistory();
+
+        // 恢复最后一个场景
+        var lastScene = gameState.scenes[gameState.scenes.length - 1];
+        if (lastScene) {
+          if (gameState.isEnding) {
+            showEnding(lastScene.narrative);
+          } else {
+            renderCurrentScene({
+              narrative: lastScene.narrative,
+              choices: lastScene.choices || [],
+              image_url: lastScene.imageUrl,
+              progress: gameState.progress,
+              chapter: gameState.chapter,
+              beat: gameState.beat,
+              is_ending: false,
+            });
+          }
+          for (var j = gameState.scenes.length - 1; j >= 0; j--) {
+            if (gameState.scenes[j].imageUrl) {
+              setBackgroundImage(gameState.scenes[j].imageUrl);
+              break;
+            }
+          }
+        }
+
+        saveCurrentStory(gameState);
+      })
+      .catch(function (err) {
+        hideInitialLoading();
+        showToast("存档加载失败: " + err.message);
+        setTimeout(function () {
+          window.location.href = "index.html";
+        }, 2000);
+      });
   }
 
   init();
