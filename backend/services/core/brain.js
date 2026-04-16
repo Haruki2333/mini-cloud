@@ -69,6 +69,11 @@ function createBrain({ systemPrompt, skills, enhancePrompt, enhanceToolDefs }) {
 
       const result = doneResult || { content: "", tool_calls: null };
 
+      // 暴露本次 LLM 调用的 token 用量（供路由层落库）
+      if (result.usage) {
+        yield { type: "llm_usage", usage: result.usage, model };
+      }
+
       // 没有 tool_calls → 推理完成，返回最终回复
       if (!result.tool_calls || result.tool_calls.length === 0) {
         yield { type: "answer", content: result.content };

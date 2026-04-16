@@ -239,6 +239,11 @@ async function handleCompletions(req, res) {
     const pendingDbOps = [];
     const feedNarrative = createNarrativeExtractor();
 
+    // 累积本次请求所有 LLM 调用的 token 用量
+    const collectedUsage = { input_tokens: 0, output_tokens: 0, cached_tokens: null };
+    // 提升 sceneSeqPromise 到外层，供循环结束后的用量落库引用
+    let sceneSeqPromise = null;
+
     // 提取最后一条用户消息作为 player_action
     const userMessages = messages.filter((m) => m.role === "user");
     const playerAction =
@@ -252,6 +257,19 @@ async function handleCompletions(req, res) {
       apiKey,
       context: enhancedContext,
     })) {
+      // llm_usage：累积 token 用量，不转发给前端
+      if (event.type === "llm_usage") {
+        const u = event.usage || {};
+        collectedUsage.input_tokens += u.prompt_tokens || 0;
+        collectedUsage.output_tokens += u.completion_tokens || 0;
+        const cached =
+          u.prompt_tokens_details?.cached_tokens ?? u.prompt_cache_hit_tokens ?? null;
+        if (cached != null) {
+          collectedUsage.cached_tokens = (collectedUsage.cached_tokens || 0) + cached;
+        }
+        continue;
+      }
+
       // args_delta：流式提取 narrative 文本，不转发原始事件
       if (event.type === "args_delta") {
         if (event.name === "advance_story") {
@@ -276,8 +294,8 @@ async function handleCompletions(req, res) {
           imageApiKey &&
           (result.title || result.is_ending);
 
-        // 场景序号 Promise（appendScene 返回 seq，供图片更新使用）
-        const sceneSeqPromise = dao
+        // 场景序号 Promise（appendScene 返回 seq，供图片更新及 token 用量落库使用）
+        sceneSeqPromise = dao
           .appendScene(storyId, {
             chapter: result.chapter || story.current_chapter,
             beat: result.beat || story.current_beat,
@@ -396,7 +414,28 @@ async function handleCompletions(req, res) {
       writeEvent(event);
     }
 
-    // ===== 8. 等待所有异步任务 =====
+    // ===== 8. Token 用量落库（等 sceneSeqPromise 就绪后写入） =====
+
+    if (collectedUsage.input_tokens > 0 && sceneSeqPromise) {
+      pendingDbOps.push(
+        sceneSeqPromise
+          .then((seq) =>
+            dao.recordTokenUsage(storyId, {
+              sceneSeq: seq,
+              usageType: "chat",
+              model,
+              inputTokens: collectedUsage.input_tokens,
+              outputTokens: collectedUsage.output_tokens,
+              cachedTokens: collectedUsage.cached_tokens,
+            })
+          )
+          .catch((err) => {
+            console.error("[Adventure] 记录 token 用量失败:", err.message);
+          })
+      );
+    }
+
+    // ===== 9. 等待所有异步任务 =====
 
     await Promise.allSettled(pendingDbOps);
     await Promise.allSettled(pendingImages);
