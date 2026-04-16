@@ -68,6 +68,7 @@ async function* chatStream(modelId, messages, apiKey, options = {}) {
     model: modelId,
     messages,
     stream: true,
+    stream_options: { include_usage: true },
     ...defaults,
     ...options,
   };
