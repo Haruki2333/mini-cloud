@@ -1080,7 +1080,7 @@ body {
   line-height: 1.7;
 }
 
-/* 世界观选项：卡片加大 */
+/* 世界观选项：卡片加大（保留供旧代码兼容） */
 .choice-btn--world {
   align-items: flex-start;
   padding: var(--spacing-md) var(--spacing-base);
@@ -1089,6 +1089,66 @@ body {
 
 .choice-btn--world .choice-id {
   margin-top: 2px;
+}
+
+/* 背景确认操作区 */
+.bg-confirm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.bg-goal-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-base);
+  border-left: 3px solid var(--color-gold);
+  background: var(--color-gold-light);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  color: var(--color-ink-medium);
+  line-height: 1.6;
+  margin-bottom: var(--spacing-sm);
+}
+
+.bg-goal-label {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-gold);
+  padding: 2px 6px;
+  border: 1px solid var(--color-gold);
+  border-radius: var(--radius-sm);
+  line-height: 1.4;
+}
+
+.choice-btn--confirm {
+  justify-content: center;
+  background: var(--color-cinnabar);
+  color: #faf7f0;
+  border-color: var(--color-cinnabar);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.choice-btn--confirm:active {
+  background: var(--color-cinnabar-deep);
+  border-color: var(--color-cinnabar-deep);
+}
+
+.choice-btn--regen {
+  justify-content: center;
+  background: transparent;
+  color: var(--color-ink-light);
+  border-color: var(--color-border);
+  font-size: var(--font-size-sm);
+}
+
+.choice-btn--regen:active {
+  background: var(--color-bg-warm);
 }
 
 .choice-body {

@@ -48,11 +48,13 @@
 
   var isWaiting = false;
   var isReadonly = false;
-  // 世界观未确定前，第一轮输出用按钮；确定后切换到自由输入
+  // 背景未确认前展示背景介绍 + 确认/重新生成按钮；确认后切换到自由输入
   var isWorldSelection = true;
   // 每次请求自增，用于与异步下发的 scene_image 事件匹配，避免旧图覆盖新场景
   var turnSeq = 0;
   var currentTurnId = 0;
+  // 缓存第一轮返回的背景数据（用于确认时获取 goal 等字段）
+  var pendingBackgroundData = null;
 
   // ===== 工具函数 =====
 
@@ -282,7 +284,7 @@
 
     if (isWorldSelection) {
       actionInputArea.style.display = "none";
-      renderWorldChoices(data.choices || []);
+      renderBackgroundConfirmButtons(data);
     } else {
       choicesArea.innerHTML = "";
       actionInputArea.style.display = "block";
@@ -297,46 +299,32 @@
     scrollToBottom();
   }
 
-  function renderWorldChoices(choices) {
-    if (!choices || choices.length === 0) {
-      choicesArea.innerHTML = "";
-      return;
+  function renderBackgroundConfirmButtons(sceneData) {
+    pendingBackgroundData = sceneData;
+
+    var goalHtml = "";
+    if (sceneData && sceneData.goal) {
+      goalHtml =
+        '<div class="bg-goal-hint">' +
+        '<span class="bg-goal-label">使命</span>' +
+        escapeHtml(sceneData.goal) +
+        "</div>";
     }
 
-    var html = "";
-    for (var i = 0; i < choices.length; i++) {
-      var c = choices[i];
-      var goalText = c.goal || "";
-      html +=
-        '<button class="choice-btn choice-btn--world" data-id="' +
-        escapeHtml(c.id) +
-        '" data-text="' +
-        escapeHtml(c.text) +
-        '" data-goal="' +
-        escapeHtml(goalText) +
-        '">' +
-        '<span class="choice-id">' +
-        escapeHtml(c.id) +
-        "</span>" +
-        '<span class="choice-body">' +
-        '<span class="choice-text">' +
-        escapeHtml(c.text) +
-        "</span>";
-      if (goalText) {
-        html +=
-          '<span class="choice-goal"><span class="choice-goal-label">目标</span>' +
-          escapeHtml(goalText) +
-          "</span>";
-      }
-      html += "</span></button>";
-    }
-    choicesArea.innerHTML = html;
+    choicesArea.innerHTML =
+      goalHtml +
+      '<div class="bg-confirm-actions">' +
+      '<button class="choice-btn choice-btn--confirm" id="confirmBackgroundBtn">确认，踏入江湖</button>' +
+      '<button class="choice-btn choice-btn--regen" id="regenBackgroundBtn">再次随机生成</button>' +
+      "</div>";
 
     if (!isReadonly) {
-      var btns = choicesArea.querySelectorAll(".choice-btn");
-      for (var j = 0; j < btns.length; j++) {
-        btns[j].addEventListener("click", handleWorldChoice);
-      }
+      document
+        .getElementById("confirmBackgroundBtn")
+        .addEventListener("click", handleConfirmBackground);
+      document
+        .getElementById("regenBackgroundBtn")
+        .addEventListener("click", handleRegenerateBackground);
     }
   }
 
@@ -462,38 +450,54 @@
 
   // ===== 用户交互 =====
 
-  function handleWorldChoice() {
-    if (isWaiting || isReadonly) return;
+  function handleConfirmBackground() {
+    if (isWaiting || isReadonly || !pendingBackgroundData) return;
 
-    var choiceId = this.dataset.id;
-    var choiceText = this.dataset.text;
-    var choiceGoal = this.dataset.goal || "";
-
-    // 记录选择到当前场景
-    var currentScene = gameState.scenes[gameState.scenes.length - 1];
-    if (currentScene) {
-      currentScene.selectedChoice = choiceId + ". " + choiceText;
-    }
-
-    gameState.worldSetting = choiceText;
-    gameState.goal = choiceGoal || null;
-    // 世界观一旦选定，立刻切到自由输入模式
+    var narrative = pendingBackgroundData.narrative || "";
+    gameState.worldSetting = narrative.length > 200 ? narrative.substring(0, 200) : narrative;
+    gameState.goal = pendingBackgroundData.goal || null;
     isWorldSelection = false;
 
-    // 将目标展示到顶部条，让玩家随时可见
     showGoalBanner(gameState.goal);
 
-    var userMessage = "我选择了: " + choiceId + ". " + choiceText;
-    if (choiceGoal) {
-      userMessage += "\n本局目标：" + choiceGoal;
+    // 将背景场景标记为已选定
+    var currentScene = gameState.scenes[gameState.scenes.length - 1];
+    if (currentScene) {
+      currentScene.selectedChoice = "▶ 踏入江湖";
     }
-    gameState.messages.push({ role: "user", content: userMessage });
+
+    gameState.messages.push({ role: "user", content: "好的，我对这个故事背景感兴趣，开始冒险！" });
+
+    pendingBackgroundData = null;
+    choicesArea.innerHTML = "";
 
     saveCurrentStory(gameState);
 
     renderSceneHistory();
     sceneNarrative.innerHTML = "";
+    sendToLLM();
+  }
+
+  function handleRegenerateBackground() {
+    if (isWaiting || isReadonly) return;
+
+    // 放弃当前 story_id，重新生成
+    gameState.storyId = null;
+    gameState.scenes = [];
+    gameState.messages = [
+      {
+        role: "user",
+        content: "开始一个新的中国传统武侠冒险故事，请直接生成故事背景描述。",
+      },
+    ];
+    pendingBackgroundData = null;
+
+    sceneNarrative.innerHTML = "";
+    sceneHistory.innerHTML = "";
     choicesArea.innerHTML = "";
+
+    saveCurrentStory(gameState);
+    showInitialLoading("AI_PROCESSING", "重新构建故事世界...");
     sendToLLM();
   }
 
@@ -901,7 +905,7 @@
       {
         role: "user",
         content:
-          "开始一个新的冒险故事，请提供几个不同风格的冒险世界观选项让我选择。",
+          "开始一个新的中国传统武侠冒险故事，请直接生成故事背景描述。",
       },
     ];
     saveCurrentStory(gameState);

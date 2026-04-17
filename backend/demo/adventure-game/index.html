@@ -156,63 +156,47 @@
           <div class="wizard-dot" id="wDot2"></div>
           <div class="wizard-line"></div>
           <div class="wizard-dot" id="wDot3"></div>
-          <div class="wizard-line"></div>
-          <div class="wizard-dot" id="wDot4"></div>
         </div>
 
         <!-- 第一步：称呼 -->
         <div class="wizard-step active" id="wStep1">
-          <p class="wizard-step-num">壹 / 肆</p>
+          <p class="wizard-step-num">壹 / 叁</p>
           <p class="wizard-question">你希望在故事中<br>如何称呼自己？</p>
-          <input class="form-input" id="charNameInput" type="text" placeholder="勇者、旅人、星际舰长..." maxlength="20" autocomplete="off">
+          <input class="form-input" id="charNameInput" type="text" placeholder="剑客、侠女、书生..." maxlength="20" autocomplete="off">
         </div>
 
-        <!-- 第二步：故事风格（支持多选） -->
+        <!-- 第二步：武侠角色（支持多选） -->
         <div class="wizard-step" id="wStep2">
-          <p class="wizard-step-num">贰 / 肆</p>
-          <p class="wizard-question">你偏好哪些<br>故事风格？</p>
-          <p class="wizard-hint">可多选，AI 会根据你勾选的风格组合生成开局</p>
-          <div class="option-grid option-grid--multi" id="genreGrid">
-            <button class="option-item" data-value="奇幻冒险">奇幻冒险</button>
-            <button class="option-item" data-value="科幻未来">科幻未来</button>
-            <button class="option-item" data-value="赛博朋克">赛博朋克</button>
-            <button class="option-item" data-value="蒸汽朋克">蒸汽朋克</button>
-            <button class="option-item" data-value="末世废土">末世废土</button>
-            <button class="option-item" data-value="太空歌剧">太空歌剧</button>
-            <button class="option-item" data-value="武侠江湖">武侠江湖</button>
-            <button class="option-item" data-value="仙侠修真">仙侠修真</button>
-            <button class="option-item" data-value="历史传奇">历史传奇</button>
-            <button class="option-item" data-value="现代都市">现代都市</button>
-            <button class="option-item" data-value="校园青春">校园青春</button>
-            <button class="option-item" data-value="恐怖悬疑">恐怖悬疑</button>
-            <button class="option-item" data-value="克苏鲁神话">克苏鲁神话</button>
-            <button class="option-item" data-value="推理破案">推理破案</button>
-            <button class="option-item" data-value="超能力学院">超能力学院</button>
+          <p class="wizard-step-num">贰 / 叁</p>
+          <p class="wizard-question">你想扮演<br>哪类武侠人物？</p>
+          <p class="wizard-hint">可多选，AI 会融合你的偏好来塑造角色</p>
+          <div class="option-grid option-grid--multi" id="roleGrid">
+            <button class="option-item" data-value="游历侠客">游历侠客</button>
+            <button class="option-item" data-value="复仇剑客">复仇剑客</button>
+            <button class="option-item" data-value="仁义大侠">仁义大侠</button>
+            <button class="option-item" data-value="神捕义士">神捕义士</button>
+            <button class="option-item" data-value="江湖医者">江湖医者</button>
+            <button class="option-item" data-value="门派传人">门派传人</button>
+            <button class="option-item" data-value="落魄书生">落魄书生</button>
+            <button class="option-item" data-value="大漠英豪">大漠英豪</button>
+            <button class="option-item" data-value="名门贵女">名门贵女</button>
+            <button class="option-item" data-value="邪道魔头">邪道魔头</button>
           </div>
         </div>
 
-        <!-- 第三步：角色类型 -->
+        <!-- 第三步：故事类型（支持多选） -->
         <div class="wizard-step" id="wStep3">
-          <p class="wizard-step-num">叁 / 肆</p>
-          <p class="wizard-question">你想扮演<br>什么类型的角色？</p>
-          <div class="option-grid" id="roleGrid">
-            <button class="option-item" data-value="正义英雄">正义英雄</button>
-            <button class="option-item" data-value="神秘智者">神秘智者</button>
-            <button class="option-item" data-value="江湖游侠">江湖游侠</button>
-            <button class="option-item" data-value="机智骗子">机智骗子</button>
-            <button class="option-item" data-value="普通小人物">普通小人物</button>
-          </div>
-        </div>
-
-        <!-- 第四步：故事基调 -->
-        <div class="wizard-step" id="wStep4">
-          <p class="wizard-step-num">肆 / 肆</p>
-          <p class="wizard-question">你希望故事的<br>基调是什么？</p>
-          <div class="option-grid option-grid--2col" id="toneGrid">
+          <p class="wizard-step-num">叁 / 叁</p>
+          <p class="wizard-question">你偏好哪些<br>故事类型？</p>
+          <p class="wizard-hint">可多选，AI 会将这些元素融入故事</p>
+          <div class="option-grid option-grid--multi" id="toneGrid">
             <button class="option-item" data-value="热血冒险">热血冒险</button>
-            <button class="option-item" data-value="轻松幽默">轻松幽默</button>
-            <button class="option-item" data-value="严肃深沉">严肃深沉</button>
-            <button class="option-item" data-value="温情浪漫">温情浪漫</button>
+            <button class="option-item" data-value="快意复仇">快意复仇</button>
+            <button class="option-item" data-value="奇案解密">奇案解密</button>
+            <button class="option-item" data-value="悬疑恐怖">悬疑恐怖</button>
+            <button class="option-item" data-value="情义江湖">情义江湖</button>
+            <button class="option-item" data-value="权谋风云">权谋风云</button>
+            <button class="option-item" data-value="寻宝历险">寻宝历险</button>
           </div>
         </div>
 
