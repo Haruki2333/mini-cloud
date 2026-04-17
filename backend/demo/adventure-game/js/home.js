@@ -27,16 +27,15 @@
   var wizardNext = document.getElementById("wizardNext");
 
   var currentWizardStep = 1;
-  var totalWizardSteps = 4;
+  var totalWizardSteps = 3;
   // 向导临时存储（保存中间选择，关闭弹层时丢弃）
-  // genre 为数组（多选），其他字段仍为单选字符串
-  var wizardDraft = { name: "", genre: [], roleType: "", tone: "" };
+  // roleType 和 tone 均为数组（多选）
+  var wizardDraft = { name: "", roleType: [], tone: [] };
 
-  // 将可能来自旧数据/不同形态的 genre 归一化为字符串数组
-  function normalizeGenre(value) {
+  // 将可能来自旧数据/不同形态的字段归一化为字符串数组
+  function normalizeArray(value) {
     if (!value) return [];
     if (Array.isArray(value)) return value.filter(Boolean);
-    // 旧版单值字符串：转为单元素数组
     return [value];
   }
 
@@ -136,10 +135,9 @@
 
     // 已有档案，展示面板
     charProfileName.textContent = profile.name;
-    var genreList = normalizeGenre(profile.genre);
-    var tags = genreList.concat(
-      [profile.roleType, profile.tone].filter(Boolean)
-    );
+    var roleList = normalizeArray(profile.roleType);
+    var toneList = normalizeArray(profile.tone);
+    var tags = roleList.concat(toneList);
     var tagsHtml = "";
     for (var i = 0; i < tags.length; i++) {
       tagsHtml += '<span class="char-tag">' + escapeHtml(tags[i]) + "</span>";
@@ -163,16 +161,14 @@
     var existing = getCharacterProfile() || {};
     wizardDraft = {
       name: existing.name || "",
-      genre: normalizeGenre(existing.genre),
-      roleType: existing.roleType || "",
-      tone: existing.tone || "",
+      roleType: normalizeArray(existing.roleType),
+      tone: normalizeArray(existing.tone),
     };
     charNameInput.value = wizardDraft.name;
 
-    // 恢复选中状态
-    setGridSelectionMulti("genreGrid", wizardDraft.genre);
-    setGridSelection("roleGrid", wizardDraft.roleType);
-    setGridSelection("toneGrid", wizardDraft.tone);
+    // 恢复选中状态（两步均为多选）
+    setGridSelectionMulti("roleGrid", wizardDraft.roleType);
+    setGridSelectionMulti("toneGrid", wizardDraft.tone);
 
     goToStep(1);
     charOverlay.classList.add("open");
@@ -261,26 +257,19 @@
       }
       wizardDraft.name = name;
     } else if (currentWizardStep === 2) {
-      var genres = getGridSelectionMulti("genreGrid");
-      if (!genres || genres.length === 0) {
-        showToast("请至少选择一种故事风格");
+      var roleTypes = getGridSelectionMulti("roleGrid");
+      if (!roleTypes || roleTypes.length === 0) {
+        showToast("请至少选择一类武侠人物");
         return;
       }
-      wizardDraft.genre = genres;
+      wizardDraft.roleType = roleTypes;
     } else if (currentWizardStep === 3) {
-      var roleType = getGridSelection("roleGrid");
-      if (!roleType) {
-        showToast("请选择角色类型");
+      var tones = getGridSelectionMulti("toneGrid");
+      if (!tones || tones.length === 0) {
+        showToast("请至少选择一种故事类型");
         return;
       }
-      wizardDraft.roleType = roleType;
-    } else if (currentWizardStep === 4) {
-      var tone = getGridSelection("toneGrid");
-      if (!tone) {
-        showToast("请选择故事基调");
-        return;
-      }
-      wizardDraft.tone = tone;
+      wizardDraft.tone = tones;
       // 保存并关闭
       saveCharacterProfile(wizardDraft);
       closeCharWizard();
@@ -331,9 +320,8 @@
   wizardNext.addEventListener("click", handleWizardNext);
   wizardPrev.addEventListener("click", handleWizardPrev);
 
-  bindOptionGridMulti("genreGrid");
-  bindOptionGrid("roleGrid");
-  bindOptionGrid("toneGrid");
+  bindOptionGridMulti("roleGrid");
+  bindOptionGridMulti("toneGrid");
 
   // ===== API Key 检查 =====
 

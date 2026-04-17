@@ -198,7 +198,7 @@ const advanceStoryDefinition = {
   function: {
     name: "advance_story",
     description:
-      "呈现当前故事情境的唯一工具。每轮必须调用。除第一轮世界观选择外，不要替玩家做决定——叙述应以开放悬念结尾，等待玩家的自由文本行动。⚠️ 字段输出顺序必须严格按照：narrative → chapter → beat → is_chapter_end → progress → choices → is_ending → title → image_prompt → memory_updates",
+      "呈现当前故事情境的唯一工具。每轮必须调用。除第一轮背景介绍外，不要替玩家做决定——叙述应以开放悬念结尾，等待玩家的自由文本行动。⚠️ 字段输出顺序必须严格按照：narrative → chapter → beat → is_chapter_end → progress → goal → choices → is_ending → title → image_prompt → memory_updates",
     parameters: {
       type: "object",
       properties: {
@@ -222,26 +222,25 @@ const advanceStoryDefinition = {
           type: "number",
           description: "故事进度，与 beat 保持一致（1-10，供前端进度条显示）",
         },
+        goal: {
+          type: "string",
+          description:
+            "本局游戏目标（仅第一轮背景介绍时必填）：玩家需要达成的明确目标（15-40字，中文）。例如：'只身深入青龙帮老巢救出被掳走的师妹，并取回武林盟主令'。后续轮次不填。",
+        },
         choices: {
           type: "array",
           description:
-            "第一轮世界观选择时必填 3 个作为按钮，每个选项必须同时提供 goal（本局游戏目标）；后续轮次这不是菜单，而是可选的灵感提示（0-2 条），玩家可点击填入输入框作为参考。结局时不提供。",
+            "第一轮背景介绍时必须留空。后续轮次这不是菜单，而是可选的灵感提示（0-2 条），玩家可点击填入输入框作为参考。结局时不提供。",
           items: {
             type: "object",
             properties: {
               id: {
                 type: "string",
-                description:
-                  "选项标识。世界观轮用 A/B/C；后续灵感提示用 hint1/hint2",
+                description: "灵感提示标识，用 hint1/hint2",
               },
               text: {
                 type: "string",
-                description: "选项文字（10-20字）",
-              },
-              goal: {
-                type: "string",
-                description:
-                  "仅第一轮世界观选项必填：玩家在本局游戏中需要达成的明确目标（15-40字，中文）。例如：'夺回被恶龙掳走的公主并安全返回王城'。后续轮次的灵感提示不需要此字段。",
+                description: "提示文字（10-20字）",
               },
             },
             required: ["id", "text"],
@@ -254,12 +253,12 @@ const advanceStoryDefinition = {
         title: {
           type: "string",
           description:
-            "故事标题（仅在世界观确定后的第一个场景中设置，用于保存和展示）",
+            "故事标题（仅在玩家确认背景后的第一个正式场景中设置，用于保存和展示）",
         },
         image_prompt: {
           type: "string",
           description:
-            "英文场景描述，用于生成背景图片。⚠️ 整局游戏仅两处需要填写：(1) 世界观确定后的首个场景（开局），(2) 结局场景（is_ending=true）。其他所有推进轮次必须留空。风格：digital fantasy art, cinematic lighting, detailed environment, 16:9 aspect ratio",
+            "英文场景描述，用于生成背景图片。⚠️ 第一轮背景介绍时必须留空。整局游戏仅两处需要填写：(1) 玩家确认背景后的首个正式场景（开局），(2) 结局场景（is_ending=true）。其他所有轮次必须留空。风格：traditional Chinese wuxia art, ink wash painting style, cinematic lighting, detailed environment, 16:9 aspect ratio",
         },
         memory_updates: {
           type: "array",
@@ -311,6 +310,7 @@ function createAdvanceStoryExecutor() {
       chapter: args.chapter || 1,
       beat: args.beat || 1,
       is_chapter_end: args.is_chapter_end || false,
+      goal: args.goal || null,
       choices: args.choices || [],
       is_ending: args.is_ending || false,
       progress: args.progress || args.beat || 0,
