@@ -28,11 +28,11 @@
       </div>
     </div>
 
-    <!-- 终端头 -->
+    <!-- 水墨标题 -->
     <div class="terminal-header">
       <span class="terminal-dot"></span>
-      <span class="terminal-label">ADVENTURE REALM</span>
-      <span class="terminal-freq">ADV-01</span>
+      <span class="terminal-label">江湖奇缘</span>
+      <span class="terminal-freq">卷一</span>
     </div>
 
     <!-- 主内容区 -->
@@ -41,7 +41,7 @@
       <section class="terminal-panel">
         <div class="terminal-panel-header">
           <span class="terminal-dot"></span>
-          WELCOME
+          序章
         </div>
         <div class="terminal-panel-body">
           <p class="welcome-text">
@@ -55,7 +55,7 @@
       <div class="char-profile-panel" id="charProfilePanel" style="display: none;">
         <div class="terminal-panel-header">
           <span class="terminal-dot"></span>
-          CHARACTER_PROFILE
+          侠客档案
         </div>
         <div class="char-profile-body">
           <div class="char-profile-row">
@@ -71,7 +71,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>
-        开始新冒险
+        踏入江湖
       </button>
 
       <!-- 人物初始化按钮 -->
@@ -89,18 +89,23 @@
           <polyline points="23 4 23 10 17 10"/>
           <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
         </svg>
-        继续未完成的冒险
+        续写未竟之旅
       </button>
 
+      <!-- 墨迹分隔 -->
+      <div class="ink-divider">
+        <span class="ink-divider-symbol">卷宗</span>
+      </div>
+
       <!-- 历史故事 -->
-      <section class="terminal-panel" style="margin-top: var(--spacing-lg);">
+      <section class="terminal-panel">
         <div class="terminal-panel-header">
           <span class="terminal-dot"></span>
-          STORY_ARCHIVE
+          往事录
         </div>
         <div class="terminal-panel-body">
           <div id="storyList">
-            <div class="empty-text">&gt; 暂无历史故事</div>
+            <div class="empty-text">暂无历史故事</div>
           </div>
         </div>
       </section>
@@ -114,7 +119,7 @@
     <div class="settings-backdrop" id="settingsBackdrop"></div>
     <div class="settings-sheet">
       <div class="settings-header">
-        <span class="settings-title">SETTINGS</span>
+        <span class="settings-title">设置</span>
         <button class="settings-close" id="settingsClose">&times;</button>
       </div>
       <div class="settings-body">
@@ -140,7 +145,7 @@
     <div class="settings-backdrop" id="charBackdrop"></div>
     <div class="settings-sheet">
       <div class="settings-header">
-        <span class="settings-title">CHARACTER_INIT</span>
+        <span class="settings-title">侠客创建</span>
         <button class="settings-close" id="charClose">&times;</button>
       </div>
       <div class="settings-body">
@@ -157,14 +162,14 @@
 
         <!-- 第一步：称呼 -->
         <div class="wizard-step active" id="wStep1">
-          <p class="wizard-step-num">01 / 04</p>
+          <p class="wizard-step-num">壹 / 肆</p>
           <p class="wizard-question">你希望在故事中<br>如何称呼自己？</p>
-          <input class="form-input" id="charNameInput" type="text" placeholder="勇者、旅人、星际舰长…" maxlength="20" autocomplete="off">
+          <input class="form-input" id="charNameInput" type="text" placeholder="勇者、旅人、星际舰长..." maxlength="20" autocomplete="off">
         </div>
 
         <!-- 第二步：故事风格（支持多选） -->
         <div class="wizard-step" id="wStep2">
-          <p class="wizard-step-num">02 / 04</p>
+          <p class="wizard-step-num">贰 / 肆</p>
           <p class="wizard-question">你偏好哪些<br>故事风格？</p>
           <p class="wizard-hint">可多选，AI 会根据你勾选的风格组合生成开局</p>
           <div class="option-grid option-grid--multi" id="genreGrid">
@@ -188,7 +193,7 @@
 
         <!-- 第三步：角色类型 -->
         <div class="wizard-step" id="wStep3">
-          <p class="wizard-step-num">03 / 04</p>
+          <p class="wizard-step-num">叁 / 肆</p>
           <p class="wizard-question">你想扮演<br>什么类型的角色？</p>
           <div class="option-grid" id="roleGrid">
             <button class="option-item" data-value="正义英雄">正义英雄</button>
@@ -201,7 +206,7 @@
 
         <!-- 第四步：故事基调 -->
         <div class="wizard-step" id="wStep4">
-          <p class="wizard-step-num">04 / 04</p>
+          <p class="wizard-step-num">肆 / 肆</p>
           <p class="wizard-question">你希望故事的<br>基调是什么？</p>
           <div class="option-grid option-grid--2col" id="toneGrid">
             <button class="option-item" data-value="热血冒险">热血冒险</button>
