@@ -290,6 +290,15 @@ async function afterSync(qi) {
       after: "last_played_at",
     });
   } catch (_) {}
+  try {
+    const { DataTypes } = require("sequelize");
+    await qi.addColumn("adventure_stories", "legacy", {
+      type: DataTypes.JSON,
+      allowNull: true,
+      comment: "本世遗产（结局时由 AI 生成，供下一世觉醒注入）",
+      after: "player_age",
+    });
+  } catch (_) {}
 
   try {
     await qi.addIndex("adventure_stories", ["user_token", "last_played_at"], {
