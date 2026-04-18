@@ -280,6 +280,17 @@ function define(sequelize) {
  * @param {import("sequelize").QueryInterface} qi
  */
 async function afterSync(qi) {
+  // 迁移：为已存在的表补充新列（addColumn 若列已存在会抛错，用 try/catch 忽略）
+  try {
+    const { DataTypes } = require("sequelize");
+    await qi.addColumn("adventure_stories", "player_age", {
+      type: DataTypes.TINYINT.UNSIGNED,
+      allowNull: true,
+      comment: "玩家输入的真实年龄（影响主角年龄设定）",
+      after: "last_played_at",
+    });
+  } catch (_) {}
+
   try {
     await qi.addIndex("adventure_stories", ["user_token", "last_played_at"], {
       name: "idx_adv_stories_user_time",
