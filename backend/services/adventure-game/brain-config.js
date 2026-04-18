@@ -76,7 +76,28 @@ goal 字段要求（第一轮必填）：
   * 每次 upsert/append 内容不超过 500 字
 
 ⚠️ 字段输出顺序（必须严格遵守，影响流式性能）：
-narrative → chapter → beat → is_chapter_end → progress → choices → is_ending → title → image_prompt → memory_updates`;
+narrative → chapter → beat → is_chapter_end → progress → choices → is_ending → title → image_prompt → memory_updates → stat_delta → awakening_trigger → legacy
+
+=== 轮回转世系统 ===
+每一局代表玩家角色的「一世」人生。故事以玩家年龄为起点，第一轮背景介绍中主角年龄应等于玩家年龄，并以符合该年龄段的人生状态开场（如25岁可能是初出茅庐的年轻侠客，45岁则是历经沉浮的中年宗师）。
+
+属性成长规则（stat_delta 字段）：
+- 玩家行动与某属性强相关时填写：练功打坐 → neili+1/exp+20，飞身追敌 → qinggong+1/exp+15，智谋周旋 → wisdom+1/exp+15
+- 每轮最多 2 项属性变化，绝对值 1-2；exp 通常 10-30
+- skill_unlock 仅在重大突破节点（成功拜师学艺、顿悟一门绝技）时填写
+- 第一轮背景介绍时必须留空
+
+前世记忆觉醒规则（awakening_trigger 字段）：
+- 仅当系统提示中注入了"前世遗产"（previousLegacy）时可用
+- 在第 2 章中段（beat 4-7）选择最自然的叙事节点触发一次；整局只触发一次
+- 叙述中需自然融入觉醒场景（如「脑海中突然浮现一段陌生记忆…」）再填写此字段
+- fragments_shown 从注入的遗产碎片中选取 1-2 条最与当前剧情相关的
+- stat_bonus 可选，代表前世技能的觉醒加成
+
+本世遗产规则（legacy 字段）：
+- 仅在 is_ending=true 时填写，其他时候必须留空
+- fragments 提炼本世最有意义的 3-5 件事，类型：skill/bond/enemy/memory
+- peak_stats 填写结局时角色的属性值（从 context 中注入的当前属性取值）`;
 
 // ===== Brain 钩子 =====
 
@@ -155,6 +176,48 @@ function enhancePrompt(basePrompt, context) {
       "\n\n[节奏提示] 故事已进入高潮阶段（第 " +
         chapter +
         " 章），请制造重大抉择与转折，为进入结局章铺垫。"
+    );
+  }
+
+  // 注入玩家年龄（轮回系统）
+  if (context && context.playerAge) {
+    parts.push(
+      "\n\n玩家年龄：" +
+        context.playerAge +
+        "岁（第一轮背景介绍中主角年龄应为此年龄，并以符合该年龄段人生状态的情境开场）"
+    );
+  }
+
+  // 注入当前角色属性（每轮更新，供属性成长判定参考）
+  if (context && context.currentStats) {
+    const statNames = {
+      strength: "力量",
+      speed: "速度",
+      neili: "内力",
+      qinggong: "轻功",
+      defense: "防御",
+      wisdom: "智谋",
+    };
+    const statsText = Object.entries(context.currentStats)
+      .filter(([k]) => statNames[k])
+      .map(([k, v]) => statNames[k] + v)
+      .join("、");
+    if (statsText) {
+      parts.push("\n\n当前角色属性：" + statsText + "（属性值越高，同类成长越难触发）");
+    }
+  }
+
+  // 注入前世遗产（供觉醒机制使用）
+  if (context && context.previousLegacy) {
+    const legacy = context.previousLegacy;
+    const fragmentLines = (legacy.fragments || [])
+      .map((f) => "  [" + f.type + "] " + f.content)
+      .join("\n");
+    parts.push(
+      "\n\n前世遗产（可在第2章合适节点安排一次 awakening_trigger）：\n前世归宿：" +
+        (legacy.lifespan || "未知") +
+        "\n记忆碎片：\n" +
+        fragmentLines
     );
   }
 

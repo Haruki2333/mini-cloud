@@ -158,11 +158,14 @@
           <div class="wizard-dot" id="wDot3"></div>
         </div>
 
-        <!-- 第一步：称呼 -->
+        <!-- 第一步：称呼 + 年龄 -->
         <div class="wizard-step active" id="wStep1">
           <p class="wizard-step-num">壹 / 叁</p>
           <p class="wizard-question">你希望在故事中<br>如何称呼自己？</p>
           <input class="form-input" id="charNameInput" type="text" placeholder="剑客、侠女、书生..." maxlength="20" autocomplete="off">
+          <p class="wizard-question" style="margin-top: var(--spacing-lg); font-size: var(--font-size-base);">你今年多大？</p>
+          <p class="wizard-hint">AI 将以此年龄为故事起点，每一世都从同一年龄觉醒前世记忆</p>
+          <input class="form-input" id="charAgeInput" type="number" placeholder="25" min="10" max="80" autocomplete="off" style="margin-top: var(--spacing-sm);">
         </div>
 
         <!-- 第二步：武侠角色（支持多选） -->

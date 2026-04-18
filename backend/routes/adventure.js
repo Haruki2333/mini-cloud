@@ -142,6 +142,7 @@ async function handleCompletions(req, res) {
 
     let story;
     let isNewStory = false;
+    let previousLegacy = null;
 
     if (reqStoryId) {
       story = await dao.loadStory(reqStoryId, userToken);
@@ -149,9 +150,18 @@ async function handleCompletions(req, res) {
         return res.status(404).json({ error: "故事不存在或无权访问" });
       }
     } else {
+      // 新故事开始前，查询前世遗产（供觉醒机制使用）
+      previousLegacy = await dao.getLatestLegacy(userToken).catch(() => null);
+
+      const playerAge =
+        context &&
+        context.characterProfile &&
+        context.characterProfile.playerAge;
+
       const newId = await dao.createStory({
         userToken,
         characterProfile: context && context.characterProfile,
+        playerAge: playerAge || null,
       });
       story = await dao.loadStory(newId, userToken);
       isNewStory = true;
@@ -183,6 +193,13 @@ async function handleCompletions(req, res) {
       characterProfile:
         story.character_profile || (context && context.characterProfile),
       memory: memoryBlock,
+      // 轮回系统：注入玩家年龄、当前属性、前世遗产
+      playerAge:
+        story.player_age ||
+        (context && context.characterProfile && context.characterProfile.playerAge) ||
+        null,
+      currentStats: (context && context.currentStats) || null,
+      previousLegacy: previousLegacy || null,
     };
 
     // ===== 5. Per-request 实例 =====
@@ -287,6 +304,11 @@ async function handleCompletions(req, res) {
 
         const result = event.result;
 
+        // 觉醒事件：前世记忆触发
+        if (result && result.awakening_trigger) {
+          writeEvent({ type: "awakening_event", trigger: result.awakening_trigger });
+        }
+
         // 图片生成策略：仅开局（设了 title）和结局（is_ending=true）生成图片
         const shouldGenerateImage =
           result &&
@@ -322,6 +344,8 @@ async function handleCompletions(req, res) {
           };
           if (result.title && !story.title) progressUpdate.title = result.title;
           if (result.is_ending) progressUpdate.status = "ended";
+          // 结局时保存本世遗产
+          if (result.is_ending && result.legacy) progressUpdate.legacy = result.legacy;
 
           // 若本轮是世界观选定轮（有 title）且故事无世界观，更新世界观和目标
           // worldSetting 来自 context，此处从 enhancedContext 取

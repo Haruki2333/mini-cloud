@@ -40,6 +40,25 @@
       <div class="goal-banner-text" id="goalBannerText"></div>
     </div>
 
+    <!-- 属性面板（选定世界观后显示） -->
+    <div class="stats-panel" id="statsPanel" style="display: none;">
+      <div class="stats-level-row">
+        <span class="stats-realm-label" id="statsRealmLabel">初入江湖</span>
+        <div class="stats-exp-bar">
+          <div class="stats-exp-fill" id="statsExpFill"></div>
+        </div>
+        <span class="stats-exp-text" id="statsExpText">0/100</span>
+      </div>
+      <div class="stats-attrs-row" id="statsAttrsRow">
+        <span class="stat-item"><span class="stat-label">力量</span><span class="stat-val" id="sv-strength">3</span></span>
+        <span class="stat-item"><span class="stat-label">速度</span><span class="stat-val" id="sv-speed">3</span></span>
+        <span class="stat-item"><span class="stat-label">内力</span><span class="stat-val" id="sv-neili">3</span></span>
+        <span class="stat-item"><span class="stat-label">轻功</span><span class="stat-val" id="sv-qinggong">3</span></span>
+        <span class="stat-item"><span class="stat-label">防御</span><span class="stat-val" id="sv-defense">3</span></span>
+        <span class="stat-item"><span class="stat-label">智谋</span><span class="stat-val" id="sv-wisdom">3</span></span>
+      </div>
+    </div>
+
     <!-- 游戏内容 -->
     <div class="game-content" id="gameContent">
       <!-- 场景历史 -->
@@ -79,6 +98,15 @@
       </div>
     </div>
   </main>
+
+  <!-- 前世记忆觉醒覆盖层 -->
+  <div class="awakening-overlay" id="awakeningOverlay">
+    <div class="awakening-content">
+      <div class="awakening-title">前世记忆</div>
+      <div class="awakening-fragments" id="awakeningFragments"></div>
+      <div class="awakening-hint">记忆融入灵魂，属性已觉醒</div>
+    </div>
+  </div>
 
   <div class="toast" id="toast"></div>
 

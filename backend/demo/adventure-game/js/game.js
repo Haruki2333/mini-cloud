@@ -25,9 +25,22 @@
   var imageBadgeText = document.getElementById("imageBadgeText");
   var goalBanner = document.getElementById("goalBanner");
   var goalBannerText = document.getElementById("goalBannerText");
+  var statsPanel = document.getElementById("statsPanel");
+  var statsRealmLabel = document.getElementById("statsRealmLabel");
+  var statsExpFill = document.getElementById("statsExpFill");
+  var statsExpText = document.getElementById("statsExpText");
+  var awakeningOverlay = document.getElementById("awakeningOverlay");
+  var awakeningFragments = document.getElementById("awakeningFragments");
 
   var toastTimer = null;
   var imageBadgeHideTimer = null;
+
+  // ===== 武功境界名称（Level 1-10） =====
+  var REALM_NAMES = [
+    "", "初入江湖", "初窥门径", "小有名气", "一流高手", "江湖闻名",
+    "宗师境界", "天下一绝", "绝世高手", "武林至尊", "超凡入圣"
+  ];
+  var EXP_PER_LEVEL = 100;
 
   // ===== 游戏状态 =====
   var gameState = {
@@ -44,6 +57,12 @@
     progress: 0,
     chapter: 1,
     beat: 1,
+    // 轮回系统：属性成长
+    currentStats: { strength: 3, speed: 3, neili: 3, qinggong: 3, defense: 3, wisdom: 3 },
+    level: 1,
+    exp: 0,
+    unlockedSkills: [],
+    awakeningDone: false,  // 本局觉醒是否已触发
   };
 
   var isWaiting = false;
@@ -128,6 +147,90 @@
     }
     goalBannerText.textContent = goal;
     goalBanner.style.display = "flex";
+    // 目标确认后显示属性面板
+    if (statsPanel) {
+      statsPanel.style.display = "block";
+      updateStatsDisplay();
+    }
+  }
+
+  // ===== 属性面板相关 =====
+
+  function updateStatsDisplay() {
+    if (!statsPanel) return;
+    var stats = gameState.currentStats;
+    var level = gameState.level;
+    var exp = gameState.exp;
+
+    if (statsRealmLabel) statsRealmLabel.textContent = REALM_NAMES[Math.min(level, 10)] || "初入江湖";
+    if (statsExpFill) statsExpFill.style.width = Math.min((exp / EXP_PER_LEVEL) * 100, 100) + "%";
+    if (statsExpText) statsExpText.textContent = exp + "/" + EXP_PER_LEVEL;
+
+    var statKeys = ["strength", "speed", "neili", "qinggong", "defense", "wisdom"];
+    for (var i = 0; i < statKeys.length; i++) {
+      var el = document.getElementById("sv-" + statKeys[i]);
+      if (el) el.textContent = stats[statKeys[i]] || 3;
+    }
+  }
+
+  function showStatDeltaFloat(key, delta) {
+    var el = document.getElementById("sv-" + key);
+    if (!el) return;
+    var float = document.createElement("span");
+    float.className = "stat-delta-float" + (delta > 0 ? " positive" : " negative");
+    float.textContent = (delta > 0 ? "+" : "") + delta;
+    el.parentNode.appendChild(float);
+    setTimeout(function () { float.parentNode && float.parentNode.removeChild(float); }, 1500);
+  }
+
+  function applyStatDelta(delta) {
+    if (!delta) return;
+    var statKeys = ["strength", "speed", "neili", "qinggong", "defense", "wisdom"];
+    for (var i = 0; i < statKeys.length; i++) {
+      var k = statKeys[i];
+      if (delta[k]) {
+        gameState.currentStats[k] = Math.max(1, Math.min(10, (gameState.currentStats[k] || 3) + delta[k]));
+        showStatDeltaFloat(k, delta[k]);
+      }
+    }
+    if (delta.exp) {
+      gameState.exp += delta.exp;
+      while (gameState.exp >= EXP_PER_LEVEL && gameState.level < 10) {
+        gameState.exp -= EXP_PER_LEVEL;
+        gameState.level += 1;
+        showLevelUpToast(gameState.level);
+      }
+    }
+    if (delta.skill_unlock) {
+      gameState.unlockedSkills = gameState.unlockedSkills || [];
+      gameState.unlockedSkills.push(delta.skill_unlock);
+      showToast("习得技能：" + delta.skill_unlock);
+    }
+    updateStatsDisplay();
+    saveCurrentStory(gameState);
+  }
+
+  function showLevelUpToast(level) {
+    var name = REALM_NAMES[Math.min(level, 10)] || "更高境界";
+    showToast("武功突破 · " + name);
+  }
+
+  function showAwakeningEffect(trigger) {
+    if (!awakeningOverlay || !awakeningFragments) return;
+    var fragments = (trigger && trigger.fragments_shown) || [];
+    var html = "";
+    for (var i = 0; i < fragments.length; i++) {
+      html += '<div class="awakening-fragment">' + escapeHtml(fragments[i]) + '</div>';
+    }
+    awakeningFragments.innerHTML = html;
+    awakeningOverlay.classList.add("visible");
+    // 应用觉醒属性加成
+    if (trigger && trigger.stat_bonus) {
+      applyStatDelta(trigger.stat_bonus);
+    }
+    setTimeout(function () {
+      awakeningOverlay.classList.remove("visible");
+    }, 4000);
   }
 
   function setBackgroundImage(url) {
@@ -484,10 +587,13 @@
     // 放弃当前 story_id，重新生成
     gameState.storyId = null;
     gameState.scenes = [];
+    var regenProfile = getCharacterProfile();
+    var regenAge = regenProfile && regenProfile.playerAge;
+    var regenAgeHint = regenAge ? "我今年 " + regenAge + " 岁，" : "";
     gameState.messages = [
       {
         role: "user",
-        content: "开始一个新的中国传统武侠冒险故事，请直接生成故事背景描述。",
+        content: "开始一个新的中国传统武侠冒险故事。" + regenAgeHint + "请直接生成符合我这个年龄段的故事背景描述。",
       },
     ];
     pendingBackgroundData = null;
@@ -580,6 +686,7 @@
       chapter: gameState.chapter || 1,
       beat: gameState.beat || 1,
       characterProfile: characterProfile || null,
+      currentStats: gameState.currentStats || null,
     };
 
     // 只发最近 12 条消息（6 轮），减少 token 消耗
@@ -712,6 +819,12 @@
                     }
                   }
 
+                  // 前世记忆觉醒
+                  if (event.type === "awakening_event" && !gameState.awakeningDone) {
+                    gameState.awakeningDone = true;
+                    showAwakeningEffect(event.trigger);
+                  }
+
                   if (event.type === "scene_image_pending") {
                     turnImagePending = true;
                     showImageBadge("场景图生成中…");
@@ -821,6 +934,11 @@
     if (sceneData.chapter) gameState.chapter = sceneData.chapter;
     if (sceneData.beat) gameState.beat = sceneData.beat;
 
+    // 应用属性成长
+    if (sceneData.stat_delta) {
+      applyStatDelta(sceneData.stat_delta);
+    }
+
     saveCurrentStory(gameState);
 
     if (sceneData.is_ending) {
@@ -867,10 +985,16 @@
       var current = getCurrentStory();
       if (current) {
         gameState = current;
+        // 兼容旧存档（可能没有属性字段）
+        if (!gameState.currentStats) gameState.currentStats = { strength: 3, speed: 3, neili: 3, qinggong: 3, defense: 3, wisdom: 3 };
+        if (!gameState.level) gameState.level = 1;
+        if (!gameState.exp) gameState.exp = 0;
+        if (!gameState.unlockedSkills) gameState.unlockedSkills = [];
+        if (typeof gameState.awakeningDone === "undefined") gameState.awakeningDone = false;
         isWorldSelection = !gameState.worldSetting;
         if (gameState.title) navTitle.textContent = gameState.title;
         updateProgress(gameState.progress, gameState.chapter, gameState.beat);
-        // 恢复目标条
+        // 恢复目标条（showGoalBanner 内部会同步更新属性面板）
         if (gameState.goal) showGoalBanner(gameState.goal);
         renderSceneHistory();
         var lastScene = gameState.scenes[gameState.scenes.length - 1];
@@ -901,11 +1025,21 @@
     gameState.startTime = new Date().toISOString();
     gameState.chapter = 1;
     gameState.beat = 1;
+    gameState.currentStats = { strength: 3, speed: 3, neili: 3, qinggong: 3, defense: 3, wisdom: 3 };
+    gameState.level = 1;
+    gameState.exp = 0;
+    gameState.unlockedSkills = [];
+    gameState.awakeningDone = false;
+
+    var charProfile = getCharacterProfile();
+    var playerAge = charProfile && charProfile.playerAge;
+    var ageHint = playerAge ? "我今年 " + playerAge + " 岁，" : "";
+
     gameState.messages = [
       {
         role: "user",
         content:
-          "开始一个新的中国传统武侠冒险故事，请直接生成故事背景描述。",
+          "开始一个新的中国传统武侠冒险故事。" + ageHint + "请直接生成符合我这个年龄段的故事背景描述。",
       },
     ];
     saveCurrentStory(gameState);
