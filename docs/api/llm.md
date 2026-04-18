@@ -4,7 +4,7 @@
 
 ## 概述
 
-`backend/services/llm.js` 提供统一的大模型对话调用能力。当前支持智谱和千问两家厂商，两者均兼容 OpenAI Chat Completions API 格式，因此服务层使用统一的 HTTP 请求结构，通过模型注册表区分端点。
+`backend/services/core/llm.js` 提供统一的大模型流式对话调用能力。当前支持智谱和千问两家厂商，两者均兼容 OpenAI Chat Completions API 格式，因此服务层使用统一的 HTTP 请求结构，通过模型注册表区分端点。
 
 ## 模型注册表
 
@@ -15,11 +15,13 @@
 
 认证方式统一为 `Authorization: Bearer <API_KEY>`。
 
+两个模型默认均开启思考模式（智谱用 `thinking: { type: "enabled" }`，千问用 `enable_thinking: true`）；启用 function calling（传入 `tools`）时自动关闭思考模式。
+
 ## 导出接口
 
-### `chat(modelId, messages, apiKey, options)`
+### `chatStream(modelId, messages, apiKey, options)`
 
-核心调用函数，向指定模型发送对话请求。
+流式大模型对话调用，以 async generator 逐块 yield 事件。
 
 **参数**
 
@@ -28,39 +30,27 @@
 | modelId | string | 是 | 模型 ID，须存在于 `MODEL_REGISTRY` |
 | messages | Array | 是 | OpenAI Chat Completions 格式的消息数组 |
 | apiKey | string | 是 | 对应厂商的 API Key |
-| options | object | 否 | 可选参数，会展开合并到请求体（如 `max_tokens`、`temperature`） |
+| options | object | 否 | 可选参数，展开合并到请求体（如 `tools`） |
 
-**返回值**
+**Yield 事件**
 
-```js
-{ content: string, tool_calls: Array | null, usage: object | null }
-```
+| 类型 | 说明 |
+|------|------|
+| `{ type: "args_delta", index, name, chunk }` | 工具参数增量片段，供上层实时提取字段（如 narrative） |
+| `{ type: "done", content, tool_calls, usage }` | 流结束，含完整累积结果 |
+
+`done` 事件的字段：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | content | string | 模型返回的文本内容 |
 | tool_calls | Array \| null | 模型请求调用的工具列表（OpenAI 格式），无工具调用时为 `null` |
-| usage | object \| null | token 用量信息（由厂商返回，格式各异） |
+| usage | object \| null | token 用量信息（prompt_tokens / completion_tokens 等） |
 
 **错误**
 
 - 模型 ID 不在注册表中：抛出 `Error("不支持的模型: xxx")`
-- 上游 API 返回非 2xx：抛出 `Error("xxx 调用失败 (状态码)")`
-
----
-
-### `getModels()`
-
-返回所有可用模型的精简列表，适合暴露给前端。
-
-**返回值**
-
-```js
-[
-  { id: "glm-4.6v", provider: "zhipu", label: "智谱 GLM-4.6V" },
-  ...
-]
-```
+- 上游 API 返回非 2xx：抛出 `Error("xxx 调用失败 (状态码): 详情")`
 
 ---
 
@@ -76,42 +66,39 @@
 
 ### `MODEL_REGISTRY`（内部）
 
-模型注册表对象，key 为模型 ID，value 为 `{ provider, label, endpoint, defaults }`。其中 `defaults` 为模型默认参数（如思考模式开关），使用 function calling 时会自动关闭。仅供模块内部使用，不对外导出，外部请使用 `getModelInfo()` / `getModels()`。
+模型注册表对象，key 为模型 ID，value 为 `{ provider, label, endpoint, defaults }`。其中 `defaults` 为模型默认参数（如思考模式开关），使用 function calling 时会自动关闭。仅供模块内部使用，不对外导出，外部请使用 `getModelInfo()`。
 
 ## 调用示例
 
 ### 纯文本对话
 
 ```js
-const { chat } = require("../services/llm");
+const { chatStream } = require("../services/core/llm");
 
-const result = await chat(
-  "qwen3.5-plus",
-  [{ role: "user", content: "你好" }],
-  apiKey
-);
-console.log(result.content);
+for await (const event of chatStream("qwen3.5-plus", [{ role: "user", content: "你好" }], apiKey)) {
+  if (event.type === "done") {
+    console.log(event.content);
+  }
+}
 ```
 
-### 视觉（图片）对话
+### 工具调用（function calling）
 
 ```js
-const { chat } = require("../services/llm");
+const { chatStream } = require("../services/core/llm");
 
-const result = await chat(
-  "glm-4.6v",
-  [
-    {
-      role: "user",
-      content: [
-        { type: "text", text: "请描述这张图片" },
-        { type: "image_url", image_url: { url: "data:image/jpeg;base64,..." } },
-      ],
-    },
-  ],
-  apiKey
-);
-console.log(result.content);
+for await (const event of chatStream(
+  "qwen3.5-plus",
+  messages,
+  apiKey,
+  { tools: [...toolDefinitions] }
+)) {
+  if (event.type === "args_delta") {
+    // 实时提取工具参数片段
+  } else if (event.type === "done") {
+    const { content, tool_calls, usage } = event;
+  }
+}
 ```
 
 ## 扩展新模型
@@ -126,10 +113,8 @@ console.log(result.content);
 },
 ```
 
-同时需要：
-1. 更新前端 `backend/demo/finance-assistant/js/types.js` 中的 `MODEL_CONFIG`（如果存在）
-2. 更新本文档的模型注册表
+同时需要更新本文档的模型注册表。
 
 ## 实现位置
 
-`backend/services/llm.js`
+`backend/services/core/llm.js`
