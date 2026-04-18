@@ -1785,3 +1785,179 @@ body {
   color: var(--color-ink-faint);
   letter-spacing: 4px;
 }
+
+/* ===== 属性面板（轮回成长系统） ===== */
+
+.stats-panel {
+  position: relative;
+  z-index: 10;
+  background: rgba(250, 247, 240, 0.92);
+  border-bottom: 1px solid var(--color-border-light);
+  padding: var(--spacing-xs) var(--spacing-base);
+  backdrop-filter: blur(4px);
+  flex-shrink: 0;
+}
+
+.stats-level-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: 5px;
+}
+
+.stats-realm-label {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--color-cinnabar);
+  white-space: nowrap;
+  min-width: 52px;
+  letter-spacing: 1px;
+}
+
+.stats-exp-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-border-light);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.stats-exp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-cinnabar), var(--color-gold));
+  border-radius: var(--radius-full);
+  transition: width 0.6s var(--easing-brush);
+}
+
+.stats-exp-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-ink-wash);
+  white-space: nowrap;
+  min-width: 36px;
+  text-align: right;
+}
+
+.stats-attrs-row {
+  display: flex;
+  gap: var(--spacing-xs);
+  justify-content: space-between;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  position: relative;
+  flex: 1;
+}
+
+.stat-label {
+  font-size: 10px;
+  color: var(--color-ink-wash);
+  letter-spacing: 0.5px;
+}
+
+.stat-val {
+  font-family: var(--font-display);
+  font-size: var(--font-size-sm);
+  color: var(--color-ink-medium);
+  font-weight: 600;
+  transition: color 0.3s;
+}
+
+/* 属性变化飘字动效 */
+.stat-delta-float {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  pointer-events: none;
+  animation: statFloatUp 1.5s ease-out forwards;
+  white-space: nowrap;
+  z-index: 100;
+}
+
+.stat-delta-float.positive { color: var(--color-cinnabar); }
+.stat-delta-float.negative { color: var(--color-ink-light); }
+
+@keyframes statFloatUp {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+}
+
+/* ===== 前世记忆觉醒覆盖层 ===== */
+
+.awakening-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 8, 5, 0.85);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s var(--easing-brush);
+}
+
+.awakening-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.awakening-content {
+  text-align: center;
+  padding: var(--spacing-xl);
+  max-width: 300px;
+}
+
+.awakening-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  color: var(--color-gold-bright);
+  letter-spacing: 6px;
+  margin-bottom: var(--spacing-lg);
+  text-shadow: 0 0 20px rgba(184, 150, 62, 0.6);
+  animation: awakeningGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes awakeningGlow {
+  from { text-shadow: 0 0 10px rgba(184, 150, 62, 0.4); }
+  to   { text-shadow: 0 0 30px rgba(184, 150, 62, 0.8); }
+}
+
+.awakening-fragments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.awakening-fragment {
+  font-size: var(--font-size-sm);
+  color: rgba(245, 240, 230, 0.85);
+  line-height: 1.6;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-left: 2px solid var(--color-gold);
+  text-align: left;
+  animation: fadeInSlide 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.awakening-fragment:nth-child(2) { animation-delay: 0.3s; }
+
+@keyframes fadeInSlide {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.awakening-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-gold);
+  letter-spacing: 2px;
+  opacity: 0.7;
+}

@@ -91,6 +91,16 @@ function define(sequelize) {
         allowNull: true,
         comment: "最近游玩时间",
       },
+      player_age: {
+        type: DataTypes.TINYINT.UNSIGNED,
+        allowNull: true,
+        comment: "玩家输入的真实年龄（影响主角年龄设定）",
+      },
+      legacy: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        comment: "本世遗产（结局时由 AI 生成，供下一世觉醒注入）",
+      },
     },
     { tableName: "adventure_stories", underscored: true }
   );

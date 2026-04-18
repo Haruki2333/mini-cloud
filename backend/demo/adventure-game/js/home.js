@@ -23,14 +23,15 @@
   var charBackdrop = document.getElementById("charBackdrop");
   var charClose = document.getElementById("charClose");
   var charNameInput = document.getElementById("charNameInput");
+  var charAgeInput = document.getElementById("charAgeInput");
   var wizardPrev = document.getElementById("wizardPrev");
   var wizardNext = document.getElementById("wizardNext");
 
   var currentWizardStep = 1;
   var totalWizardSteps = 3;
   // 向导临时存储（保存中间选择，关闭弹层时丢弃）
-  // roleType 和 tone 均为数组（多选）
-  var wizardDraft = { name: "", roleType: [], tone: [] };
+  // roleType 和 tone 均为数组（多选）；playerAge 为玩家真实年龄
+  var wizardDraft = { name: "", playerAge: 25, roleType: [], tone: [] };
 
   // 将可能来自旧数据/不同形态的字段归一化为字符串数组
   function normalizeArray(value) {
@@ -134,7 +135,7 @@
     }
 
     // 已有档案，展示面板
-    charProfileName.textContent = profile.name;
+    charProfileName.textContent = profile.name + (profile.playerAge ? "（" + profile.playerAge + "岁）" : "");
     var roleList = normalizeArray(profile.roleType);
     var toneList = normalizeArray(profile.tone);
     var tags = roleList.concat(toneList);
@@ -161,10 +162,12 @@
     var existing = getCharacterProfile() || {};
     wizardDraft = {
       name: existing.name || "",
+      playerAge: existing.playerAge || 25,
       roleType: normalizeArray(existing.roleType),
       tone: normalizeArray(existing.tone),
     };
     charNameInput.value = wizardDraft.name;
+    if (charAgeInput) charAgeInput.value = wizardDraft.playerAge;
 
     // 恢复选中状态（两步均为多选）
     setGridSelectionMulti("roleGrid", wizardDraft.roleType);
@@ -255,7 +258,14 @@
         charNameInput.focus();
         return;
       }
+      var age = parseInt((charAgeInput && charAgeInput.value) || "0", 10);
+      if (!age || age < 10 || age > 80) {
+        showToast("请输入有效年龄（10-80岁）");
+        if (charAgeInput) charAgeInput.focus();
+        return;
+      }
       wizardDraft.name = name;
+      wizardDraft.playerAge = age;
     } else if (currentWizardStep === 2) {
       var roleTypes = getGridSelectionMulti("roleGrid");
       if (!roleTypes || roleTypes.length === 0) {

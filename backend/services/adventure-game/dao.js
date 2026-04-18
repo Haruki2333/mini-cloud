@@ -30,15 +30,16 @@ function clampContent(content) {
 
 /**
  * 创建新故事
- * @param {{ userToken: string, characterProfile?: object }} data
+ * @param {{ userToken: string, characterProfile?: object, playerAge?: number }} data
  * @returns {Promise<string>} story_id
  */
-async function createStory({ userToken, characterProfile }) {
+async function createStory({ userToken, characterProfile, playerAge }) {
   const storyId = generateUUID();
   await models.AdventureStory.create({
     story_id: storyId,
     user_token: userToken,
     character_profile: characterProfile || null,
+    player_age: playerAge || null,
     last_played_at: new Date(),
   });
   return storyId;
@@ -102,7 +103,7 @@ async function listStories(userToken, { limit = 20, offset = 0 } = {}) {
 /**
  * 更新故事进度与元数据
  * @param {string} storyId
- * @param {{ chapter?: number, beat?: number, title?: string, worldSetting?: string, status?: string, characterProfile?: object }} data
+ * @param {{ chapter?: number, beat?: number, title?: string, worldSetting?: string, status?: string, characterProfile?: object, legacy?: object }} data
  */
 async function updateStoryProgress(storyId, data) {
   const update = { last_played_at: new Date() };
@@ -112,7 +113,22 @@ async function updateStoryProgress(storyId, data) {
   if (data.worldSetting) update.world_setting = data.worldSetting;
   if (data.status) update.status = data.status;
   if (data.characterProfile) update.character_profile = data.characterProfile;
+  if (data.legacy) update.legacy = data.legacy;
   await models.AdventureStory.update(update, { where: { story_id: storyId } });
+}
+
+/**
+ * 获取用户最近一局已结束故事的遗产（供下一世觉醒使用）
+ * @param {string} userToken
+ * @returns {Promise<object|null>} legacy JSON 或 null
+ */
+async function getLatestLegacy(userToken) {
+  const story = await models.AdventureStory.findOne({
+    where: { user_token: userToken, status: "ended" },
+    order: [["last_played_at", "DESC"]],
+    attributes: ["legacy"],
+  });
+  return story && story.legacy ? story.legacy : null;
 }
 
 // ===== 并发锁 =====
@@ -457,6 +473,7 @@ module.exports = {
   loadStory,
   listStories,
   updateStoryProgress,
+  getLatestLegacy,
   acquireLock,
   releaseLock,
   appendScene,

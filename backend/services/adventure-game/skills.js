@@ -198,7 +198,7 @@ const advanceStoryDefinition = {
   function: {
     name: "advance_story",
     description:
-      "呈现当前故事情境的唯一工具。每轮必须调用。除第一轮背景介绍外，不要替玩家做决定——叙述应以开放悬念结尾，等待玩家的自由文本行动。⚠️ 字段输出顺序必须严格按照：narrative → chapter → beat → is_chapter_end → progress → goal → choices → is_ending → title → image_prompt → memory_updates",
+      "呈现当前故事情境的唯一工具。每轮必须调用。除第一轮背景介绍外，不要替玩家做决定——叙述应以开放悬念结尾，等待玩家的自由文本行动。⚠️ 字段输出顺序必须严格按照：narrative → chapter → beat → is_chapter_end → progress → goal → choices → is_ending → title → image_prompt → memory_updates → stat_delta → awakening_trigger → legacy",
     parameters: {
       type: "object",
       properties: {
@@ -287,6 +287,93 @@ const advanceStoryDefinition = {
             required: ["op", "path"],
           },
         },
+        stat_delta: {
+          type: "object",
+          description:
+            "本轮行动触发的属性变化（可选）。仅在玩家行动与某属性强相关时填写，每轮最多 2 项属性变化，绝对值 1-2。含 exp 键（10-30）表示经验增量。skill_unlock 仅在重大突破节点（拜师学艺成功、顿悟绝技）时填写。第一轮背景介绍时必须留空。",
+          properties: {
+            strength: { type: "number", description: "力量变化（±1-2）" },
+            speed: { type: "number", description: "速度变化（±1-2）" },
+            neili: { type: "number", description: "内力变化（±1-2）" },
+            qinggong: { type: "number", description: "轻功变化（±1-2）" },
+            defense: { type: "number", description: "防御变化（±1-2）" },
+            wisdom: { type: "number", description: "智谋变化（±1-2）" },
+            exp: { type: "number", description: "经验值增量（10-30）" },
+            skill_unlock: {
+              type: "string",
+              description: "本轮解锁的技能名（10字以内），仅关键突破节点填写",
+            },
+          },
+        },
+        awakening_trigger: {
+          type: "object",
+          description:
+            "触发前世记忆觉醒场景（可选）。仅在系统提示中有前世遗产注入（previousLegacy）时可用。选择第2章中段（beat 4-7）最自然的叙事节点填写一次，整局只触发一次。觉醒内容要自然融入当前叙述结尾，不割裂节奏。",
+          properties: {
+            fragments_shown: {
+              type: "array",
+              description: "本次浮现的前世记忆碎片（1-2条，从注入的遗产中选取最相关的）",
+              items: { type: "string" },
+            },
+            stat_bonus: {
+              type: "object",
+              description: "觉醒瞬间立即生效的属性加成（可选，每项 +1-2，代表前世技能的觉醒）",
+              properties: {
+                strength: { type: "number" },
+                speed: { type: "number" },
+                neili: { type: "number" },
+                qinggong: { type: "number" },
+                defense: { type: "number" },
+                wisdom: { type: "number" },
+              },
+            },
+          },
+          required: ["fragments_shown"],
+        },
+        legacy: {
+          type: "object",
+          description:
+            "本世遗产总结（仅在 is_ending=true 时填写，其他时候必须留空）。提炼本世最有意义的 3-5 件事，供下一世觉醒时注入。",
+          properties: {
+            lifespan: {
+              type: "string",
+              description: "本世归宿（20字以内，如「英年早逝，死于与血刀门的最后一战」）",
+            },
+            peak_stats: {
+              type: "object",
+              description: "本世属性峰值（与 context 中注入的当前属性值保持一致）",
+              properties: {
+                strength: { type: "number" },
+                speed: { type: "number" },
+                neili: { type: "number" },
+                qinggong: { type: "number" },
+                defense: { type: "number" },
+                wisdom: { type: "number" },
+              },
+            },
+            fragments: {
+              type: "array",
+              description: "前世记忆碎片（3-5条）",
+              maxItems: 5,
+              items: {
+                type: "object",
+                properties: {
+                  type: {
+                    type: "string",
+                    enum: ["skill", "bond", "enemy", "memory"],
+                    description: "碎片类型：skill=武技、bond=情感羁绊、enemy=宿敌、memory=特殊记忆",
+                  },
+                  content: {
+                    type: "string",
+                    description: "碎片描述（30字以内）",
+                  },
+                },
+                required: ["type", "content"],
+              },
+            },
+          },
+          required: ["lifespan", "fragments"],
+        },
       },
       required: ["narrative", "chapter", "beat"],
     },
@@ -317,6 +404,9 @@ function createAdvanceStoryExecutor() {
       title: args.title || null,
       image_prompt: args.image_prompt || null,
       memory_updates: args.memory_updates || [],
+      stat_delta: args.stat_delta || null,
+      awakening_trigger: args.awakening_trigger || null,
+      legacy: args.legacy || null,
     };
   };
 }
