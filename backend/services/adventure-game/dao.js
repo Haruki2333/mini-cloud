@@ -45,6 +45,19 @@ async function createStory({ userToken, characterProfile }) {
 }
 
 /**
+ * 获取故事基本元数据（供内部服务层使用）
+ * @param {string} storyId
+ * @returns {Promise<{ title: string, goal: string, world_setting: string }|null>}
+ */
+async function getStoryMeta(storyId) {
+  const row = await models.AdventureStory.findOne({
+    attributes: ["title", "goal", "world_setting"],
+    where: { story_id: storyId },
+  });
+  return row ? row.toJSON() : null;
+}
+
+/**
  * 加载故事（带权限校验）
  * @param {string} storyId
  * @param {string} userToken
@@ -115,8 +128,6 @@ async function acquireLock(storyId, lockToken) {
   const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 分钟后过期
 
   // 使用原子 UPDATE：仅在无锁或锁已过期时设置
-  const { getSequelize } = require("../core/db");
-  const sequelize = getSequelize();
   const { Op } = require("sequelize");
 
   const [affected] = await models.AdventureStory.update(
@@ -442,6 +453,7 @@ async function clearCompactionPending(storyId) {
 module.exports = {
   generateUUID,
   createStory,
+  getStoryMeta,
   loadStory,
   listStories,
   updateStoryProgress,

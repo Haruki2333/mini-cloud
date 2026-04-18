@@ -1,8 +1,8 @@
-# 财务助理对话接口
+# 财务助理 API
 
 ## POST /api/finance-chat/completions
 
-财务助理 AI 对话接口，支持多轮对话，SSE 流式响应。内置 ReAct 推理循环，可自动调用 `record`、`query`、`update_profile` 三个工具完成记账、查询和资料更新。
+财务助理 AI 对话接口，支持多轮对话，SSE 流式响应。内置 ReAct 推理循环，可自动调用 `record`、`query`、`update_profile`、`update_record`、`delete_record` 五个工具完成记账、查询、资料更新和记录管理。
 
 ### 请求头
 
@@ -98,6 +98,8 @@ data: [DONE]\n\n
 | record | 用户描述支出、收入或预算设置时 |
 | query | 用户询问收支情况、明细统计时 |
 | update_profile | 用户要求修改名字、月预算或支出分类时 |
+| update_record | 用户要求修改某条历史记录时（需先 query 获取 ID） |
+| delete_record | 用户要求删除某条或多条记录时（需先 query 获取 ID） |
 
 ### 错误响应
 
@@ -113,9 +115,9 @@ data: [DONE]\n\n
 
 ### 实现位置
 
-- 路由：`backend/routes/chat.js`（`financeRouter`，挂载到 `/api/finance-chat`）
-- 推理循环：`backend/services/brain.js`（`createBrain`）
-- 工具实现：`backend/services/skills/finance-record.js`
+- 路由：`backend/routes/finance.js`（`financeRouter`，挂载到 `/api/finance-chat`）
+- 推理循环：`backend/services/core/brain.js`（`createBrain`）
+- 工具实现：`backend/services/finance-assistant/skills.js`
 
 ---
 
@@ -244,6 +246,63 @@ data: [DONE]\n\n
 }
 ```
 
+---
+
+## PUT /api/finance-chat/data/records/:id
+
+直接修改指定记录的字段，供前端详情页调用（与 `update_record` 工具等效）。
+
+### 请求头
+
+同 `/data/summary`，另需 `Content-Type: application/json`。
+
+### 路径参数
+
+| 参数 | 说明 |
+|------|------|
+| id | 记录 ID（整数） |
+
+### 请求体
+
+```json
+{
+  "amount": 40.00,
+  "category": "餐饮",
+  "description": "午饭（更正）",
+  "date": "2026-04-04"
+}
+```
+
+所有字段均为可选，仅传入需要修改的字段。支持 `amount`、`category`、`description`、`source`、`period`、`date`。
+
+### 响应
+
+```json
+{ "success": true }
+```
+
+---
+
+## DELETE /api/finance-chat/data/records/:id
+
+直接删除指定记录，供前端详情页调用（与 `delete_record` 工具等效）。
+
+### 请求头
+
+同 `/data/summary`。
+
+### 路径参数
+
+| 参数 | 说明 |
+|------|------|
+| id | 记录 ID（整数） |
+
+### 响应
+
+```json
+{ "success": true }
+```
+
 ### 实现位置
 
-路由：`backend/routes/chat.js`（`handleGetSummary`、`handleGetRecords`、`handleGetProfile`、`handlePutProfile`）
+路由：`backend/routes/finance.js`（`handleGetSummary`、`handleGetRecords`、`handleGetProfile`、`handlePutProfile`、`handlePutRecord`、`handleDeleteRecord`）

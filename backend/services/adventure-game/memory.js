@@ -201,12 +201,7 @@ async function compactChapter(storyId, chapter, { model, apiKey }) {
     }
 
     // 获取故事基本信息（用于生成摘要上下文）
-    const { getSequelize } = require("../core/db");
-    const adventureModels = require("./models");
-    const storyRow = await adventureModels.AdventureStory.findOne({
-      attributes: ["title", "goal", "world_setting"],
-      where: { story_id: storyId },
-    });
+    const storyRow = await dao.getStoryMeta(storyId);
 
     // 构建压缩提示词
     const sceneTexts = scenes.map(
