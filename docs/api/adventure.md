@@ -37,19 +37,27 @@ AI 冒险故事对话（SSE 流式）。
 {
   "story_id": "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx",
   "messages": [
-    { "role": "user", "content": "我拔剑冲向哥布林" }
+    { "role": "user", "content": "我纵身跃上屋顶，追那黑衣人" }
   ],
   "model": "qwen3.5-plus",
   "context": {
-    "worldSetting": "奇幻王国",
-    "goal": "夺回被恶龙掳走的公主并安全返回王城",
+    "worldSetting": "江湖乱世，各大门派明争暗斗",
+    "goal": "追查师父被毒杀的真凶，在三月之内为其昭雪报仇",
     "chapter": 2,
     "beat": 5,
     "characterProfile": {
-      "name": "艾琳",
-      "genre": ["奇幻冒险", "仙侠修真"],
-      "roleType": "正义英雄",
-      "tone": "热血冒险"
+      "name": "凌云",
+      "roleType": ["孤傲剑客", "侠义英雄"],
+      "tone": ["热血冒险", "复仇雪恨"]
+    },
+    "playerAge": 25,
+    "currentStats": {
+      "strength": 5,
+      "speed": 7,
+      "neili": 4,
+      "qinggong": 6,
+      "defense": 4,
+      "wisdom": 5
     }
   }
 }
@@ -64,7 +72,9 @@ AI 冒险故事对话（SSE 流式）。
 | `context.goal` | String | 否 | 本局目标（服务端从 DB 加载优先） |
 | `context.chapter` | Number | 否 | 当前章节（服务端从 DB 加载优先） |
 | `context.beat` | Number | 否 | 当前节拍（服务端从 DB 加载优先） |
-| `context.characterProfile` | Object | 否 | 玩家档案（服务端从 DB 加载优先） |
+| `context.characterProfile` | Object | 否 | 玩家档案（服务端从 DB 加载优先）；字段：`name`、`roleType`（武侠角色类型数组）、`tone`（故事类型数组） |
+| `context.playerAge` | Number | 否 | 玩家年龄（供 AI 设定主角年龄段） |
+| `context.currentStats` | Object | 否 | 当前角色属性（`strength/speed/neili/qinggong/defense/wisdom`），供属性成长判定 |
 
 #### SSE 响应事件
 
@@ -154,6 +164,14 @@ AI 冒险故事对话（SSE 流式）。
 { "type": "scene_image_error", "turn_id": 1, "message": "图像生成失败" }
 ```
 
+##### `awakening_event` — 前世记忆觉醒（轮回系统）
+
+```json
+{ "type": "awakening_event", "trigger": { "fragments_shown": ["..."], "stat_bonus": { "neili": 1 } } }
+```
+
+仅当 AI 触发 `awakening_trigger` 字段时下发，整局最多一次（第 2 章中段）。
+
 ##### `answer` — 最终回复
 
 ```json
@@ -168,7 +186,7 @@ AI 冒险故事对话（SSE 流式）。
 
 流结束标记：`data: [DONE]\n\n`
 
-> **事件顺序**：`story_created`（新档）→ `narrative_delta`（多次）→ `thinking` → `tool_result` → `story_saved` → `memory_updated`（若有）→ `scene_image_pending`（若有图）→ `answer` → `scene_image`（异步）→ `chapter_compacted`（若章末）→ `[DONE]`
+> **事件顺序**：`story_created`（新档）→ `narrative_delta`（多次）→ `thinking` → `tool_result` → `story_saved` → `memory_updated`（若有）→ `awakening_event`（若觉醒触发）→ `scene_image_pending`（若有图）→ `answer` → `scene_image`（异步）→ `chapter_compacted`（若章末）→ `[DONE]`
 
 ---
 
@@ -194,14 +212,14 @@ AI 冒险故事对话（SSE 流式）。
   "stories": [
     {
       "story_id": "xxx",
-      "title": "暗影森林的秘密",
+      "title": "血刀门的秘辛",
       "status": "active",
       "current_chapter": 2,
       "current_beat": 5,
       "scene_count": 15,
-      "world_setting": "被诅咒的奇幻王国",
-      "goal": "夺回被封印的星辰之心",
-      "character_profile": { "name": "艾琳", "genre": ["奇幻冒险"] },
+      "world_setting": "江湖乱世，各大门派明争暗斗",
+      "goal": "追查师父被毒杀的真凶，在三月之内为其昭雪报仇",
+      "character_profile": { "name": "凌云", "roleType": ["孤傲剑客"], "tone": ["热血冒险"] },
       "last_played_at": "2026-04-15T10:30:00.000Z",
       "created_at": "2026-04-14T08:00:00.000Z"
     }
@@ -225,21 +243,21 @@ AI 冒险故事对话（SSE 流式）。
 {
   "story": {
     "story_id": "xxx",
-    "title": "暗影森林的秘密",
+    "title": "血刀门的秘辛",
     "status": "active",
     "current_chapter": 2,
     "current_beat": 5,
-    "world_setting": "被诅咒的奇幻王国",
-    "goal": "夺回被封印的星辰之心",
-    "character_profile": { "name": "艾琳" }
+    "world_setting": "江湖乱世，各大门派明争暗斗",
+    "goal": "追查师父被毒杀的真凶，在三月之内为其昭雪报仇",
+    "character_profile": { "name": "凌云", "roleType": ["孤傲剑客"], "tone": ["热血冒险"] }
   },
   "recentScenes": [
     {
       "seq": 14,
       "chapter": 2,
       "beat": 4,
-      "player_action": "我试着与精灵交流",
-      "narrative": "你缓缓开口...",
+      "player_action": "我纵身跃上屋顶，追那黑衣人",
+      "narrative": "你脚尖轻点，借力一跃...",
       "choices": [],
       "image_url": null,
       "is_ending": false
@@ -257,7 +275,7 @@ AI 冒险故事对话（SSE 流式）。
 ### `advance_story`
 
 **字段输出顺序（必须严格遵守）**：
-`narrative → chapter → beat → is_chapter_end → progress → choices → is_ending → title → image_prompt → memory_updates`
+`narrative → chapter → beat → is_chapter_end → progress → goal → choices → is_ending → title → image_prompt → memory_updates → stat_delta → awakening_trigger → legacy`
 
 **参数：**
 
@@ -268,15 +286,19 @@ AI 冒险故事对话（SSE 流式）。
 | `beat` | Number | 是 | 当前章内节拍（1-10），同时作为 progress |
 | `is_chapter_end` | Boolean | 否 | 是否为章末（触发异步章节压缩） |
 | `progress` | Number | 否 | 与 beat 一致（供前端进度条使用） |
+| `goal` | String | 否 | 本局目标（**仅第一轮背景介绍时必填**，15-40 字中文） |
 | `choices` | Array | 否 | 见下文"语义"说明 |
 | `is_ending` | Boolean | 否 | 是否为结局。**仅 chapter=5 && beat>=9 时允许** |
 | `title` | String | 否 | 故事标题（世界观确定后首场景设置） |
 | `image_prompt` | String | 否 | 英文图片描述，**仅开局和结局填写** |
 | `memory_updates` | Array | 否 | 记忆文件更新（每轮最多 3 条） |
+| `stat_delta` | Object | 否 | 本轮属性变化（`strength/speed/neili/qinggong/defense/wisdom/exp`，每项绝对值 1-2；`skill_unlock` 仅关键突破时填写） |
+| `awakening_trigger` | Object | 否 | 前世记忆觉醒（整局最多一次，第 2 章中段）；含 `fragments_shown`（数组）和可选 `stat_bonus` |
+| `legacy` | Object | 否 | 本世遗产（**仅 is_ending=true 时填写**）；含 `lifespan`、`fragments`（3-5 条）、`peak_stats` |
 
-**`choices` 字段语义（重要变化）：**
+**`choices` 字段语义：**
 
-- **第一轮（世界观选择）**：必填 3 条，id 用 `A/B/C`，每项必须包含 `text`（世界观/开局概述）和 `goal`（本局目标，15-40 字）
+- **第一轮（背景介绍）**：**必须留空**
 - **后续轮次**：不是菜单，是"灵感提示"（0-2 条），id 用 `hint1/hint2`，不需要 `goal`
 - **结局时**：不提供
 

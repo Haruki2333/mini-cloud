@@ -282,7 +282,6 @@ function define(sequelize) {
 async function afterSync(qi) {
   // 迁移：为已存在的表补充新列（addColumn 若列已存在会抛错，用 try/catch 忽略）
   try {
-    const { DataTypes } = require("sequelize");
     await qi.addColumn("adventure_stories", "player_age", {
       type: DataTypes.TINYINT.UNSIGNED,
       allowNull: true,
@@ -291,7 +290,6 @@ async function afterSync(qi) {
     });
   } catch (_) {}
   try {
-    const { DataTypes } = require("sequelize");
     await qi.addColumn("adventure_stories", "legacy", {
       type: DataTypes.JSON,
       allowNull: true,
