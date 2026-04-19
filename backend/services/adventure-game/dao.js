@@ -5,6 +5,8 @@
  * 全部通过 models.js 的 getter 延迟获取模型（保证 initDB 后才访问）。
  */
 
+const { Op } = require("sequelize");
+const { getSequelize } = require("../core/db");
 const models = require("./models");
 
 // ===== 工具函数 =====
@@ -143,9 +145,6 @@ async function acquireLock(storyId, lockToken) {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 分钟后过期
 
-  // 使用原子 UPDATE：仅在无锁或锁已过期时设置
-  const { Op } = require("sequelize");
-
   const [affected] = await models.AdventureStory.update(
     { lock_token: lockToken, lock_expires_at: expiresAt },
     {
@@ -182,7 +181,6 @@ async function releaseLock(storyId, lockToken) {
  * @returns {Promise<number>} 新场景的 seq
  */
 async function appendScene(storyId, data) {
-  const { getSequelize } = require("../core/db");
   const sequelize = getSequelize();
 
   return await sequelize.transaction(async (t) => {
@@ -239,7 +237,6 @@ async function updateSceneImageUrl(storyId, seq, imageUrl) {
  * @returns {Promise<object[]>}
  */
 async function getScenes(storyId, { fromSeq, limit, chapter, desc = false } = {}) {
-  const { Op } = require("sequelize");
   const where = { story_id: storyId };
   if (fromSeq != null) where.seq = { [Op.gte]: fromSeq };
   if (chapter != null) where.chapter = chapter;
@@ -264,7 +261,6 @@ async function getMemoryFiles(
   storyId,
   { types, paths, onlyPinned, includeDeleted = false } = {}
 ) {
-  const { Op } = require("sequelize");
   const where = { story_id: storyId };
   if (!includeDeleted) where.deleted_at = null;
   if (types && types.length > 0) where.node_type = { [Op.in]: types };
@@ -284,9 +280,7 @@ async function getMemoryFiles(
 async function applyMemoryUpdates(storyId, updates, sceneSeq) {
   if (!updates || updates.length === 0) return;
 
-  const { getSequelize } = require("../core/db");
   const sequelize = getSequelize();
-  const { Op } = require("sequelize");
 
   // 限制每轮最多 5 条（防止 LLM 越界）
   const safeUpdates = updates.slice(0, 5);

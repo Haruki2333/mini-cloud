@@ -19,7 +19,9 @@
 | `scene_count` | SMALLINT UNSIGNED | 累计场景数（用于生成下一场景 seq），默认 0 |
 | `world_setting` | VARCHAR(500) | 世界观文本 |
 | `goal` | VARCHAR(200) | 本局目标 |
-| `character_profile` | JSON | 玩家档案（name/genre/roleType/tone） |
+| `character_profile` | JSON | 玩家档案（name/roleType/tone） |
+| `player_age` | TINYINT UNSIGNED | 玩家输入的真实年龄（影响主角年龄设定） |
+| `legacy` | JSON | 本世遗产（结局时由 AI 生成，供下一世觉醒注入） |
 | `compaction_pending_until` | DATETIME | 章末压缩任务预计完成时间（降级判断） |
 | `lock_token` | VARCHAR(36) | 并发锁令牌 |
 | `lock_expires_at` | DATETIME | 并发锁过期时间（防崩溃死锁，2 分钟） |
