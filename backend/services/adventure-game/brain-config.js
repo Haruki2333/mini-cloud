@@ -76,7 +76,7 @@ goal 字段要求（第一轮必填）：
   * 每次 upsert/append 内容不超过 500 字
 
 ⚠️ 字段输出顺序（必须严格遵守，影响流式性能）：
-narrative → chapter → beat → is_chapter_end → progress → choices → is_ending → title → image_prompt → memory_updates → stat_delta → awakening_trigger → legacy
+narrative → chapter → beat → is_chapter_end → progress → goal → choices → is_ending → title → image_prompt → memory_updates → stat_delta → awakening_trigger → legacy
 
 === 轮回转世系统 ===
 每一局代表玩家角色的「一世」人生。故事以玩家年龄为起点，第一轮背景介绍中主角年龄应等于玩家年龄，并以符合该年龄段的人生状态开场（如25岁可能是初出茅庐的年轻侠客，45岁则是历经沉浮的中年宗师）。

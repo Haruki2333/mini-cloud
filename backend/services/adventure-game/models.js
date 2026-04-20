@@ -69,7 +69,7 @@ function define(sequelize) {
       character_profile: {
         type: DataTypes.JSON,
         allowNull: true,
-        comment: "玩家档案（name/genre/roleType/tone）",
+        comment: "玩家档案（name/roleType/tone）",
       },
       compaction_pending_until: {
         type: DataTypes.DATE,
