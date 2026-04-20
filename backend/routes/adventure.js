@@ -26,82 +26,11 @@ const {
 const {
   advanceStoryDefinition,
   createAdvanceStoryExecutor,
+  createNarrativeExtractor,
   generateImage,
 } = require("../services/adventure-game/skills");
 const dao = require("../services/adventure-game/dao");
 const memory = require("../services/adventure-game/memory");
-
-// ===== Narrative 流式提取状态机 =====
-
-/**
- * 从 advance_story 工具的流式参数 JSON 中实时提取 narrative 字段值。
- *
- * 参数 JSON 形如：{"narrative":"故事文本...","chapter":2,...}
- * 状态机在流中定位 "narrative":" 起始标记，随后逐字提取文本内容，
- * 遇到未转义的 " 时结束提取。完整处理 JSON 字符串转义序列。
- *
- * @returns {function(chunk: string): string}  feed 函数，返回本次提取到的字符
- */
-function createNarrativeExtractor() {
-  const TARGET = '"narrative":"';
-  let state = "scanning"; // 'scanning' | 'in_value' | 'done'
-  let pending = "";
-
-  return function feed(chunk) {
-    if (state === "done") return "";
-    pending += chunk;
-    let extracted = "";
-
-    if (state === "scanning") {
-      const idx = pending.indexOf(TARGET);
-      if (idx >= 0) {
-        state = "in_value";
-        pending = pending.slice(idx + TARGET.length);
-      } else {
-        // 保留尾部（TARGET.length-1 个字符）防止跨 chunk 时匹配失败
-        if (pending.length > TARGET.length - 1) {
-          pending = pending.slice(-(TARGET.length - 1));
-        }
-        return "";
-      }
-    }
-
-    if (state === "in_value") {
-      let i = 0;
-      while (i < pending.length) {
-        const ch = pending[i];
-        if (ch === "\\") {
-          if (i + 1 < pending.length) {
-            const next = pending[i + 1];
-            if (next === "n") extracted += "\n";
-            else if (next === "t") extracted += "\t";
-            else if (next === '"') extracted += '"';
-            else if (next === "\\") extracted += "\\";
-            else extracted += ch + next;
-            i += 2;
-          } else {
-            // 转义字符跨 chunk，等待下一片
-            pending = pending.slice(i);
-            return extracted;
-          }
-        } else if (ch === '"') {
-          // narrative 字段结束
-          state = "done";
-          pending = "";
-          break;
-        } else {
-          extracted += ch;
-          i++;
-        }
-      }
-      if (state === "in_value") {
-        pending = ""; // 本批已全部提取
-      }
-    }
-
-    return extracted;
-  };
-}
 
 // ===== 用户标识提取 =====
 

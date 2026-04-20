@@ -167,7 +167,7 @@ WHERE story_id = ? AND lock_token = ?;
 4. 存入 `/plot/chapter-N.md`（upsertMemoryFile）
 5. 清除 `compaction_pending_until`
 
-**降级**：若 `compaction_pending_until > NOW()`，`assembleContext` 跳过该章摘要，使用近期原文场景替代。
+**降级**：压缩完成前章节摘要文件尚未写入 DB，`assembleContext` 加载不到该章摘要，系统自动退化为近期原文场景（recentK 窗口内的 scenes）提供上下文，不影响其他层级的记忆注入。
 
 ---
 
