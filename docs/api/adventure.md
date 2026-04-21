@@ -186,7 +186,9 @@ AI 冒险故事对话（SSE 流式）。
 
 流结束标记：`data: [DONE]\n\n`
 
-> **事件顺序**：`story_created`（新档）→ `narrative_delta`（多次）→ `thinking` → `tool_result` → `story_saved` → `memory_updated`（若有）→ `awakening_event`（若觉醒触发）→ `scene_image_pending`（若有图）→ `answer` → `scene_image`（异步）→ `chapter_compacted`（若章末）→ `[DONE]`
+> **事件顺序**：`story_created`（新档）→ `narrative_delta`（多次）→ `thinking` → `tool_result` → `awakening_event`（若觉醒触发）→ `scene_image_pending`（若有图）→ `story_saved`（异步）→ `memory_updated`（若有，异步）→ `answer` → `scene_image`（异步）→ `chapter_compacted`（若章末）→ `[DONE]`
+>
+> 注：`awakening_event` 与 `scene_image_pending` 在 `tool_result` 后同步发送；`story_saved`、`memory_updated` 由异步 DB 任务写入，通常在 `answer` 前到达，但不保证顺序。
 
 ---
 

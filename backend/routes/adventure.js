@@ -9,7 +9,7 @@
  * - 章节压缩：is_chapter_end=true 时 fire-and-forget 触发独立 LLM 调用生成章节摘要
  * - 并发控制：story 级别乐观锁（lock_token + lock_expires_at）
  *
- * 新增只读端点：
+ * 只读端点：
  * - GET /api/adventure/stories — 列出用户故事
  * - GET /api/adventure/stories/:id — 获取单个故事（含近期场景，用于恢复游戏）
  *

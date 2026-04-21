@@ -282,8 +282,8 @@ async function applyMemoryUpdates(storyId, updates, sceneSeq) {
 
   const sequelize = getSequelize();
 
-  // 限制每轮最多 5 条（防止 LLM 越界）
-  const safeUpdates = updates.slice(0, 5);
+  // 限制每轮最多 3 条（与 system prompt 和工具定义保持一致）
+  const safeUpdates = updates.slice(0, 3);
 
   await sequelize.transaction(async (t) => {
     for (const upd of safeUpdates) {

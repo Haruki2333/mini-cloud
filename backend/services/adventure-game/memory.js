@@ -9,6 +9,7 @@
  */
 
 const dao = require("./dao");
+const { chatStream } = require("../core/llm");
 
 // ===== 上下文装配 =====
 
@@ -35,11 +36,9 @@ async function assembleContext(storyId, { recentK = 6 } = {}) {
 
   // 获取最近 recentK 场景的最大 seq（用于判断"最近 2 章出场"）
   const recentScenes = await dao.getScenes(storyId, { limit: recentK, desc: true });
-  const recentChapters = new Set(recentScenes.map((s) => s.chapter));
-  // 至少包含最近 2 章
-  const minRecentChapter = recentScenes.length > 0
-    ? Math.max(1, Math.min(...Array.from(recentChapters)) - 1)
-    : 1;
+  const minRecentSeq = recentScenes.length > 0
+    ? Math.min(...recentScenes.map((s) => s.seq))
+    : 0;
 
   // 按类型分组
   const pinnedFiles = allFiles.filter((f) => f.pinned);
@@ -49,15 +48,10 @@ async function assembleContext(storyId, { recentK = 6 } = {}) {
   );
   const scratchFiles = allFiles.filter((f) => f.node_type === "scratch");
 
-  // 实体文件：按"是否最近 2 章出场"分为全文 / 摘要两组
+  // 实体文件：按"是否最近 recentK 场景内出场"分为全文 / 摘要两组
   const recentEntityFiles = [];
   const distantEntityFiles = [];
   for (const f of entityFiles) {
-    // last_scene_seq 对应的 scene 的 chapter 判断——简化：用 last_scene_seq 估算
-    // 最近 recentK 场景中最小 seq
-    const minRecentSeq = recentScenes.length > 0
-      ? Math.min(...recentScenes.map((s) => s.seq))
-      : 0;
     if (f.last_scene_seq >= minRecentSeq) {
       recentEntityFiles.push(f);
     } else {
@@ -230,7 +224,6 @@ ${sceneTexts.join("\n\n")}
 直接输出摘要文本，不要加标题或额外说明。`;
 
     // 调用 LLM 生成摘要（非流式，直接取 content）
-    const { chatStream } = require("../core/llm");
     let summary = "";
     let compactLlmUsage = null;
     for await (const event of chatStream(
