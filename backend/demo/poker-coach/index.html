@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>扑克教练</title>
+  <link rel="stylesheet" href="/poker/css/style.css" />
+</head>
+<body>
+  <div class="page" id="page">
+
+    <!-- 顶部导航 -->
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;">
+        <span style="font-size:20px;">♠</span>
+        <div>
+          <div class="topbar-title">扑克教练</div>
+          <div class="topbar-subtitle">德州扑克复盘 Agent</div>
+        </div>
+      </div>
+      <a href="/poker/profile.html" class="btn-icon" title="设置">⚙</a>
+    </div>
+
+    <!-- 滚动内容 -->
+    <div class="scroll-area" id="scrollArea">
+
+      <!-- Leak 分析入口（≥10 手时显示） -->
+      <div id="leakBanner" style="display:none;">
+        <a href="/poker/analysis.html?mode=leaks" class="leak-banner">
+          <div class="leak-banner-icon">🔍</div>
+          <div class="leak-banner-text">
+            <div class="leak-banner-title">Leak 分析</div>
+            <div class="leak-banner-sub" id="leakBannerSub">分析你的重复问题模式</div>
+          </div>
+          <div class="leak-banner-arrow">›</div>
+        </a>
+      </div>
+
+      <!-- 未满 10 手提示 -->
+      <div id="leakLocked" style="display:none;">
+        <div class="card">
+          <div class="card-body" style="display:flex;align-items:center;gap:12px;">
+            <div style="font-size:24px;">🔒</div>
+            <div>
+              <div style="font-size:14px;font-weight:600;color:var(--text);">Leak 分析（待解锁）</div>
+              <div style="font-size:12px;color:var(--text-2);margin-top:2px;" id="leakLockedSub">累计录入 10 手后自动解锁</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 手牌列表 -->
+      <div class="section-label" id="listLabel" style="display:none;">历史手牌</div>
+
+      <div class="card" id="handListCard" style="display:none;">
+        <div id="handListBody"></div>
+      </div>
+
+      <!-- 空状态 -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🃏</div>
+        <div class="empty-title">还没有手牌记录</div>
+        <div class="empty-desc">点击下方按钮录入第一手牌，<br>开始你的复盘之旅</div>
+      </div>
+
+    </div>
+
+    <!-- 悬浮录入按钮 -->
+    <div style="padding:12px 16px;background:var(--surface);border-top:1px solid var(--border);">
+      <a href="/poker/form.html" class="btn btn-primary btn-full">
+        + 录入新手牌
+      </a>
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/poker/js/types.js"></script>
+  <script src="/poker/js/storage.js"></script>
+  <script src="/poker/js/home.js"></script>
+</body>
+</html>

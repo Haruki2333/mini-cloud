@@ -7,7 +7,7 @@
 ## 项目概述
 
 - 这是一个微信小程序 Monorepo 项目，多个小程序前端共用一个后端服务，使用 pnpm workspaces 管理，小程序不纳入 pnpm workspace，它们由微信开发者工具独立管理。
-- 后端同时托管 H5 Demo 页面，H5 Demo 页面放在 `backend/demo/` 下，由 Express 静态文件中间件提供服务（根路径 `/` 对应 finance-assistant，`/adventure` 对应 adventure-game）
+- 后端同时托管 H5 Demo 页面，H5 Demo 页面放在 `backend/demo/` 下，由 Express 静态文件中间件提供服务（根路径 `/` 对应 finance-assistant，`/adventure` 对应 adventure-game，`/poker` 对应 poker-coach）
 
 ## 项目结构
 
@@ -29,21 +29,28 @@ mini-cloud/
 │   │   │   ├── models.js           # 数据库模型定义（User/FinanceRecord/UserCategory/MonthlySummary）
 │   │   │   ├── dao.js              # 财务数据 CRUD + 月度汇总
 │   │   │   └── skills.js           # 财务记录技能（expense/income/budget）
-│   │   └── adventure-game/         # 冒险游戏 demo 专属模块
-│   │       ├── brain-config.js     # 系统提示词 + enhancePrompt 钩子（章节制 + 记忆注入）
-│   │       ├── skills.js           # 冒险技能（advance_story；新增 chapter/beat/memory_updates）
-│   │       ├── models.js           # 数据库模型（adventure_stories/memory_files/scenes）
-│   │       ├── dao.js              # CRUD + 并发锁 + 场景序号生成
-│   │       └── memory.js           # 记忆装配（assembleContext/buildMemoryBlock）+ 章节压缩
+│   │   ├── adventure-game/         # 冒险游戏 demo 专属模块
+│   │   │   ├── brain-config.js     # 系统提示词 + enhancePrompt 钩子（章节制 + 记忆注入）
+│   │   │   ├── skills.js           # 冒险技能（advance_story；新增 chapter/beat/memory_updates）
+│   │   │   ├── models.js           # 数据库模型（adventure_stories/memory_files/scenes）
+│   │   │   ├── dao.js              # CRUD + 并发锁 + 场景序号生成
+│   │   │   └── memory.js           # 记忆装配（assembleContext/buildMemoryBlock）+ 章节压缩
+│   │   └── poker-coach/            # 扑克教练 demo 专属模块
+│   │       ├── brain-config.js     # 系统提示词 + enhancePrompt 钩子（注入用户手牌统计）
+│   │       ├── skills.js           # 工具：get_hand_detail/save_analysis/get_user_analyses/save_leaks
+│   │       ├── models.js           # 数据库模型（poker_users/hands/analyses/leaks）
+│   │       └── dao.js              # CRUD（手牌录入、分析保存、Leak 全量替换）
 │   ├── demo/                       # H5 Demo 页面（静态文件）
 │   │   ├── finance-assistant/      # 财务助理 Demo（根路径 /，文字对话，收支记录与分析）
-│   │   └── adventure-game/         # 冒险游戏 Demo（/adventure，玩家自由文本驱动 + AI 文生图异步下发）
+│   │   ├── adventure-game/         # 冒险游戏 Demo（/adventure，玩家自由文本驱动 + AI 文生图异步下发）
+│   │   └── poker-coach/            # 扑克教练 Demo（/poker，结构化表单录入 + 分析卡片 + 追问）
 │   └── Dockerfile
 ├── docs/                           # 项目文档/知识库
 │   ├── api/                        # 接口文档（按业务域组织）
 │   ├── db/                         # 数据库表结构文档
 │   │   ├── finance.md              # 财务助理表结构（users/finance_records/monthly_summary）
-│   │   └── adventure.md            # 冒险游戏表结构（adventure_stories/memory_files/scenes）
+│   │   ├── adventure.md            # 冒险游戏表结构（adventure_stories/memory_files/scenes）
+│   │   └── poker.md                # 扑克教练表结构（poker_users/hands/analyses/leaks）
 │   └── ui/                         # 设计文档
 ├── miniprogs/                      # 小程序前端项目，每个子目录为一个独立小程序
 └── pnpm-workspace.yaml
@@ -71,6 +78,11 @@ mini-cloud/
 - `POST /api/adventure/completions` — 冒险游戏 AI 对话（SSE 流式，玩家自由文本驱动故事；支持 50+ 场景长篇、跨天续玩；入参新增 `story_id`；服务端装配虚拟文件树记忆 + 章节摘要注入 system prompt；每轮从 `memory_updates` 落库记忆；开局/结局各生成一张背景图）
 - `GET /api/adventure/stories` — 用户存档列表（需 X-Anon-Token 或 x-wx-openid）
 - `GET /api/adventure/stories/:id` — 单个存档详情（含近期 12 个场景，用于恢复游戏）
+- `POST /api/poker/completions` — 扑克教练 AI 对话（SSE 流式；分析手牌、Leak 识别、追问）
+- `POST /api/poker/hands` — 录入新手牌（结构化表单，无 LLM）
+- `GET /api/poker/hands` — 手牌列表
+- `GET /api/poker/hands/:id` — 手牌详情 + 分析结果
+- `GET /api/poker/leaks` — 用户 Leak 模式列表
 - `GET /api/wx_openid` — 获取微信 Open ID（小程序专用）
 
 完整接口文档见 `docs/api/` 目录。
@@ -79,5 +91,5 @@ mini-cloud/
 
 - 使用 MySQL + Sequelize ORM，启动时自动建表（`initDB()`）
 - 环境变量：`MYSQL_ADDRESS`（host:port）、`MYSQL_USERNAME`、`MYSQL_PASSWORD`、`MYSQL_DATABASE`（默认 `mini_cloud`）
-- 表结构文档见 `docs/db/finance.md`（财务助理）、`docs/db/adventure.md`（冒险游戏）
+- 表结构文档见 `docs/db/finance.md`（财务助理）、`docs/db/adventure.md`（冒险游戏）、`docs/db/poker.md`（扑克教练）
 - 用户标识：微信小程序通过 `x-wx-openid` 请求头，H5 Demo 通过前端生成的 UUID 匿名令牌（`X-Anon-Token`）
