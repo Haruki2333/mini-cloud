@@ -72,6 +72,19 @@ async function resolveUserId(req) {
   return dao.findOrCreateUser(token);
 }
 
+async function withUser(req, res, fn) {
+  try {
+    const userId = await resolveUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: "缺少用户标识" });
+    }
+    await fn(userId);
+  } catch (err) {
+    console.error("[PokerRoute]", err);
+    res.status(500).json({ error: "服务内部错误" });
+  }
+}
+
 // ===== SSE：对话（分析 + 追问 + Leak）=====
 
 async function handleCompletions(req, res) {
@@ -95,7 +108,7 @@ async function handleCompletions(req, res) {
 
     const userId = await resolveUserId(req);
     if (!userId) {
-      return res.status(401).json({ error: "缺少用户标识（X-Anon-Token）" });
+      return res.status(401).json({ error: "缺少用户标识（X-Anon-Token 或 x-wx-openid）" });
     }
 
     const totalHands = await dao.countHands(userId);
@@ -126,55 +139,25 @@ async function handleCompletions(req, res) {
 // ===== REST：手牌 CRUD =====
 
 async function handleCreateHand(req, res) {
-  try {
-    const userId = await resolveUserId(req);
-    if (!userId) {
-      return res.status(401).json({ error: "缺少用户标识" });
-    }
-
-    const {
-      blind_level, table_type, hero_position, hero_cards,
-      effective_stack_bb, opponent_notes,
-      preflop_actions, flop_cards, flop_actions,
-      turn_card, turn_actions, river_card, river_actions,
-      result_bb, showdown_opp_cards, notes, played_at,
-    } = req.body;
-
+  await withUser(req, res, async (userId) => {
+    const { blind_level, hero_position, hero_cards, preflop_actions } = req.body;
     if (!blind_level || !hero_position || !hero_cards || !preflop_actions) {
       return res.status(400).json({ error: "缺少必填字段：blind_level / hero_position / hero_cards / preflop_actions" });
     }
-
     const handId = await dao.createHand(userId, req.body);
     res.json({ hand_id: handId });
-  } catch (err) {
-    console.error("[PokerRoute] 创建手牌失败:", err);
-    res.status(500).json({ error: "服务内部错误" });
-  }
+  });
 }
 
 async function handleListHands(req, res) {
-  try {
-    const userId = await resolveUserId(req);
-    if (!userId) {
-      return res.status(401).json({ error: "缺少用户标识" });
-    }
-
+  await withUser(req, res, async (userId) => {
     const hands = await dao.listHands(userId);
-    const total = hands.length;
-    res.json({ total, hands });
-  } catch (err) {
-    console.error("[PokerRoute] 列出手牌失败:", err);
-    res.status(500).json({ error: "服务内部错误" });
-  }
+    res.json({ total: hands.length, hands });
+  });
 }
 
 async function handleGetHand(req, res) {
-  try {
-    const userId = await resolveUserId(req);
-    if (!userId) {
-      return res.status(401).json({ error: "缺少用户标识" });
-    }
-
+  await withUser(req, res, async (userId) => {
     const handId = parseInt(req.params.id, 10);
     if (!handId) return res.status(400).json({ error: "无效的手牌 ID" });
 
@@ -182,26 +165,17 @@ async function handleGetHand(req, res) {
     if (!hand) return res.status(404).json({ error: "手牌不存在" });
 
     res.json(hand);
-  } catch (err) {
-    console.error("[PokerRoute] 获取手牌失败:", err);
-    res.status(500).json({ error: "服务内部错误" });
-  }
+  });
 }
 
 async function handleGetLeaks(req, res) {
-  try {
-    const userId = await resolveUserId(req);
-    if (!userId) {
-      return res.status(401).json({ error: "缺少用户标识" });
-    }
-
-    const leaks = await dao.getLeaks(userId);
-    const totalHands = await dao.countHands(userId);
+  await withUser(req, res, async (userId) => {
+    const [leaks, totalHands] = await Promise.all([
+      dao.getLeaks(userId),
+      dao.countHands(userId),
+    ]);
     res.json({ total_hands: totalHands, leaks });
-  } catch (err) {
-    console.error("[PokerRoute] 获取 Leak 失败:", err);
-    res.status(500).json({ error: "服务内部错误" });
-  }
+  });
 }
 
 // ===== 路由组装 =====
