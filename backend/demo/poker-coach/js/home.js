@@ -50,7 +50,7 @@ function renderHands(handList, total) {
     leakBanner.style.display = "block";
     leakLocked.style.display = "none";
     var analyzed = handList.filter(function (h) { return h.is_analyzed; }).length;
-    leakBannerSub.textContent = "已分析 " + analyzed + " 手，点击识别重复问题";
+    leakBannerSub.textContent = "已分析 " + analyzed + " 手 · 点击识别重复问题";
   } else {
     leakBanner.style.display = "none";
     leakLocked.style.display = "block";
