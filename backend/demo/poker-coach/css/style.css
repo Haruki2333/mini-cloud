@@ -978,9 +978,541 @@ select.form-control {
   display: flex;
 }
 
+/* ===== 录入向导：页面高度约束（让 scroll-area 自己滚动，而非 body） ===== */
+
+.page-fixed {
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+/* ===== 录入向导：步骤条 ===== */
+
+.wizard-steps {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px 12px;
+  background: var(--paper);
+  border-bottom: 1px dashed var(--ink-line);
+  position: sticky;
+  top: 56px;
+  z-index: 90;
+}
+
+.wizard-step {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-hand);
+  font-size: 16px;
+  color: var(--ink-faint);
+  padding: 6px 0;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.18s;
+}
+
+.wizard-step.done {
+  color: var(--ink);
+  border-bottom-color: rgba(43,34,26,0.25);
+}
+
+.wizard-step.active {
+  color: var(--red);
+  border-bottom: 2px solid var(--red);
+  border-bottom-style: dashed;
+}
+
+/* ===== 录入向导：底部按钮栏 ===== */
+
+.wizard-bottombar {
+  flex-shrink: 0;
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px 20px;
+  background: var(--paper);
+  border-top: 1px dashed var(--ink-line);
+}
+
+.wizard-bottombar .btn {
+  flex: 1;
+}
+
+.wizard-bottombar .btn-secondary {
+  flex: 0 0 110px;
+}
+
+.wizard-bottombar .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ===== 表单提示 ===== */
+
+.form-hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-family: var(--font-hand);
+  font-size: 16px;
+  font-style: italic;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-link:hover { color: var(--red); }
+
+/* ===== 盲注 chip / 行动 chip ===== */
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 6px 12px;
+  border: 1.5px solid rgba(43,34,26,0.3);
+  background: transparent;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 0;
+  transition: all 0.15s;
+}
+
+.chip:hover { background: var(--paper-dark); }
+
+.chip.active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+  box-shadow: 2px 2px 0 rgba(43,34,26,0.2);
+}
+
+.chip-sm {
+  padding: 4px 10px;
+  border: 1px dashed rgba(43,34,26,0.35);
+  background: transparent;
+  font-family: var(--font-hand);
+  font-size: 15px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-radius: 0;
+  transition: all 0.15s;
+}
+
+.chip-sm:hover { color: var(--red); border-color: var(--red); }
+
+.action-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* ===== Segmented control ===== */
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1.5px solid var(--ink);
+  background: transparent;
+}
+
+.segmented button {
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  border-right: 1px dashed var(--ink-line);
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.segmented button:last-child { border-right: none; }
+.segmented button.active {
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+}
+
+/* ===== 圆桌 + 座位 ===== */
+
+.poker-table-wrap {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  margin: 4px auto 0;
+}
+
+.poker-table {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(43,34,26,0.35);
+  box-shadow: inset 0 0 0 8px var(--paper),
+              inset 0 0 0 9px rgba(43,34,26,0.18);
+  background:
+    radial-gradient(ellipse at 30% 25%, rgba(255,255,255,0.18) 0%, transparent 55%),
+    var(--paper-dark);
+}
+
+.poker-table-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  width: 110px;
+}
+
+.poker-table-blind {
+  font-family: var(--font-hand);
+  font-size: 22px;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.poker-table-type {
+  font-family: var(--font);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+
+.seat {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  padding: 0;
+  transition: all 0.15s;
+}
+
+.seat:hover {
+  background: var(--paper-dark);
+}
+
+.seat.selected {
+  background: var(--ink);
+  color: var(--paper);
+  border-width: 2.5px;
+  box-shadow: 2px 2px 0 rgba(43,34,26,0.3);
+}
+
+.position-hint {
+  font-family: var(--font-hand);
+  font-size: 16px;
+  color: var(--ink-faint);
+  text-align: center;
+  margin-top: 14px;
+}
+
+.position-hint.filled { color: var(--red); }
+
+/* ===== Card slot（点选式发牌） ===== */
+
+.card-slot-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.card-slot {
+  width: 88px;
+  height: 124px;
+  background: var(--paper-dark);
+  border: 1.5px dashed rgba(43,34,26,0.4);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-hand);
+  font-size: 15px;
+  color: var(--ink-faint);
+  transition: all 0.15s;
+}
+
+.card-slot:nth-child(odd)  { transform: rotate(-1.2deg); }
+.card-slot:nth-child(even) { transform: rotate(0.8deg); }
+
+.card-slot:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.card-slot.filled {
+  background: var(--paper);
+  border-style: solid;
+  border-color: var(--ink);
+  box-shadow: 2px 3px 0 rgba(43,34,26,0.12);
+}
+
+.card-slot.small {
+  width: 56px;
+  height: 78px;
+  font-size: 13px;
+}
+
+.card-slot-placeholder { font-style: italic; }
+
+.card-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--font);
+  line-height: 1;
+}
+
+.card-face.red   { color: var(--red); }
+.card-face.black { color: var(--ink); }
+
+.card-face .cf-rank {
+  font-size: 36px;
+  font-weight: 600;
+}
+
+.card-slot.small .card-face .cf-rank { font-size: 24px; }
+
+.card-face .cf-suit {
+  font-size: 28px;
+  margin-top: 4px;
+}
+
+.card-slot.small .card-face .cf-suit { font-size: 18px; margin-top: 2px; }
+
+.hand-tip {
+  text-align: center;
+  margin-top: 14px;
+  font-family: var(--font-hand);
+  font-size: 22px;
+  color: var(--red);
+  min-height: 28px;
+}
+
+/* ===== Street pane（行动卡片） ===== */
+
+.street-pane {
+  background: #F7EED6;
+  border: 1px solid var(--ink-line);
+  box-shadow: var(--shadow-sm);
+  padding: 14px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.street-pane-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.street-pane-name {
+  font-family: var(--font-hand);
+  font-size: 22px;
+  color: var(--ink);
+}
+
+.street-remove {
+  background: none;
+  border: none;
+  font-family: var(--font-hand);
+  font-size: 14px;
+  color: var(--ink-faint);
+  font-style: italic;
+  cursor: pointer;
+  padding: 0;
+}
+
+.street-remove:hover { color: var(--red); }
+
+.street-add {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 1.5px dashed var(--ink-line);
+  font-family: var(--font-hand);
+  font-size: 18px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-radius: 0;
+  margin-bottom: 14px;
+  transition: all 0.15s;
+}
+
+.street-add:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.board-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ===== 结果输入：正负 ===== */
+
+.result-stepper {
+  display: grid;
+  grid-template-columns: 46px 1fr 46px;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.result-sign {
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  font-family: var(--font);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.result-sign:hover { background: var(--paper-dark); }
+
+.result-stepper input {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 18px;
+}
+
+/* ===== 选牌器（底部弹层） ===== */
+
+.card-picker-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(43,34,26,0.45);
+  z-index: 998;
+}
+
+.card-picker-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  background: var(--paper);
+  border-top: 1.5px solid var(--ink);
+  box-shadow: 0 -6px 0 rgba(43,34,26,0.1);
+  z-index: 999;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-picker-header {
+  padding: 12px 16px;
+  border-bottom: 1px dashed var(--ink-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-hand);
+  font-size: 22px;
+  color: var(--ink);
+}
+
+.card-picker-body {
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.picker-step {
+  font-family: var(--font-hand);
+  font-size: 17px;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+
+.picked-rank {
+  margin-left: 6px;
+  color: var(--red);
+  font-weight: 600;
+}
+
+.rank-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.rank-grid button {
+  height: 44px;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  border-radius: 0;
+  font-family: var(--font);
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.rank-grid button:hover { background: var(--paper-dark); }
+.rank-grid button.active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.suit-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.suit-grid button {
+  height: 64px;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  border-radius: 0;
+  font-size: 32px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.suit-grid button:hover { background: var(--paper-dark); }
+.suit-grid button.red   { color: var(--red); }
+.suit-grid button.black { color: var(--ink); }
+
 /* ===== 响应式微调 ===== */
 
 @media (max-width: 360px) {
   .hand-summary { grid-template-columns: repeat(3, 1fr); }
   .form-row { grid-template-columns: 1fr; }
+  .poker-table-wrap { width: 240px; height: 240px; }
+  .seat { width: 50px; height: 50px; font-size: 12px; }
+  .card-slot { width: 76px; height: 108px; }
 }

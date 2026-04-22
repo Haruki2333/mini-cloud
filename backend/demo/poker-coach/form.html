@@ -7,190 +7,251 @@
   <link rel="stylesheet" href="/poker/css/style.css" />
 </head>
 <body>
-  <div class="page">
+  <div class="page page-fixed">
 
     <!-- 顶部导航 -->
     <div class="topbar">
-      <a href="/poker/" class="btn-icon">←</a>
-      <div class="topbar-title" style="font-size:20px;">记录这手牌</div>
+      <a href="/poker/" class="btn-icon" id="topbarBack">←</a>
+      <div class="topbar-title" id="stepTitle" style="font-size:22px;">坐到了哪里？</div>
+      <div class="topbar-subtitle" id="stepCounter">1/4</div>
     </div>
 
-    <!-- 滚动表单 -->
-    <div class="scroll-area">
-      <form id="handForm" autocomplete="off">
-
-        <!-- 基本信息 -->
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">基本信息</span>
-          </div>
-          <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">盲注 <span class="required">*</span></label>
-                <input class="form-control" id="blindLevel" type="text" placeholder="如 1/2、5/10" required />
-              </div>
-              <div class="form-group">
-                <label class="form-label">桌型 <span class="required">*</span></label>
-                <select class="form-control" id="tableType" required>
-                  <option value="6max">6-Max</option>
-                  <option value="9max">9-Max</option>
-                  <option value="hu">Heads-Up</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Hero 位置 <span class="required">*</span></label>
-                <select class="form-control" id="heroPosition" required>
-                  <!-- 动态填充 -->
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">起手牌 <span class="required">*</span></label>
-                <input class="form-control" id="heroCards" type="text" placeholder="如 AsKd / AKs" required />
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">有效筹码 (BB)</label>
-                <input class="form-control" id="effectiveStack" type="number" min="1" step="0.5" placeholder="如 100" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">牌局日期</label>
-                <input class="form-control" id="playedAt" type="date" />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">对手信息（选填）</label>
-              <input class="form-control" id="opponentNotes" type="text" placeholder="如：BTN 是激进的 reg，倾向超大注" />
-            </div>
-
-          </div>
-        </div>
-
-        <!-- 翻前 -->
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">翻前 Preflop <span style="color:var(--red);">*</span></span>
-          </div>
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">行动序列</label>
-              <textarea class="form-control" id="preflopActions" rows="3"
-                placeholder="如：UTG fold，CO raise 3BB，BTN fold，SB fold，BB (Hero) 3bet 9BB，CO call" required></textarea>
-              <div style="font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);margin-top:4px;letter-spacing:0.5px;text-transform:uppercase;">
-                每位玩家的操作，用逗号或换行分隔
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 翻牌（可展开） -->
-        <div class="card">
-          <div class="card-body" style="padding:0 16px;">
-            <button type="button" class="street-toggle" id="flopToggle" aria-expanded="false"
-              onclick="toggleStreet('flop')">
-              <span class="street-toggle-label">翻牌 Flop（如有）</span>
-              <span class="street-toggle-arrow">▼</span>
-            </button>
-          </div>
-          <div class="street-fields" id="flopFields" style="padding:0 16px 16px;">
-            <div class="form-group">
-              <label class="form-label">公共牌</label>
-              <input class="form-control" id="flopCards" type="text" placeholder="如 Ah 7h 2c" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">行动序列</label>
-              <textarea class="form-control" id="flopActions" rows="2"
-                placeholder="如：BB (Hero) check，CO bet 6BB，BB call"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- 转牌（可展开） -->
-        <div class="card">
-          <div class="card-body" style="padding:0 16px;">
-            <button type="button" class="street-toggle" id="turnToggle" aria-expanded="false"
-              onclick="toggleStreet('turn')">
-              <span class="street-toggle-label">转牌 Turn（如有）</span>
-              <span class="street-toggle-arrow">▼</span>
-            </button>
-          </div>
-          <div class="street-fields" id="turnFields" style="padding:0 16px 16px;">
-            <div class="form-group">
-              <label class="form-label">转牌</label>
-              <input class="form-control" id="turnCard" type="text" placeholder="如 Kd" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">行动序列</label>
-              <textarea class="form-control" id="turnActions" rows="2"
-                placeholder="如：BB bet 15BB，CO raise 45BB，BB fold"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- 河牌（可展开） -->
-        <div class="card">
-          <div class="card-body" style="padding:0 16px;">
-            <button type="button" class="street-toggle" id="riverToggle" aria-expanded="false"
-              onclick="toggleStreet('river')">
-              <span class="street-toggle-label">河牌 River（如有）</span>
-              <span class="street-toggle-arrow">▼</span>
-            </button>
-          </div>
-          <div class="street-fields" id="riverFields" style="padding:0 16px 16px;">
-            <div class="form-group">
-              <label class="form-label">河牌</label>
-              <input class="form-control" id="riverCard" type="text" placeholder="如 5h" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">行动序列</label>
-              <textarea class="form-control" id="riverActions" rows="2"
-                placeholder="如：BB check，CO bet 50BB，BB call"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- 结果 -->
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">结果</span>
-          </div>
-          <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">赢/输（BB 数）</label>
-                <input class="form-control" id="resultBB" type="number" step="0.5"
-                  placeholder="赢填正数，输填负数" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">对手底牌（选填）</label>
-                <input class="form-control" id="showdownOppCards" type="text" placeholder="如 7d7s" />
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">备注（选填）</label>
-              <textarea class="form-control" id="notes" rows="2"
-                placeholder="记录你的想法或疑惑…"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- 提交 -->
-        <button type="submit" class="btn btn-primary btn-full" id="submitBtn">
-          保存并分析
-        </button>
-
-        <div style="height:8px;"></div>
-
-      </form>
+    <!-- 步骤进度条 -->
+    <div class="wizard-steps" id="wizardSteps">
+      <div class="wizard-step active" data-idx="0">局况</div>
+      <div class="wizard-step" data-idx="1">起手牌</div>
+      <div class="wizard-step" data-idx="2">行动</div>
+      <div class="wizard-step" data-idx="3">结果</div>
     </div>
 
+    <!-- 内容区（按步骤切换） -->
+    <div class="scroll-area" id="scrollArea">
+
+      <!-- ======= Step 0: 局况 ======= -->
+      <div class="wizard-pane" data-pane="0">
+
+        <div class="form-group">
+          <label class="form-label">盲注 <span class="required">*</span></label>
+          <div class="chip-row" id="blindChips">
+            <button type="button" class="chip" data-blind="0.5/1">0.5/1</button>
+            <button type="button" class="chip" data-blind="1/2">1/2</button>
+            <button type="button" class="chip" data-blind="2/5">2/5</button>
+            <button type="button" class="chip" data-blind="5/10">5/10</button>
+            <button type="button" class="chip" data-blind="10/25">10/25</button>
+            <button type="button" class="chip" data-blind="25/50">25/50</button>
+            <button type="button" class="chip" data-blind="__custom__">自定义</button>
+          </div>
+          <input class="form-control" id="blindCustom" type="text"
+            placeholder="如 3/6" style="display:none;margin-top:8px;" />
+        </div>
+
+        <div class="form-group" style="margin-top:18px;">
+          <label class="form-label">桌型 <span class="required">*</span></label>
+          <div class="segmented" id="tableSeg">
+            <button type="button" data-table="6max" class="active">6-Max</button>
+            <button type="button" data-table="9max">9-Max</button>
+            <button type="button" data-table="hu">Heads-Up</button>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:22px;">
+          <label class="form-label">Hero 位置 <span class="required">*</span></label>
+          <div class="poker-table-wrap">
+            <div class="poker-table" id="positionTable"></div>
+            <div class="poker-table-center">
+              <div class="poker-table-blind" id="centerBlind">—</div>
+              <div class="poker-table-type" id="centerType">six-max</div>
+            </div>
+          </div>
+          <div class="position-hint" id="positionHint">点上方圆圈选你坐的位置</div>
+        </div>
+
+        <div class="form-row" style="margin-top:18px;">
+          <div class="form-group">
+            <label class="form-label">有效筹码 (BB)</label>
+            <input class="form-control" id="effectiveStack" type="number" min="1" step="0.5" placeholder="如 100" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">牌局日期</label>
+            <input class="form-control" id="playedAt" type="date" />
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ======= Step 1: 起手牌 ======= -->
+      <div class="wizard-pane" data-pane="1" hidden>
+
+        <div class="form-group" style="text-align:center;">
+          <label class="form-label" style="text-align:center;">点击发两张</label>
+          <div class="card-slot-row" style="margin-top:8px;">
+            <button type="button" class="card-slot" data-target="hero:0">
+              <span class="card-slot-placeholder">card 1</span>
+            </button>
+            <button type="button" class="card-slot" data-target="hero:1">
+              <span class="card-slot-placeholder">card 2</span>
+            </button>
+          </div>
+          <button type="button" class="btn-link" id="heroClear" style="margin-top:8px;">清空</button>
+        </div>
+
+        <div class="hand-tip" id="handTip"></div>
+
+      </div>
+
+      <!-- ======= Step 2: 行动 ======= -->
+      <div class="wizard-pane" data-pane="2" hidden>
+
+        <div class="street-pane">
+          <div class="street-pane-header">
+            <span class="street-pane-name">翻前 Preflop <span class="required">*</span></span>
+          </div>
+          <textarea class="form-control" id="preflopActions" rows="3"
+            placeholder="如：UTG fold，CO raise 3，BTN fold，SB fold，Hero 3bet 9，CO call"></textarea>
+          <div class="action-chips" data-target="preflopActions">
+            <button type="button" class="chip-sm" data-snip="Hero ">Hero</button>
+            <button type="button" class="chip-sm" data-snip="open 3">open 3</button>
+            <button type="button" class="chip-sm" data-snip="fold">fold</button>
+            <button type="button" class="chip-sm" data-snip="call">call</button>
+            <button type="button" class="chip-sm" data-snip="3bet ">3bet</button>
+            <button type="button" class="chip-sm" data-snip="，">，</button>
+          </div>
+        </div>
+
+        <button type="button" class="street-add" data-add="flop">+ 翻牌 Flop</button>
+        <div class="street-pane" data-street="flop" hidden>
+          <div class="street-pane-header">
+            <span class="street-pane-name">翻牌 Flop</span>
+            <button type="button" class="street-remove" data-remove="flop">移除</button>
+          </div>
+          <div class="board-row" id="flopBoard">
+            <button type="button" class="card-slot small" data-target="flop:0"><span class="card-slot-placeholder">flop 1</span></button>
+            <button type="button" class="card-slot small" data-target="flop:1"><span class="card-slot-placeholder">flop 2</span></button>
+            <button type="button" class="card-slot small" data-target="flop:2"><span class="card-slot-placeholder">flop 3</span></button>
+          </div>
+          <textarea class="form-control" id="flopActions" rows="2"
+            placeholder="如：Hero check，CO bet 6，Hero call"></textarea>
+          <div class="action-chips" data-target="flopActions">
+            <button type="button" class="chip-sm" data-snip="Hero ">Hero</button>
+            <button type="button" class="chip-sm" data-snip="check">check</button>
+            <button type="button" class="chip-sm" data-snip="bet ">bet</button>
+            <button type="button" class="chip-sm" data-snip="call">call</button>
+            <button type="button" class="chip-sm" data-snip="raise ">raise</button>
+            <button type="button" class="chip-sm" data-snip="fold">fold</button>
+            <button type="button" class="chip-sm" data-snip="，">，</button>
+          </div>
+        </div>
+
+        <button type="button" class="street-add" data-add="turn" hidden>+ 转牌 Turn</button>
+        <div class="street-pane" data-street="turn" hidden>
+          <div class="street-pane-header">
+            <span class="street-pane-name">转牌 Turn</span>
+            <button type="button" class="street-remove" data-remove="turn">移除</button>
+          </div>
+          <div class="board-row">
+            <button type="button" class="card-slot small" data-target="turn:0"><span class="card-slot-placeholder">turn</span></button>
+          </div>
+          <textarea class="form-control" id="turnActions" rows="2"
+            placeholder="如：Hero bet 15，CO raise 45，Hero fold"></textarea>
+          <div class="action-chips" data-target="turnActions">
+            <button type="button" class="chip-sm" data-snip="Hero ">Hero</button>
+            <button type="button" class="chip-sm" data-snip="check">check</button>
+            <button type="button" class="chip-sm" data-snip="bet ">bet</button>
+            <button type="button" class="chip-sm" data-snip="call">call</button>
+            <button type="button" class="chip-sm" data-snip="raise ">raise</button>
+            <button type="button" class="chip-sm" data-snip="fold">fold</button>
+            <button type="button" class="chip-sm" data-snip="，">，</button>
+          </div>
+        </div>
+
+        <button type="button" class="street-add" data-add="river" hidden>+ 河牌 River</button>
+        <div class="street-pane" data-street="river" hidden>
+          <div class="street-pane-header">
+            <span class="street-pane-name">河牌 River</span>
+            <button type="button" class="street-remove" data-remove="river">移除</button>
+          </div>
+          <div class="board-row">
+            <button type="button" class="card-slot small" data-target="river:0"><span class="card-slot-placeholder">river</span></button>
+          </div>
+          <textarea class="form-control" id="riverActions" rows="2"
+            placeholder="如：Hero check，CO bet 50，Hero call"></textarea>
+          <div class="action-chips" data-target="riverActions">
+            <button type="button" class="chip-sm" data-snip="Hero ">Hero</button>
+            <button type="button" class="chip-sm" data-snip="check">check</button>
+            <button type="button" class="chip-sm" data-snip="bet ">bet</button>
+            <button type="button" class="chip-sm" data-snip="call">call</button>
+            <button type="button" class="chip-sm" data-snip="raise ">raise</button>
+            <button type="button" class="chip-sm" data-snip="fold">fold</button>
+            <button type="button" class="chip-sm" data-snip="，">，</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ======= Step 3: 结果 ======= -->
+      <div class="wizard-pane" data-pane="3" hidden>
+
+        <div class="form-group">
+          <label class="form-label">赢/输（BB 数）</label>
+          <div class="result-stepper">
+            <button type="button" class="result-sign" data-sign="-1">−</button>
+            <input class="form-control" id="resultBB" type="number" step="0.5" placeholder="0" />
+            <button type="button" class="result-sign" data-sign="1">+</button>
+          </div>
+          <div class="form-hint">赢填正数，输填负数</div>
+        </div>
+
+        <div class="form-group" style="margin-top:18px;">
+          <label class="form-label">对手底牌（选填）</label>
+          <div class="card-slot-row" style="justify-content:flex-start;">
+            <button type="button" class="card-slot small" data-target="opp:0"><span class="card-slot-placeholder">card 1</span></button>
+            <button type="button" class="card-slot small" data-target="opp:1"><span class="card-slot-placeholder">card 2</span></button>
+            <button type="button" class="btn-link" id="oppClear">清空</button>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:18px;">
+          <label class="form-label">对手信息（选填）</label>
+          <input class="form-control" id="opponentNotes" type="text"
+            placeholder="如：BTN 是激进的 reg，倾向超大注" />
+        </div>
+
+        <div class="form-group" style="margin-top:18px;">
+          <label class="form-label">备注（选填）</label>
+          <textarea class="form-control" id="notes" rows="3"
+            placeholder="记录你的想法或疑惑…"></textarea>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="wizard-bottombar">
+      <button type="button" class="btn btn-secondary" id="prevBtn" disabled>← 上一步</button>
+      <button type="button" class="btn btn-primary" id="nextBtn">下一步 →</button>
+    </div>
+
+  </div>
+
+  <!-- 选牌器（底部弹层） -->
+  <div class="card-picker-mask" id="cardPickerMask" hidden></div>
+  <div class="card-picker-sheet" id="cardPickerSheet" hidden>
+    <div class="card-picker-header">
+      <span id="cardPickerTitle">选张牌</span>
+      <button type="button" class="btn-icon" id="cardPickerClose">✕</button>
+    </div>
+    <div class="card-picker-body">
+      <div class="picker-step">① 点数</div>
+      <div class="rank-grid" id="rankGrid"></div>
+      <div class="picker-step" style="margin-top:14px;">② 花色 <span id="pickedRank" class="picked-rank"></span></div>
+      <div class="suit-grid" id="suitGrid">
+        <button type="button" data-suit="s" class="black">♠</button>
+        <button type="button" data-suit="h" class="red">♥</button>
+        <button type="button" data-suit="d" class="red">♦</button>
+        <button type="button" data-suit="c" class="black">♣</button>
+      </div>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
