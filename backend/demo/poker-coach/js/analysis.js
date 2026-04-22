@@ -140,9 +140,9 @@ function renderAnalysisCard(a) {
   if (a.better_action) {
     betterHtml =
       '<div>' +
-        '<div class="analysis-section-label">更优选择</div>' +
+        '<div class="analysis-section-label">better line</div>' +
         '<div class="analysis-better-action">' +
-          '<span style="font-size:16px;">→</span>' +
+          '<span style="color:var(--green);font-size:16px;">→</span>' +
           '<span>' + escHtml(a.better_action) + "</span>" +
         "</div>" +
       "</div>";
@@ -156,13 +156,13 @@ function renderAnalysisCard(a) {
       "</div>" +
       '<div class="analysis-card-body">' +
         '<div>' +
-          '<div class="analysis-section-label">场景</div>' +
+          '<div class="analysis-section-label">scenario</div>' +
           '<div class="analysis-text">' + escHtml(a.scenario) + "</div>" +
-          '<div class="analysis-hero-action" style="margin-top:8px;">Hero 的操作：' + escHtml(a.hero_action) + "</div>" +
+          '<div class="analysis-hero-action" style="margin-top:8px;">Hero: ' + escHtml(a.hero_action) + "</div>" +
         "</div>" +
         betterHtml +
         '<div>' +
-          '<div class="analysis-section-label">为什么</div>' +
+          '<div class="analysis-section-label" style="font-family:var(--font-hand);color:var(--red);font-size:17px;font-style:normal;">Coach\'s read —</div>' +
           '<div class="analysis-text">' + escHtml(a.reasoning) + "</div>" +
         "</div>" +
         '<div class="analysis-principle">' + escHtml(a.principle) + "</div>" +
@@ -183,23 +183,22 @@ async function startAnalysis() {
 
   var section = document.getElementById("analysisSection");
   section.innerHTML =
-    '<div style="display:flex;align-items:center;gap:10px;padding:16px 0;">' +
-      '<div class="spinner"></div>' +
-      '<span style="font-size:14px;color:var(--text-2);">教练正在复盘…</span>' +
-    "</div>";
+    '<div style="padding:20px 0;">' +
+      '<div style="font-family:var(--font-hand);font-size:20px;color:var(--ink-soft);font-style:italic;">' +
+        'coach is reading…' +
+      '</div>' +
+    '</div>';
 
   var initMsg = "请分析手牌 #" + HAND_ID + "，找出关键决策点并给出教练反馈。";
   chatMessages = [{ role: "user", content: initMsg }];
 
   await streamChat(chatMessages, function (answer) {
-    // 分析完成后重新加载手牌数据（含新保存的分析）
     fetch("/api/poker/hands/" + HAND_ID, { headers: buildHeaders() })
       .then(function (r) { return r.json(); })
       .then(function (hand) {
         section.innerHTML = "";
         renderExistingAnalyses(hand.analyses || []);
 
-        // 把 AI 的文字回复也显示在聊天区
         if (answer) {
           chatMessages.push({ role: "assistant", content: answer });
           appendChatBubble("assistant", answer);
@@ -207,9 +206,8 @@ async function startAnalysis() {
         }
       });
   }, function () {
-    // 出错
     section.innerHTML =
-      '<div style="padding:16px;color:var(--bad);font-size:14px;">分析失败，请重试。</div>';
+      '<div style="padding:16px;font-family:var(--font-hand);font-size:17px;color:var(--red);">分析失败，请重试。</div>';
     document.getElementById("analyzeButtonArea").style.display = "block";
   });
 }
@@ -251,7 +249,6 @@ async function sendChat() {
 async function initLeakMode() {
   var topSection = document.getElementById("leakTopSection");
 
-  // 先检查现有 Leak
   try {
     var resp = await fetch("/api/poker/leaks", { headers: buildHeaders() });
     var data = await resp.json();
@@ -260,7 +257,7 @@ async function initLeakMode() {
     if (totalHands < 10) {
       topSection.innerHTML =
         '<div class="empty-state">' +
-          '<div class="empty-icon">🔒</div>' +
+          '<div class="empty-icon">✕</div>' +
           '<div class="empty-title">手牌数量不足</div>' +
           '<div class="empty-desc">已录入 ' + totalHands + ' 手，需累计 10 手后才能分析 Leak</div>' +
         "</div>";
@@ -274,7 +271,8 @@ async function initLeakMode() {
       await startLeakAnalysis(topSection);
     }
   } catch (e) {
-    topSection.innerHTML = '<div style="padding:16px;color:var(--bad);">加载失败，请重试</div>';
+    topSection.innerHTML =
+      '<div style="padding:16px;font-family:var(--font-hand);font-size:17px;color:var(--red);">加载失败，请重试</div>';
   }
 }
 
@@ -282,7 +280,7 @@ function renderLeaks(leaks, container) {
   container.innerHTML =
     '<div class="card">' +
       '<div class="card-header">' +
-        '<span class="card-title">识别出的 Leak 模式</span>' +
+        '<span class="card-title">Leak 模式</span>' +
         '<button class="btn btn-sm btn-secondary" onclick="reAnalyzeLeaks()">重新分析</button>' +
       "</div>" +
       '<div id="leakList">' +
@@ -300,10 +298,11 @@ function renderLeaks(leaks, container) {
 
 async function startLeakAnalysis(container) {
   container.innerHTML =
-    '<div style="display:flex;align-items:center;gap:10px;padding:16px 0;">' +
-      '<div class="spinner"></div>' +
-      '<span style="font-size:14px;color:var(--text-2);">教练正在分析你的 Leak 模式…</span>' +
-    "</div>";
+    '<div style="padding:20px 0;">' +
+      '<div style="font-family:var(--font-hand);font-size:20px;color:var(--ink-soft);font-style:italic;">' +
+        'coach is reading your patterns…' +
+      '</div>' +
+    '</div>';
 
   var initMsg = "请分析我的历史手牌，识别我重复出现的 Leak 模式，并给出改进建议。";
   leakChatMessages = [{ role: "user", content: initMsg }];
@@ -324,7 +323,8 @@ async function startLeakAnalysis(container) {
         }
       });
   }, function () {
-    container.innerHTML = '<div style="padding:16px;color:var(--bad);">分析失败，请重试</div>';
+    container.innerHTML =
+      '<div style="padding:16px;font-family:var(--font-hand);font-size:17px;color:var(--red);">分析失败，请重试</div>';
   });
 }
 
@@ -505,12 +505,7 @@ function appendTyping() {
   var el = document.createElement("div");
   el.className = "chat-message assistant";
   el.id = "typing-" + id;
-  el.innerHTML =
-    '<div class="typing-indicator">' +
-      '<div class="typing-dot"></div>' +
-      '<div class="typing-dot"></div>' +
-      '<div class="typing-dot"></div>' +
-    "</div>";
+  el.innerHTML = '<div class="typing-indicator">coach is reading…</div>';
   container.appendChild(el);
   el.scrollIntoView({ behavior: "smooth", block: "end" });
   return id;
@@ -527,12 +522,7 @@ function appendLeakTyping() {
   var el = document.createElement("div");
   el.className = "chat-message assistant";
   el.id = "typing-" + id;
-  el.innerHTML =
-    '<div class="typing-indicator">' +
-      '<div class="typing-dot"></div>' +
-      '<div class="typing-dot"></div>' +
-      '<div class="typing-dot"></div>' +
-    "</div>";
+  el.innerHTML = '<div class="typing-indicator">coach is reading…</div>';
   container.appendChild(el);
   el.scrollIntoView({ behavior: "smooth", block: "end" });
   return id;

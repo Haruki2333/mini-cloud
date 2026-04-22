@@ -12,7 +12,7 @@
     <!-- 顶部导航 -->
     <div class="topbar">
       <a href="/poker/" class="btn-icon">←</a>
-      <span class="topbar-title">录入手牌</span>
+      <div class="topbar-title" style="font-size:20px;">记录这手牌</div>
     </div>
 
     <!-- 滚动表单 -->
@@ -24,7 +24,7 @@
           <div class="card-header">
             <span class="card-title">基本信息</span>
           </div>
-          <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
+          <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
 
             <div class="form-row">
               <div class="form-group">
@@ -50,7 +50,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label">起手牌 <span class="required">*</span></label>
-                <input class="form-control" id="heroCards" type="text" placeholder="如 AsKd / AK s" required />
+                <input class="form-control" id="heroCards" type="text" placeholder="如 AsKd / AKs" required />
               </div>
             </div>
 
@@ -76,15 +76,15 @@
         <!-- 翻前 -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">翻前 Preflop <span class="required">*</span></span>
+            <span class="card-title">翻前 Preflop <span style="color:var(--red);">*</span></span>
           </div>
           <div class="card-body">
             <div class="form-group">
               <label class="form-label">行动序列</label>
               <textarea class="form-control" id="preflopActions" rows="3"
                 placeholder="如：UTG fold，CO raise 3BB，BTN fold，SB fold，BB (Hero) 3bet 9BB，CO call" required></textarea>
-              <div style="font-size:12px;color:var(--text-3);margin-top:4px;">
-                说明每个玩家的操作，用逗号或换行分隔
+              <div style="font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);margin-top:4px;letter-spacing:0.5px;text-transform:uppercase;">
+                每位玩家的操作，用逗号或换行分隔
               </div>
             </div>
           </div>
@@ -161,7 +161,7 @@
           <div class="card-header">
             <span class="card-title">结果</span>
           </div>
-          <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
+          <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">赢/输（BB 数）</label>
@@ -176,7 +176,7 @@
             <div class="form-group">
               <label class="form-label">备注（选填）</label>
               <textarea class="form-control" id="notes" rows="2"
-                placeholder="记录你的想法或疑惑，如：我感觉转牌 raise 是对的但不确定"></textarea>
+                placeholder="记录你的想法或疑惑…"></textarea>
             </div>
           </div>
         </div>

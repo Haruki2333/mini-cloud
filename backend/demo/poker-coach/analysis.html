@@ -12,28 +12,27 @@
     <!-- 顶部导航 -->
     <div class="topbar">
       <a href="/poker/" class="btn-icon" id="backBtn">←</a>
-      <span class="topbar-title" id="pageTitle">手牌分析</span>
+      <span class="topbar-title" id="pageTitle" style="font-size:20px;">手牌复盘</span>
     </div>
 
     <!-- 内容区 -->
     <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;" id="mainArea">
 
-      <!-- 手牌详情 + 分析区 -->
-      <div style="display:flex;flex-direction:column;gap:12px;padding:16px;" id="topSection">
+      <!-- 手牌概要卡 -->
+      <div style="padding:16px;display:flex;flex-direction:column;gap:14px;" id="topSection">
 
-        <!-- 手牌概要卡 -->
         <div class="card" id="handSummaryCard" style="display:none;">
           <div class="card-header">
             <span class="card-title">手牌信息</span>
           </div>
           <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
 
-            <!-- 3格摘要 -->
+            <!-- 3 格摘要 -->
             <div class="hand-summary" id="handSummaryGrid"></div>
 
             <!-- 牌面详情（可展开） -->
             <details style="margin:0;">
-              <summary style="font-size:13px;color:var(--text-2);cursor:pointer;padding:4px 0;">
+              <summary style="font-family:var(--font-hand);font-size:16px;color:var(--ink-soft);cursor:pointer;padding:4px 0;font-style:italic;">
                 查看完整行动
               </summary>
               <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;" id="streetDetail"></div>
@@ -55,11 +54,11 @@
       </div>
 
       <!-- 聊天分隔线 -->
-      <div style="padding:0 16px 8px;display:none;" id="chatDivider">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div style="flex:1;height:1px;background:var(--border);"></div>
-          <span style="font-size:12px;color:var(--text-3);">追问教练</span>
-          <div style="flex:1;height:1px;background:var(--border);"></div>
+      <div style="padding:0 16px 12px;display:none;" id="chatDivider">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="flex:1;border-top:1px dashed var(--ink-line);"></div>
+          <span style="font-family:var(--font-hand);font-size:16px;color:var(--ink-faint);font-style:italic;">追问教练</span>
+          <div style="flex:1;border-top:1px dashed var(--ink-line);"></div>
         </div>
       </div>
 
@@ -82,7 +81,7 @@
 
     <!-- Leak 分析模式内容区 -->
     <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;" id="leakArea" style="display:none;">
-      <div style="padding:16px;display:flex;flex-direction:column;gap:12px;" id="leakTopSection"></div>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:14px;" id="leakTopSection"></div>
       <div class="chat-messages" id="leakChatMessages"></div>
     </div>
     <div class="chat-input-bar" id="leakChatInputBar" style="display:none;">
