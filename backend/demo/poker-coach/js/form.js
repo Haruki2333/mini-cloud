@@ -382,16 +382,17 @@ function bindSuitGrid() {
       }
       var slot = targetSlot(pickerTarget);
       slot.arr[slot.idx] = card;
+      var prevTarget = pickerTarget;
       closeCardPicker();
       renderAllSlots();
       // 起手牌：选完第一张自动移到第二张
-      if (pickerTarget === "hero:0" && !state.hero_cards[1]) {
+      if (prevTarget === "hero:0" && !state.hero_cards[1]) {
         setTimeout(function () { openCardPicker("hero:1"); }, 120);
-      } else if (pickerTarget === "flop:0" && !state.flop_cards[1]) {
+      } else if (prevTarget === "flop:0" && !state.flop_cards[1]) {
         setTimeout(function () { openCardPicker("flop:1"); }, 120);
-      } else if (pickerTarget === "flop:1" && !state.flop_cards[2]) {
+      } else if (prevTarget === "flop:1" && !state.flop_cards[2]) {
         setTimeout(function () { openCardPicker("flop:2"); }, 120);
-      } else if (pickerTarget === "opp:0" && !state.showdown_opp_cards[1]) {
+      } else if (prevTarget === "opp:0" && !state.showdown_opp_cards[1]) {
         setTimeout(function () { openCardPicker("opp:1"); }, 120);
       }
     });
