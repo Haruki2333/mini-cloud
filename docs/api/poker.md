@@ -15,11 +15,12 @@
 
 **请求头**
 
-| 字段             | 说明                                      |
-|------------------|-------------------------------------------|
-| `X-Api-Key`      | LLM API Key（必填）                       |
-| `X-Anon-Token`   | 前端生成的 UUID 匿名令牌（必填）          |
-| `Content-Type`   | `application/json`                        |
+| 字段             | 说明                                                              |
+|------------------|-------------------------------------------------------------------|
+| `X-Api-Key`      | LLM API Key（必填）                                               |
+| `X-Anon-Token`   | 前端生成的 UUID 匿名令牌（H5 Demo 用，与 `X-Wx-OpenId` 二选一）  |
+| `X-Wx-OpenId`    | 微信小程序用户标识（小程序用，由微信云托管自动注入）              |
+| `Content-Type`   | `application/json`                                                |
 
 **请求体**
 
@@ -54,7 +55,7 @@ data: [DONE]
 
 录入新手牌。不调用 LLM，直接入库。
 
-**请求头**：同上（`X-Anon-Token` 必填，`X-Api-Key` 非必填）
+**请求头**：`X-Anon-Token` 或 `X-Wx-OpenId`（二选一，必填）；`X-Api-Key` 非必填
 
 **请求体**
 
