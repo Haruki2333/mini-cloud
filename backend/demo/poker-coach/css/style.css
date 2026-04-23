@@ -1328,6 +1328,7 @@ select.form-control {
   flex-direction: column;
   gap: 10px;
 }
+.street-pane[hidden] { display: none; }
 
 .street-pane-header {
   display: flex;
