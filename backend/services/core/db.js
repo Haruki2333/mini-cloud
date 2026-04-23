@@ -56,8 +56,8 @@ async function initDB(...modelDefiners) {
     m.define(sequelize);
   }
 
-  // 同步表结构（仅创建不存在的表，不修改已有表）
-  await sequelize.sync();
+  // 同步表结构（自动创建新表、为已有表补齐新列）
+  await sequelize.sync({ alter: true });
 
   // 调用各业务模块的 sync 后操作（如创建索引）
   const qi = sequelize.getQueryInterface();
