@@ -129,6 +129,16 @@ function define(sequelize) {
         allowNull: true,
         comment: "牌局日期",
       },
+      opponents: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        comment: "对手信息 [{position, stack_bb}]",
+      },
+      actions: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        comment: "结构化行动 {preflop: [{position, action, amount?}], flop?, turn?, river?}",
+      },
       is_analyzed: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
