@@ -98,8 +98,8 @@ const saveAnalysisDefinition = {
 };
 
 async function executeSaveAnalysis(args, userId) {
-  const hand = await dao.getHand(args.hand_id, userId);
-  if (!hand) {
+  const belongs = await dao.handBelongsToUser(args.hand_id, userId);
+  if (!belongs) {
     return { success: false, message: "手牌不存在或无权访问" };
   }
 

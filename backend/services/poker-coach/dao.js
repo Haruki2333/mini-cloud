@@ -60,11 +60,13 @@ async function countHands(userId) {
   return models.PokerHand.count({ where: { user_id: userId } });
 }
 
-async function getHand(handId, userId) {
-  const hand = await models.PokerHand.findOne({
-    where: { id: handId, user_id: userId },
-  });
-  return hand ? hand.toJSON() : null;
+async function countAnalyzedHands(userId) {
+  return models.PokerHand.count({ where: { user_id: userId, is_analyzed: true } });
+}
+
+async function handBelongsToUser(handId, userId) {
+  const count = await models.PokerHand.count({ where: { id: handId, user_id: userId } });
+  return count > 0;
 }
 
 async function getHandWithAnalyses(handId, userId) {
@@ -163,7 +165,8 @@ module.exports = {
   createHand,
   listHands,
   countHands,
-  getHand,
+  handBelongsToUser,
+  countAnalyzedHands,
   getHandWithAnalyses,
   saveAnalyses,
   getUserAnalyses,
