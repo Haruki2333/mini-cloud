@@ -55,6 +55,14 @@ async function loadHand() {
     renderHandSummary(hand);
     renderExistingAnalyses(hand.analyses || []);
 
+    // 为追问注入上下文：直接把手牌数据带给 LLM，省去工具调用
+    if (hand.is_analyzed) {
+      chatMessages = [
+        { role: "user", content: "我正在复盘以下手牌，请基于这些信息回答我的追问。\n\n" + buildHandContext(hand) },
+        { role: "assistant", content: "好的，我已了解这手牌的完整信息和分析结果，请问你想追问什么？" },
+      ];
+    }
+
     if (!hand.is_analyzed && AUTO_ANALYZE) {
       await startAnalysis();
     } else if (!hand.is_analyzed) {
@@ -201,9 +209,8 @@ async function startAnalysis() {
 
         if (answer) {
           chatMessages.push({ role: "assistant", content: answer });
-          appendChatBubble("assistant", answer);
-          showChatArea();
         }
+        showChatArea();
       });
   }, function () {
     section.innerHTML =
@@ -553,6 +560,50 @@ function escHtml(str) {
 
 function nl2br(str) {
   return str.replace(/\n/g, "<br>");
+}
+
+// ===== 手牌上下文序列化 =====
+
+function buildHandContext(hand) {
+  var lines = [];
+  lines.push("手牌 #" + hand.id);
+  lines.push("盲注: " + hand.blind_level);
+  lines.push("位置: " + hand.hero_position);
+  lines.push("起手牌: " + hand.hero_cards);
+  if (hand.hero_stack_bb) lines.push("筹码: " + hand.hero_stack_bb + "BB");
+  if (hand.result_bb != null) lines.push("结果: " + formatResultBB(hand.result_bb));
+  if (hand.opponent_notes) lines.push("对手: " + hand.opponent_notes);
+
+  if (hand.preflop_actions) lines.push("\n翻前行动: " + hand.preflop_actions);
+  if (hand.flop_cards) {
+    lines.push("\n翻牌: " + hand.flop_cards);
+    if (hand.flop_actions) lines.push("翻牌行动: " + hand.flop_actions);
+  }
+  if (hand.turn_card) {
+    lines.push("\n转牌: " + hand.turn_card);
+    if (hand.turn_actions) lines.push("转牌行动: " + hand.turn_actions);
+  }
+  if (hand.river_card) {
+    lines.push("\n河牌: " + hand.river_card);
+    if (hand.river_actions) lines.push("河牌行动: " + hand.river_actions);
+  }
+
+  var analyses = hand.analyses || [];
+  if (analyses.length > 0) {
+    lines.push("\n--- 已有分析 ---");
+    analyses.forEach(function (a) {
+      var streetLabel = STREET_LABELS[a.street] || a.street;
+      var ratingLabel = RATING_LABELS[a.rating] || a.rating;
+      lines.push("\n[" + streetLabel + "] " + ratingLabel);
+      lines.push("场景: " + a.scenario);
+      lines.push("Hero操作: " + a.hero_action);
+      if (a.better_action) lines.push("更优选择: " + a.better_action);
+      lines.push("分析: " + a.reasoning);
+      lines.push("原则: " + a.principle);
+    });
+  }
+
+  return lines.join("\n");
 }
 
 // ===== 启动 =====

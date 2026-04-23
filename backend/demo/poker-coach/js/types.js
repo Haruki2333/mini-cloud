@@ -124,5 +124,5 @@ function actionNeedsAmount(action) {
 
 // 是否为 aggressive 行动（触发智能追加）
 function isAggressiveAction(action) {
-  return ["raise", "3bet", "4bet", "bet"].indexOf(action) !== -1;
+  return ["raise", "3bet", "4bet", "bet", "all-in"].indexOf(action) !== -1;
 }
