@@ -38,6 +38,8 @@
 | `showdown_opp_cards`  | VARCHAR(20)       | 摊牌时对手底牌（可选）                  |
 | `notes`               | TEXT              | 用户备注（可选）                        |
 | `played_at`           | DATE              | 牌局日期（可为空）                      |
+| `opponents`           | JSON              | 对手信息 `[{position, stack_bb}]`（可为空） |
+| `actions`             | JSON              | 结构化行动 `{preflop: [{position, action, amount?}], ...}`（可为空） |
 | `is_analyzed`         | BOOLEAN           | 是否已完成 AI 分析，默认 false          |
 | `created_at`          | DATETIME          | 创建时间                                |
 | `updated_at`          | DATETIME          | 更新时间                                |
