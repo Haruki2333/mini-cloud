@@ -99,3 +99,30 @@ function showToast(msg) {
   el.classList.add("show");
   setTimeout(function () { el.classList.remove("show"); }, 2500);
 }
+
+// ===== Postflop 行动顺序（从 SB 开始顺时针）=====
+
+var POSTFLOP_ORDER_9MAX = ["SB", "BB", "UTG", "UTG+1", "UTG+2", "LJ", "HJ", "CO", "BTN"];
+var POSTFLOP_ORDER_6MAX = ["SB", "BB", "UTG", "UTG+1", "CO", "BTN"];
+var POSTFLOP_ORDER_HU   = ["BTN/SB", "BB"];
+
+function getPostflopOrder(tableType) {
+  if (tableType === "9max") return POSTFLOP_ORDER_9MAX;
+  if (tableType === "hu") return POSTFLOP_ORDER_HU;
+  return POSTFLOP_ORDER_6MAX;
+}
+
+// ===== 行动类型 =====
+
+var PREFLOP_ACTIONS  = ["fold", "call", "raise", "3bet", "4bet", "all-in"];
+var POSTFLOP_ACTIONS = ["check", "bet", "call", "raise", "fold", "all-in"];
+
+// 需要填金额的行动
+function actionNeedsAmount(action) {
+  return ["raise", "bet", "3bet", "4bet", "all-in"].indexOf(action) !== -1;
+}
+
+// 是否为 aggressive 行动（触发智能追加）
+function isAggressiveAction(action) {
+  return ["raise", "3bet", "4bet", "bet"].indexOf(action) !== -1;
+}
