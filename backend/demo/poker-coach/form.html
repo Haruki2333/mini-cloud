@@ -48,33 +48,30 @@
         <div class="form-group" style="margin-top:18px;">
           <label class="form-label">桌型 <span class="required">*</span></label>
           <div class="segmented" id="tableSeg">
-            <button type="button" data-table="6max" class="active">6-Max</button>
-            <button type="button" data-table="9max">9-Max</button>
+            <button type="button" data-table="6max">6-Max</button>
+            <button type="button" data-table="9max" class="active">9-Max</button>
             <button type="button" data-table="hu">Heads-Up</button>
           </div>
         </div>
 
         <div class="form-group" style="margin-top:22px;">
-          <label class="form-label">Hero 位置 <span class="required">*</span></label>
+          <label class="form-label">选座 <span class="required">*</span></label>
           <div class="poker-table-wrap">
             <div class="poker-table" id="positionTable"></div>
             <div class="poker-table-center">
               <div class="poker-table-blind" id="centerBlind">—</div>
-              <div class="poker-table-type" id="centerType">six-max</div>
+              <div class="poker-table-type" id="centerType">nine-max</div>
             </div>
           </div>
-          <div class="position-hint" id="positionHint">点上方圆圈选你坐的位置</div>
+          <div class="position-hint" id="positionHint">先点圆圈选 Hero，再点其他位置添加对手</div>
         </div>
 
-        <div class="form-row" style="margin-top:18px;">
-          <div class="form-group">
-            <label class="form-label">有效筹码 (BB)</label>
-            <input class="form-control" id="effectiveStack" type="number" min="1" step="0.5" placeholder="如 100" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">牌局日期</label>
-            <input class="form-control" id="playedAt" type="date" />
-          </div>
+        <!-- 已入座玩家列表 -->
+        <div class="player-list" id="playerList"></div>
+
+        <div class="form-group" style="margin-top:18px;">
+          <label class="form-label">牌局日期</label>
+          <input class="form-control" id="playedAt" type="date" />
         </div>
 
       </div>
@@ -106,16 +103,7 @@
           <div class="street-pane-header">
             <span class="street-pane-name">翻前 Preflop <span class="required">*</span></span>
           </div>
-          <textarea class="form-control" id="preflopActions" rows="3"
-            placeholder="如：UTG fold，CO raise 3，BTN fold，SB fold，Hero 3bet 9，CO call"></textarea>
-          <div class="action-chips" data-target="preflopActions">
-            <button type="button" class="chip-sm" data-snip="Hero ">Hero</button>
-            <button type="button" class="chip-sm" data-snip="open 3">open 3</button>
-            <button type="button" class="chip-sm" data-snip="fold">fold</button>
-            <button type="button" class="chip-sm" data-snip="call">call</button>
-            <button type="button" class="chip-sm" data-snip="3bet ">3bet</button>
-            <button type="button" class="chip-sm" data-snip="，">，</button>
-          </div>
+          <div class="action-builder" id="preflopBuilder"></div>
         </div>
 
         <button type="button" class="street-add" data-add="flop">+ 翻牌 Flop</button>
@@ -129,17 +117,7 @@
             <button type="button" class="card-slot small" data-target="flop:1"><span class="card-slot-placeholder">flop 2</span></button>
             <button type="button" class="card-slot small" data-target="flop:2"><span class="card-slot-placeholder">flop 3</span></button>
           </div>
-          <textarea class="form-control" id="flopActions" rows="2"
-            placeholder="如：Hero check，CO bet 6，Hero call"></textarea>
-          <div class="action-chips" data-target="flopActions">
-            <button type="button" class="chip-sm" data-snip="Hero ">Hero</button>
-            <button type="button" class="chip-sm" data-snip="check">check</button>
-            <button type="button" class="chip-sm" data-snip="bet ">bet</button>
-            <button type="button" class="chip-sm" data-snip="call">call</button>
-            <button type="button" class="chip-sm" data-snip="raise ">raise</button>
-            <button type="button" class="chip-sm" data-snip="fold">fold</button>
-            <button type="button" class="chip-sm" data-snip="，">，</button>
-          </div>
+          <div class="action-builder" id="flopBuilder"></div>
         </div>
 
         <button type="button" class="street-add" data-add="turn" hidden>+ 转牌 Turn</button>
@@ -151,17 +129,7 @@
           <div class="board-row">
             <button type="button" class="card-slot small" data-target="turn:0"><span class="card-slot-placeholder">turn</span></button>
           </div>
-          <textarea class="form-control" id="turnActions" rows="2"
-            placeholder="如：Hero bet 15，CO raise 45，Hero fold"></textarea>
-          <div class="action-chips" data-target="turnActions">
-            <button type="button" class="chip-sm" data-snip="Hero ">Hero</button>
-            <button type="button" class="chip-sm" data-snip="check">check</button>
-            <button type="button" class="chip-sm" data-snip="bet ">bet</button>
-            <button type="button" class="chip-sm" data-snip="call">call</button>
-            <button type="button" class="chip-sm" data-snip="raise ">raise</button>
-            <button type="button" class="chip-sm" data-snip="fold">fold</button>
-            <button type="button" class="chip-sm" data-snip="，">，</button>
-          </div>
+          <div class="action-builder" id="turnBuilder"></div>
         </div>
 
         <button type="button" class="street-add" data-add="river" hidden>+ 河牌 River</button>
@@ -173,17 +141,7 @@
           <div class="board-row">
             <button type="button" class="card-slot small" data-target="river:0"><span class="card-slot-placeholder">river</span></button>
           </div>
-          <textarea class="form-control" id="riverActions" rows="2"
-            placeholder="如：Hero check，CO bet 50，Hero call"></textarea>
-          <div class="action-chips" data-target="riverActions">
-            <button type="button" class="chip-sm" data-snip="Hero ">Hero</button>
-            <button type="button" class="chip-sm" data-snip="check">check</button>
-            <button type="button" class="chip-sm" data-snip="bet ">bet</button>
-            <button type="button" class="chip-sm" data-snip="call">call</button>
-            <button type="button" class="chip-sm" data-snip="raise ">raise</button>
-            <button type="button" class="chip-sm" data-snip="fold">fold</button>
-            <button type="button" class="chip-sm" data-snip="，">，</button>
-          </div>
+          <div class="action-builder" id="riverBuilder"></div>
         </div>
 
       </div>
