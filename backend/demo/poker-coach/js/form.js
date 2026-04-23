@@ -66,7 +66,7 @@ function getAliveAfterStreet(street) {
   actions.forEach(function (a) {
     var pos = a.position === "Hero" ? state.hero_position : a.position;
     if (a.action === "fold") folded[pos] = true;
-    else delete folded[pos];
+    else if (a.action) delete folded[pos];
   });
   return alive.filter(function (pos) { return !folded[pos]; });
 }
@@ -554,6 +554,18 @@ function renderStreetVisibility() {
   if (!state.flop_open) flopAdd.hidden = false;
   turnAdd.hidden = !state.flop_open || state.turn_open;
   riverAdd.hidden = !state.turn_open || state.river_open;
+
+  // 当存活玩家 <= 1 时自动隐藏后续街的 "+" 按钮
+  var preflopAlive = getAliveAfterStreet("preflop");
+  if (preflopAlive.length <= 1) { flopAdd.hidden = true; }
+  if (state.flop_open) {
+    var flopAlive = getAliveAfterStreet("flop");
+    if (flopAlive.length <= 1) { turnAdd.hidden = true; }
+  }
+  if (state.turn_open) {
+    var turnAlive = getAliveAfterStreet("turn");
+    if (turnAlive.length <= 1) { riverAdd.hidden = true; }
+  }
 }
 
 function bindStreetToggles() {
