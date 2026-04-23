@@ -36,6 +36,8 @@ async function createHand(userId, data) {
     showdown_opp_cards: data.showdown_opp_cards || null,
     notes: data.notes || null,
     played_at: data.played_at || null,
+    opponents: data.opponents || null,
+    actions: data.actions || null,
     is_analyzed: false,
   });
   return hand.id;
