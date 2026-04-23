@@ -13,7 +13,6 @@ function getModels() {
     FinanceRecord: models.FinanceRecord,
     UserCategory: models.UserCategory,
     MonthlySummary: models.MonthlySummary,
-    sequelize: require("../core/db").getSequelize(),
   };
 }
 

@@ -111,8 +111,11 @@ async function handleCompletions(req, res) {
       return res.status(401).json({ error: "缺少用户标识（X-Anon-Token 或 x-wx-openid）" });
     }
 
-    const totalHands = await dao.countHands(userId);
-    const context = { userId, totalHands };
+    const [totalHands, analyzedHands] = await Promise.all([
+      dao.countHands(userId),
+      dao.countHands(userId, { analyzed: true }),
+    ]);
+    const context = { userId, totalHands, analyzedHands };
 
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");

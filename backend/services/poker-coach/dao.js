@@ -54,8 +54,10 @@ async function listHands(userId, limit = 50) {
   return hands.map((h) => h.toJSON());
 }
 
-async function countHands(userId) {
-  return models.PokerHand.count({ where: { user_id: userId } });
+async function countHands(userId, { analyzed } = {}) {
+  const where = { user_id: userId };
+  if (analyzed !== undefined) where.is_analyzed = analyzed;
+  return models.PokerHand.count({ where });
 }
 
 async function getHand(handId, userId) {

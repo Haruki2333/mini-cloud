@@ -84,7 +84,7 @@ data: [DONE]
 | 字段                  | 类型     | 必填 | 说明                            |
 |-----------------------|----------|------|---------------------------------|
 | `blind_level`         | string   | 是   | 盲注级别，如 `1/2`             |
-| `table_type`          | string   | 是   | `6max` / `9max` / `hu`         |
+| `table_type`          | string   | 否   | `6max` / `9max` / `hu`，默认 `6max` |
 | `hero_position`       | string   | 是   | 位置，如 `BTN`, `BB`, `CO`     |
 | `hero_cards`          | string   | 是   | 起手牌，如 `AsKd`              |
 | `preflop_actions`     | string   | 是   | 翻前行动文字描述                |
