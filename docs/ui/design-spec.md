@@ -248,3 +248,6 @@
 | 故事标签（`.story-card-tag`） | 朱砂红淡底 + 站酷小薇字体                                                                  |
 
 
+## 扑克教练 demo
+
+需要时，阅读 docs\ui\poker-coach\poker-coach-design.md
