@@ -124,13 +124,14 @@ async function startEval() {
       headers: buildEvalHeaders(),
       body: JSON.stringify({ hand_id: HAND_ID, model_ids: modelIds }),
     });
-    if (!resp.ok) { showToast("评估启动失败"); btn.disabled = false; btn.textContent = "开始评估"; return; }
+    if (!resp.ok) { showToast("评估启动失败"); return; }
 
     var reader = resp.body.getReader();
     var decoder = new TextDecoder();
     var buffer = "";
 
-    while (true) {
+    var sseEnded = false;
+    while (!sseEnded) {
       var chunk = await reader.read();
       if (chunk.done) break;
       buffer += decoder.decode(chunk.value, { stream: true });
@@ -140,16 +141,16 @@ async function startEval() {
         var line = lines[i];
         if (!line.startsWith("data: ")) continue;
         var raw = line.slice(6).trim();
-        if (raw === "[DONE]") break;
+        if (raw === "[DONE]") { sseEnded = true; break; }
         try { handleEvalEvent(JSON.parse(raw)); } catch (_) {}
       }
     }
   } catch (e) {
     showToast("评估失败: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "开始评估";
   }
-
-  btn.disabled = false;
-  btn.textContent = "开始评估";
 
   // 刷新历史下拉
   var select = document.getElementById("historySelect");
@@ -339,7 +340,12 @@ function kpiCard(value, label) {
 
 function escHtml(str) {
   if (!str) return "";
-  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // ===== 启动 =====
