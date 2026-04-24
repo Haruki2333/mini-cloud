@@ -25,7 +25,8 @@ app.get("/api/wx_openid", async (req, res) => {
 });
 
 // 静态文件服务
-app.use("/", express.static(path.join(__dirname, "demo/poker-coach")));
+app.use("/poker", express.static(path.join(__dirname, "demo/poker-coach")));
+app.get("/", (req, res) => res.redirect("/poker/"));
 
 const port = process.env.PORT || 80;
 
