@@ -224,7 +224,7 @@ eval_completed      → {eval_run_id, consistency_score, total_cost_usd, status}
 8. `types.js` 扩展 + `profile.html` lingyaai key 输入框
 
 ### Phase 2（裁判模型）
-9. `evaluator.js` 新增 `judgeEvaluation()`，裁判模型默认 `claude-sonnet-4-5`
+9. `evaluator.js` 新增 `judgeEvaluation()`，裁判模型默认 `claude-sonnet-4-6`
 10. 主评估完成后自动触发裁判，SSE 推送 `eval_judge_done`
 11. `compare.html` 加 judge_score 列
 
