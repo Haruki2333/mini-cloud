@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>模型对比 — 扑克教练</title>
+  <link rel="stylesheet" href="/poker/css/style.css" />
+  <style>
+    .eval-table { width: 100%; border-collapse: collapse; min-width: 560px; font-size: 13px; }
+    .eval-table th, .eval-table td { border: 1px solid var(--ink-line); padding: 6px 8px; text-align: center; vertical-align: top; }
+    .eval-table th { background: var(--bg-card); font-weight: 600; font-size: 12px; }
+    .eval-table td:first-child { text-align: left; font-weight: 600; white-space: nowrap; color: var(--ink-soft); width: 52px; }
+    .eval-table tfoot td { font-size: 11px; color: var(--ink-soft); }
+    .cell-detail { text-align: left; margin-top: 6px; font-size: 12px; line-height: 1.5; color: var(--ink); display: none; }
+    .cell-detail .cf { margin-bottom: 4px; }
+    .cell-detail .cf-label { color: var(--ink-faint); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .eval-cell { cursor: pointer; }
+    .eval-cell:hover { background: var(--bg-page); }
+    .kpi-grid { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 16px 0; }
+    .kpi-card { flex: 1; min-width: 120px; background: var(--bg-card); border: 1px solid var(--ink-line); border-radius: 8px; padding: 10px 12px; }
+    .kpi-value { font-size: 20px; font-weight: 700; color: var(--ink); }
+    .kpi-label { font-size: 11px; color: var(--ink-faint); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .model-checkbox-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="page" id="page">
+    <div class="topbar">
+      <a href="#" class="btn-icon" id="backBtn">←</a>
+      <span class="topbar-title" style="font-size:20px;">模型对比</span>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;">
+
+      <!-- KPI -->
+      <div class="kpi-grid" id="kpiGrid" style="display:none;"></div>
+
+      <!-- 历史批次 + 模型选择 + 操作按钮 -->
+      <div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">历史批次</span></div>
+          <div class="card-body">
+            <select class="form-control" id="historySelect">
+              <option value="">— 新建评估 —</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card" id="newEvalCard">
+          <div class="card-header">
+            <span class="card-title">选择模型</span>
+            <button class="btn btn-sm btn-secondary" onclick="toggleAllModels()">全选/取消</button>
+          </div>
+          <div class="card-body" id="modelCheckboxes"></div>
+        </div>
+
+        <button class="btn btn-primary btn-full" id="startBtn" onclick="startEval()">开始评估</button>
+
+      </div>
+
+      <!-- 结果表格 -->
+      <div style="padding:0 16px 24px;overflow-x:auto;" id="tableArea" style="display:none;">
+        <table class="eval-table" id="evalTable"></table>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/poker/js/types.js"></script>
+  <script src="/poker/js/storage.js"></script>
+  <script src="/poker/js/compare.js"></script>
+</body>
+</html>
