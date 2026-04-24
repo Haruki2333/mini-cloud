@@ -231,6 +231,7 @@ async function finalizeEvalRun(evalRunId, updates) {
   if (updates.totalCostUsd != null) fields.total_cost_usd = updates.totalCostUsd;
   if (updates.consistencyScore != null) fields.consistency_score = updates.consistencyScore;
   if (updates.judgeModelId != null) fields.judge_model_id = updates.judgeModelId;
+  if (Object.keys(fields).length === 0) return;
   await models.PokerEvalRun.update(fields, { where: { id: evalRunId } });
 }
 
@@ -255,12 +256,14 @@ async function getEvalRun(evalRunId, userId) {
 }
 
 async function saveJudgeScores(evalRunId, scores) {
-  for (const s of scores) {
-    await models.PokerEvalResult.update(
-      { judge_score: s.score, judge_notes: s.notes || null },
-      { where: { eval_run_id: evalRunId, model_id: s.model_id } }
-    );
-  }
+  await Promise.all(
+    scores.map((s) =>
+      models.PokerEvalResult.update(
+        { judge_score: s.score, judge_notes: s.notes || null },
+        { where: { eval_run_id: evalRunId, model_id: s.model_id } }
+      )
+    )
+  );
 }
 
 module.exports = {
