@@ -137,6 +137,7 @@ function renderExistingAnalyses(analyses) {
   }).join("");
 
   showChatArea();
+  showCompareButton();
 }
 
 function renderAnalysisCard(a) {
@@ -182,6 +183,15 @@ function renderAnalysisCard(a) {
 function showChatArea() {
   document.getElementById("chatDivider").style.display = "block";
   document.getElementById("chatInputBar").style.display = "flex";
+}
+
+function showCompareButton() {
+  var area = document.getElementById("compareButtonArea");
+  var btn = document.getElementById("compareBtn");
+  if (area && btn && HAND_ID) {
+    btn.href = "/poker/compare.html?hand_id=" + HAND_ID;
+    area.style.display = "block";
+  }
 }
 
 // ===== AI 分析 =====
