@@ -143,9 +143,8 @@ async function handleCompletions(req, res) {
 
 function serializeActions(actionsArr) {
   if (!actionsArr || actionsArr.length === 0) return null;
-  return actionsArr.map(function (a) {
-    var label = a.position;
-    var text = label + " " + a.action;
+  return actionsArr.map((a) => {
+    let text = a.position + " " + a.action;
     if (a.amount != null) text += " " + a.amount;
     return text;
   }).join("，");
@@ -165,9 +164,9 @@ async function handleCreateHand(req, res) {
 
     // 从 opponents JSON 自动生成 opponent_notes 文本（向后兼容）
     if (data.opponents && !data.opponent_notes) {
-      data.opponent_notes = data.opponents.map(function (o) {
-        return o.position + (o.stack_bb ? " (" + o.stack_bb + "BB)" : "");
-      }).join("，");
+      data.opponent_notes = data.opponents
+        .map((o) => o.position + (o.stack_bb ? " (" + o.stack_bb + "BB)" : ""))
+        .join("，");
     }
 
     const { blind_level, hero_position, hero_cards, preflop_actions } = data;

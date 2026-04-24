@@ -278,7 +278,11 @@ data: [DONE]\n\n
 ### 响应
 
 ```json
-{ "success": true }
+{
+  "success": true,
+  "message": "记录 #1 已更新",
+  "updated": { "amount": 40.00, "description": "午饭（更正）" }
+}
 ```
 
 ---
@@ -300,7 +304,12 @@ data: [DONE]\n\n
 ### 响应
 
 ```json
-{ "success": true }
+{
+  "success": true,
+  "deleted": [1],
+  "notFound": [],
+  "message": "已删除 1 条记录"
+}
 ```
 
 ### 实现位置

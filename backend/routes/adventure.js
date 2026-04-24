@@ -19,6 +19,7 @@
 const express = require("express");
 const { getModelInfo } = require("../services/core/llm");
 const { createBrain } = require("../services/core/brain");
+const { createSkillRegistry } = require("../services/core/skill-registry");
 const {
   ADVENTURE_SYSTEM_PROMPT,
   enhancePrompt,
@@ -31,6 +32,21 @@ const {
 } = require("../services/adventure-game/skills");
 const dao = require("../services/adventure-game/dao");
 const memory = require("../services/adventure-game/memory");
+
+// ===== 组装技能集和 Brain 实例（模块级，无请求级状态）=====
+
+const adventureSkills = createSkillRegistry({
+  advance_story: {
+    definition: advanceStoryDefinition,
+    execute: createAdvanceStoryExecutor(),
+  },
+});
+
+const adventureBrain = createBrain({
+  systemPrompt: ADVENTURE_SYSTEM_PROMPT,
+  skills: adventureSkills,
+  enhancePrompt,
+});
 
 // ===== 用户标识提取 =====
 
@@ -131,27 +147,10 @@ async function handleCompletions(req, res) {
       previousLegacy: previousLegacy || null,
     };
 
-    // ===== 5. Per-request 实例 =====
+    // ===== 5. 请求级变量 =====
 
     const imageApiKey = req.headers["x-image-api-key"] || apiKey;
     const provider = modelInfo.provider;
-    const executeAdvanceStory = createAdvanceStoryExecutor();
-
-    const skills = {
-      definitions: [advanceStoryDefinition],
-      execute: async function (name, args) {
-        if (name === "advance_story") {
-          return executeAdvanceStory(args);
-        }
-        return { success: false, message: "未知技能: " + name };
-      },
-    };
-
-    const brain = createBrain({
-      systemPrompt: ADVENTURE_SYSTEM_PROMPT,
-      skills,
-      enhancePrompt,
-    });
 
     // ===== 6. SSE 流式响应 =====
 
@@ -197,7 +196,7 @@ async function handleCompletions(req, res) {
         ? userMessages[userMessages.length - 1].content
         : null;
 
-    for await (const event of brain.think({
+    for await (const event of adventureBrain.think({
       messages,
       model,
       apiKey,

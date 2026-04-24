@@ -84,12 +84,12 @@ data: [DONE]
 | 字段                  | 类型     | 必填 | 说明                            |
 |-----------------------|----------|------|---------------------------------|
 | `blind_level`         | string   | 是   | 盲注级别，如 `1/2`             |
-| `table_type`          | string   | 是   | `6max` / `9max` / `hu`         |
+| `table_type`          | string   | 否   | `6max` / `9max` / `hu`，默认 `6max` |
 | `hero_position`       | string   | 是   | 位置，如 `BTN`, `BB`, `CO`     |
 | `hero_cards`          | string   | 是   | 起手牌，如 `AsKd`              |
-| `preflop_actions`     | string   | 是   | 翻前行动文字描述                |
+| `preflop_actions`     | string   | 是*  | 翻前行动文字描述（传入 `actions` 时可自动生成） |
 | `effective_stack_bb`  | number   | 否   | 有效筹码（BB 数）               |
-| `opponent_notes`      | string   | 否   | 对手备注                        |
+| `opponent_notes`      | string   | 否   | 对手备注（传入 `opponents` 时可自动生成） |
 | `flop_cards`          | string   | 否   | 翻牌，如 `Ah 7h 2c`           |
 | `flop_actions`        | string   | 否   | 翻牌行动                        |
 | `turn_card`           | string   | 否   | 转牌，如 `Kd`                  |
@@ -100,6 +100,8 @@ data: [DONE]
 | `showdown_opp_cards`  | string   | 否   | 摊牌对手底牌                    |
 | `notes`               | string   | 否   | 备注                            |
 | `played_at`           | string   | 否   | 日期 `YYYY-MM-DD`              |
+| `actions`             | object   | 否   | 结构化行动（可替代文字描述）：`{ preflop: [{position, action, amount?}], flop?, turn?, river? }` |
+| `opponents`           | array    | 否   | 对手信息（可替代 opponent_notes）：`[{position, stack_bb?}]` |
 
 **响应**
 

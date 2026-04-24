@@ -28,9 +28,6 @@ importers:
       sequelize:
         specifier: ^6.8.0
         version: 6.37.8(mysql2@2.3.3)
-      ws:
-        specifier: ^8.18.0
-        version: 8.19.0
 
 packages:
 
@@ -484,18 +481,6 @@ packages:
 
   wkx@0.5.0:
     resolution: {integrity: sha512-Xng/d4Ichh8uN4l0FToV/258EjMGU9MGcA0HV2d9B/ZpZB3lqQm7nkOdZdm5GhKtLLhAE7PiVQwN4eN+2YJJUg==}
-
-  ws@8.19.0:
-    resolution: {integrity: sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
 
   yallist@4.0.0:
     resolution: {integrity: sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==}
@@ -951,7 +936,5 @@ snapshots:
   wkx@0.5.0:
     dependencies:
       '@types/node': 25.3.5
-
-  ws@8.19.0: {}
 
   yallist@4.0.0: {}
