@@ -1,15 +1,15 @@
 /**
  * LLM 价格表与成本计算
- * 费率以各厂商官方价（USD/1M tokens）为占位，实际费率请对照 lingyaai 账单校准。
+ * 费率来自 lingyaai，单位：CNY/1M tokens。
  */
 
 const PRICING = {
-  "claude-sonnet-4-5": { input: 3.00,  output: 15.00 },
-  "gpt-4o":            { input: 2.50,  output: 10.00 },
-  "gemini-2.5-pro":    { input: 1.25,  output: 10.00 },
-  "deepseek-chat":     { input: 0.27,  output:  1.10 },
-  "glm-4.6v":          { input: 0.29,  output:  1.14 },
-  "qwen3.5-plus":      { input: 0.56,  output:  1.68 },
+  "claude-sonnet-4-6-thinking":      { input: 10.00, output: 50.00 },
+  "gpt-5.4":                         { input:  7.50, output: 45.00 },
+  "gemini-3.1-pro-preview-thinking": { input:  9.00, output: 45.00 },
+  "deepseek-v3.2-thinking":          { input:  2.00, output:  3.00 },
+  "glm-5.1":                         { input:  8.00, output: 28.00 },
+  "qwen3.6-plus":                    { input:  2.00, output: 12.00 },
 };
 
 function calculateCost(modelId, usage) {

@@ -12,15 +12,15 @@ const dao = require("./dao");
 
 const LINGYAAI_API_URL = "https://api.lingyaai.cn/v1/chat/completions";
 const EVAL_TIMEOUT_MS = 60000;
-const JUDGE_MODEL_ID = "claude-sonnet-4-6";
+const JUDGE_MODEL_ID = "claude-sonnet-4-6-thinking";
 
 const EVAL_MODELS = [
-  { id: "claude-sonnet-4-5", provider: "anthropic", label: "Claude Sonnet 4.5" },
-  { id: "gpt-4o",            provider: "openai",    label: "OpenAI GPT-4o"     },
-  { id: "gemini-2.5-pro",    provider: "google",    label: "Gemini 2.5 Pro"    },
-  { id: "deepseek-chat",     provider: "deepseek",  label: "DeepSeek V3"       },
-  { id: "glm-4.6v",          provider: "zhipu",     label: "智谱 GLM-4.6V"      },
-  { id: "qwen3.5-plus",      provider: "qwen",      label: "千问 Qwen3.5-Plus"  },
+  { id: "claude-sonnet-4-6-thinking",          provider: "anthropic", label: "Claude Sonnet 4.6 Thinking"          },
+  { id: "gpt-5.4",                             provider: "openai",    label: "OpenAI GPT-5.4"                      },
+  { id: "gemini-3.1-pro-preview-thinking",     provider: "google",    label: "Gemini 3.1 Pro Preview Thinking"     },
+  { id: "deepseek-v3.2-thinking",              provider: "deepseek",  label: "DeepSeek V3.2 Thinking"              },
+  { id: "glm-5.1",                             provider: "zhipu",     label: "智谱 GLM-5.1"                         },
+  { id: "qwen3.6-plus",                        provider: "qwen",      label: "千问 Qwen3.6-Plus"                    },
 ];
 
 const EVAL_SYSTEM_SUFFIX = `
