@@ -84,3 +84,52 @@ Leak 模式记录。每次 Leak 分析完成后全量替换（先 DELETE 再 INS
 | `updated_at`       | DATETIME          | 更新时间                                |
 
 **索引**：`idx_poker_leaks_user (user_id, updated_at)`
+
+---
+
+## poker_eval_runs
+
+评估批次记录。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | INT UNSIGNED PK | 自增主键 |
+| `user_id` | INT UNSIGNED | FK → poker_users.id |
+| `hand_id` | INT UNSIGNED | FK → poker_hands.id |
+| `requested_models` | JSON | 请求的模型 ID 数组 |
+| `status` | ENUM | running / completed / partial / failed |
+| `total_cost_usd` | DECIMAL(10,6) | 批次累计成本 |
+| `consistency_score` | DECIMAL(5,2) | 模型间 rating 一致率（0-100） |
+| `judge_model_id` | VARCHAR(64) | 裁判模型 ID（可空） |
+| `created_at` / `updated_at` | DATETIME | — |
+
+**索引**：`idx_eval_runs_hand_time (hand_id, created_at)`、`idx_eval_runs_user_time (user_id, created_at)`
+
+---
+
+## poker_eval_results
+
+单模型评估产物。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | INT UNSIGNED PK | — |
+| `eval_run_id` | INT UNSIGNED | FK → poker_eval_runs.id |
+| `hand_id` | INT UNSIGNED | 冗余，便于直查 |
+| `model_id` | VARCHAR(64) | 模型标识符 |
+| `provider` | VARCHAR(32) | anthropic / openai / google / deepseek / zhipu / qwen |
+| `status` | ENUM | success / failed / timeout |
+| `latency_ms` | INT UNSIGNED | 响应延迟 |
+| `prompt_tokens` | INT UNSIGNED | — |
+| `completion_tokens` | INT UNSIGNED | — |
+| `cached_tokens` | INT UNSIGNED | 可空 |
+| `cost_usd` | DECIMAL(10,6) | 单次成本 |
+| `structured_output` | JSON | schema 合规时的 analyses 数组 |
+| `raw_response` | TEXT | 原始响应文本 |
+| `error_message` | TEXT | 失败原因（可空） |
+| `schema_valid` | BOOLEAN | JSON 是否合规 |
+| `judge_score` | TINYINT UNSIGNED | 裁判评分 1-5（可空） |
+| `judge_notes` | TEXT | 裁判评语（可空） |
+| `created_at` / `updated_at` | DATETIME | — |
+
+**索引**：`idx_eval_results_run (eval_run_id)`、`idx_eval_results_hand_model (hand_id, model_id)`

@@ -204,3 +204,71 @@ data: [DONE]
 | `save_analysis`     | 保存决策点分析结果（1-2 个/手）    |
 | `get_user_analyses` | 获取用户历史分析，用于 Leak 识别   |
 | `save_leaks`        | 保存识别出的 Leak 模式             |
+
+---
+
+## 大模型横向评估
+
+### POST /api/poker/eval/runs
+
+触发多模型并发评估（SSE 流式）。评估调用走 lingyaai 统一代理，不影响主对话路径。
+
+**请求头**：`X-Api-Key`（lingyaai key，必填）、`X-Anon-Token` / `X-Wx-OpenId`（必填）
+
+**请求体**
+
+```json
+{
+  "hand_id": 42,
+  "model_ids": ["gpt-4o", "deepseek-chat"]
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `hand_id` | number | 是 | 手牌 ID |
+| `model_ids` | array | 否 | 指定模型子集；省略则用全部 6 款 |
+
+**SSE 事件序列**
+
+```
+data: {"type":"eval_started","eval_run_id":7,"hand_id":42,"models":[...]}
+data: {"type":"eval_model_started","eval_run_id":7,"model_id":"gpt-4o"}
+data: {"type":"eval_model_done","eval_run_id":7,"model_id":"gpt-4o","result":{"status":"success","latency_ms":3420,"prompt_tokens":1205,"completion_tokens":680,"cost_usd":0.009814,"schema_valid":true,"structured_output":[...]}}
+data: {"type":"eval_judge_done","eval_run_id":7,"judge_model_id":"claude-sonnet-4-6","scores":[{"model_id":"gpt-4o","score":4,"notes":"..."}]}
+data: {"type":"eval_completed","eval_run_id":7,"consistency_score":66.7,"total_cost_usd":0.042318,"status":"completed"}
+data: [DONE]
+```
+
+---
+
+### GET /api/poker/eval/runs?hand_id=:id
+
+列出某手牌的所有历史评估批次。
+
+**响应**
+
+```json
+{ "runs": [{ "id": 7, "status": "completed", "consistency_score": 66.7, "total_cost_usd": 0.042318, "requested_models": ["gpt-4o", "..."], "created_at": "..." }] }
+```
+
+---
+
+### GET /api/poker/eval/runs/:id
+
+获取单个评估批次详情，含所有模型结果。
+
+**响应**
+
+```json
+{
+  "id": 7, "hand_id": 42, "status": "completed",
+  "consistency_score": 66.7, "total_cost_usd": 0.042318,
+  "results": [
+    { "model_id": "gpt-4o", "status": "success", "latency_ms": 3420,
+      "prompt_tokens": 1205, "completion_tokens": 680, "cost_usd": 0.009814,
+      "schema_valid": true, "structured_output": [],
+      "judge_score": 4, "judge_notes": "..." }
+  ]
+}
+```

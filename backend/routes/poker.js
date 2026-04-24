@@ -10,6 +10,11 @@
  *   GET  /api/poker/hands/:id   — 手牌详情 + 分析结果
  *   GET  /api/poker/leaks       — Leak 列表
  *
+ * 多模型评估接口（SSE）：
+ *   POST /api/poker/eval/runs       — 触发多模型并发评估
+ *   GET  /api/poker/eval/runs       — 列出手牌历史评估批次
+ *   GET  /api/poker/eval/runs/:id   — 评估批次详情
+ *
  * 导出 pokerRouter（挂载到 /api/poker）。
  */
 
@@ -32,6 +37,7 @@ const {
   executeSaveLeaks,
 } = require("../services/poker-coach/skills");
 const dao = require("../services/poker-coach/dao");
+const { runEvaluation } = require("../services/poker-coach/evaluator");
 
 // ===== 组装技能集和 Brain =====
 
@@ -207,6 +213,64 @@ async function handleGetLeaks(req, res) {
   });
 }
 
+// ===== SSE：多模型评估 =====
+
+async function handleEvalRun(req, res) {
+  try {
+    const apiKey = req.headers["x-api-key"];
+    if (!apiKey) return res.status(401).json({ error: "缺少 API Key" });
+
+    const handId = parseInt(req.body.hand_id, 10);
+    if (!handId) return res.status(400).json({ error: "缺少 hand_id" });
+
+    const userId = await resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "缺少用户标识" });
+
+    const belongs = await dao.handBelongsToUser(handId, userId);
+    if (!belongs) return res.status(404).json({ error: "手牌不存在" });
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    const modelIds = Array.isArray(req.body.model_ids) ? req.body.model_ids : null;
+    for await (const event of runEvaluation({ userId, handId, modelIds, apiKey })) {
+      res.write("data: " + JSON.stringify(event) + "\n\n");
+    }
+
+    res.write("data: [DONE]\n\n");
+    res.end();
+  } catch (err) {
+    console.error("[PokerRoute] eval 错误:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "服务内部错误" });
+    } else {
+      res.write("data: " + JSON.stringify({ type: "error", message: err.message }) + "\n\n");
+      res.end();
+    }
+  }
+}
+
+async function handleListEvalRuns(req, res) {
+  await withUser(req, res, async (userId) => {
+    const handId = parseInt(req.query.hand_id, 10);
+    if (!handId) return res.status(400).json({ error: "缺少 hand_id" });
+    const runs = await dao.listEvalRunsByHand(handId, userId);
+    res.json({ runs });
+  });
+}
+
+async function handleGetEvalRun(req, res) {
+  await withUser(req, res, async (userId) => {
+    const runId = parseInt(req.params.id, 10);
+    if (!runId) return res.status(400).json({ error: "无效 run ID" });
+    const run = await dao.getEvalRun(runId, userId);
+    if (!run) return res.status(404).json({ error: "评估批次不存在" });
+    res.json(run);
+  });
+}
+
 // ===== 路由组装 =====
 
 const pokerRouter = express.Router();
@@ -216,5 +280,8 @@ pokerRouter.post("/hands", handleCreateHand);
 pokerRouter.get("/hands", handleListHands);
 pokerRouter.get("/hands/:id", handleGetHand);
 pokerRouter.get("/leaks", handleGetLeaks);
+pokerRouter.post("/eval/runs", handleEvalRun);
+pokerRouter.get("/eval/runs", handleListEvalRuns);
+pokerRouter.get("/eval/runs/:id", handleGetEvalRun);
 
 module.exports = { pokerRouter };
