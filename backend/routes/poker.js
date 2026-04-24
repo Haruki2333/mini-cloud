@@ -10,6 +10,11 @@
  *   GET  /api/poker/hands/:id   — 手牌详情 + 分析结果
  *   GET  /api/poker/leaks       — Leak 列表
  *
+ * 多模型评估接口（SSE）：
+ *   POST /api/poker/eval/runs       — 触发多模型并发评估
+ *   GET  /api/poker/eval/runs       — 列出手牌历史评估批次
+ *   GET  /api/poker/eval/runs/:id   — 评估批次详情
+ *
  * 导出 pokerRouter（挂载到 /api/poker）。
  */
 
