@@ -9,7 +9,7 @@
 
 const { DataTypes } = require("sequelize");
 
-let PokerUser, PokerHand, PokerAnalysis, PokerLeak;
+let PokerUser, PokerHand, PokerAnalysis, PokerLeak, PokerEvalRun, PokerEvalResult;
 
 function define(sequelize) {
   PokerUser = sequelize.define(
@@ -232,6 +232,49 @@ function define(sequelize) {
     },
     { tableName: "poker_leaks", underscored: true }
   );
+
+  PokerEvalRun = sequelize.define(
+    "PokerEvalRun",
+    {
+      id: { type: DataTypes.INTEGER.UNSIGNED, primaryKey: true, autoIncrement: true },
+      user_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+      hand_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+      requested_models: { type: DataTypes.JSON, allowNull: false, comment: "请求的模型 ID 数组" },
+      status: {
+        type: DataTypes.ENUM("running", "completed", "partial", "failed"),
+        allowNull: false,
+        defaultValue: "running",
+      },
+      total_cost_usd: { type: DataTypes.DECIMAL(10, 6), allowNull: true },
+      consistency_score: { type: DataTypes.DECIMAL(5, 2), allowNull: true, comment: "模型间 rating 一致率 0-100" },
+      judge_model_id: { type: DataTypes.STRING(64), allowNull: true },
+    },
+    { tableName: "poker_eval_runs", underscored: true }
+  );
+
+  PokerEvalResult = sequelize.define(
+    "PokerEvalResult",
+    {
+      id: { type: DataTypes.INTEGER.UNSIGNED, primaryKey: true, autoIncrement: true },
+      eval_run_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+      hand_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, comment: "冗余，便于直查" },
+      model_id: { type: DataTypes.STRING(64), allowNull: false },
+      provider: { type: DataTypes.STRING(32), allowNull: false },
+      status: { type: DataTypes.ENUM("success", "failed", "timeout"), allowNull: false },
+      latency_ms: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+      prompt_tokens: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+      completion_tokens: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+      cached_tokens: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+      cost_usd: { type: DataTypes.DECIMAL(10, 6), allowNull: true, defaultValue: 0 },
+      structured_output: { type: DataTypes.JSON, allowNull: true, comment: "schema 合规时保存 analyses 数组" },
+      raw_response: { type: DataTypes.TEXT, allowNull: true },
+      error_message: { type: DataTypes.TEXT, allowNull: true },
+      schema_valid: { type: DataTypes.BOOLEAN, allowNull: true },
+      judge_score: { type: DataTypes.TINYINT.UNSIGNED, allowNull: true },
+      judge_notes: { type: DataTypes.TEXT, allowNull: true },
+    },
+    { tableName: "poker_eval_results", underscored: true }
+  );
 }
 
 async function afterSync(qi) {
@@ -250,13 +293,35 @@ async function afterSync(qi) {
       name: "idx_poker_leaks_user",
     });
   } catch (_) {}
+  try {
+    await qi.addIndex("poker_eval_runs", ["hand_id", "created_at"], {
+      name: "idx_eval_runs_hand_time",
+    });
+  } catch (_) {}
+  try {
+    await qi.addIndex("poker_eval_runs", ["user_id", "created_at"], {
+      name: "idx_eval_runs_user_time",
+    });
+  } catch (_) {}
+  try {
+    await qi.addIndex("poker_eval_results", ["eval_run_id"], {
+      name: "idx_eval_results_run",
+    });
+  } catch (_) {}
+  try {
+    await qi.addIndex("poker_eval_results", ["hand_id", "model_id"], {
+      name: "idx_eval_results_hand_model",
+    });
+  } catch (_) {}
 }
 
 module.exports = {
   define,
   afterSync,
-  get PokerUser() { return PokerUser; },
-  get PokerHand() { return PokerHand; },
-  get PokerAnalysis() { return PokerAnalysis; },
-  get PokerLeak() { return PokerLeak; },
+  get PokerUser()       { return PokerUser; },
+  get PokerHand()       { return PokerHand; },
+  get PokerAnalysis()   { return PokerAnalysis; },
+  get PokerLeak()       { return PokerLeak; },
+  get PokerEvalRun()    { return PokerEvalRun; },
+  get PokerEvalResult() { return PokerEvalResult; },
 };
