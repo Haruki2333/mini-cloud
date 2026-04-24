@@ -160,6 +160,109 @@ async function getLeaks(userId) {
   return leaks.map((l) => l.toJSON());
 }
 
+// ===== 评估批次 =====
+
+async function createEvalRun(userId, handId, requestedModels) {
+  const run = await models.PokerEvalRun.create({
+    user_id: userId,
+    hand_id: handId,
+    requested_models: requestedModels,
+    status: "running",
+  });
+  return run.id;
+}
+
+async function saveEvalResult(evalRunId, handId, data) {
+  const result = await models.PokerEvalResult.create({
+    eval_run_id: evalRunId,
+    hand_id: handId,
+    model_id: data.model_id,
+    provider: data.provider,
+    status: data.status,
+    latency_ms: data.latency_ms || null,
+    prompt_tokens: data.prompt_tokens || null,
+    completion_tokens: data.completion_tokens || null,
+    cached_tokens: data.cached_tokens || null,
+    cost_usd: data.cost_usd || 0,
+    structured_output: data.structured_output || null,
+    raw_response: data.raw_response || null,
+    error_message: data.error_message || null,
+    schema_valid: data.schema_valid != null ? data.schema_valid : null,
+  });
+  return result.id;
+}
+
+async function computeConsistency(evalRunId, hand) {
+  const results = await models.PokerEvalResult.findAll({
+    where: { eval_run_id: evalRunId, status: "success", schema_valid: true },
+  });
+  if (results.length === 0) return 0;
+
+  const streets = ["preflop"];
+  if (hand.flop_cards) streets.push("flop");
+  if (hand.turn_card) streets.push("turn");
+  if (hand.river_card) streets.push("river");
+
+  const streetScores = [];
+  for (const street of streets) {
+    const ratings = results
+      .map((r) => {
+        const arr = r.structured_output;
+        if (!Array.isArray(arr)) return null;
+        const item = arr.find((a) => a.street === street);
+        return item ? item.rating : null;
+      })
+      .filter(Boolean);
+    if (ratings.length === 0) continue;
+    const counts = {};
+    for (const r of ratings) counts[r] = (counts[r] || 0) + 1;
+    const modeCount = Math.max(...Object.values(counts));
+    streetScores.push(modeCount / ratings.length);
+  }
+
+  if (streetScores.length === 0) return 0;
+  const avg = streetScores.reduce((a, b) => a + b, 0) / streetScores.length;
+  return Number((avg * 100).toFixed(1));
+}
+
+async function finalizeEvalRun(evalRunId, updates) {
+  const fields = {};
+  if (updates.status != null) fields.status = updates.status;
+  if (updates.totalCostUsd != null) fields.total_cost_usd = updates.totalCostUsd;
+  if (updates.consistencyScore != null) fields.consistency_score = updates.consistencyScore;
+  if (updates.judgeModelId != null) fields.judge_model_id = updates.judgeModelId;
+  await models.PokerEvalRun.update(fields, { where: { id: evalRunId } });
+}
+
+async function listEvalRunsByHand(handId, userId) {
+  const runs = await models.PokerEvalRun.findAll({
+    where: { hand_id: handId, user_id: userId },
+    order: [["created_at", "DESC"]],
+  });
+  return runs.map((r) => r.toJSON());
+}
+
+async function getEvalRun(evalRunId, userId) {
+  const run = await models.PokerEvalRun.findOne({
+    where: { id: evalRunId, user_id: userId },
+  });
+  if (!run) return null;
+  const results = await models.PokerEvalResult.findAll({
+    where: { eval_run_id: evalRunId },
+    order: [["id", "ASC"]],
+  });
+  return { ...run.toJSON(), results: results.map((r) => r.toJSON()) };
+}
+
+async function saveJudgeScores(evalRunId, scores) {
+  for (const s of scores) {
+    await models.PokerEvalResult.update(
+      { judge_score: s.score, judge_notes: s.notes || null },
+      { where: { eval_run_id: evalRunId, model_id: s.model_id } }
+    );
+  }
+}
+
 module.exports = {
   findOrCreateUser,
   createHand,
@@ -172,4 +275,12 @@ module.exports = {
   getUserAnalyses,
   saveLeaks,
   getLeaks,
+  // 评估
+  createEvalRun,
+  saveEvalResult,
+  computeConsistency,
+  finalizeEvalRun,
+  listEvalRunsByHand,
+  getEvalRun,
+  saveJudgeScores,
 };
