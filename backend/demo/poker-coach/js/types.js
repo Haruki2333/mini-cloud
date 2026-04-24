@@ -1,15 +1,19 @@
 // ===== 模型配置 =====
 
 var MODEL_CONFIG = {
-  "qwen3.5-plus": {
-    label: "千问 Qwen 3.5 Plus",
-    provider: "qwen",
-  },
-  "glm-4-plus": {
-    label: "智谱 GLM-4 Plus",
-    provider: "zhipu",
-  },
+  "qwen3.5-plus":      { label: "千问 Qwen 3.5 Plus",   provider: "qwen"      },
+  "glm-4.6v":          { label: "智谱 GLM-4.6V",         provider: "zhipu"     },
+  "claude-sonnet-4-5": { label: "Claude Sonnet 4.5",    provider: "anthropic" },
+  "gpt-4o":            { label: "OpenAI GPT-4o",        provider: "openai"    },
+  "gemini-2.5-pro":    { label: "Gemini 2.5 Pro",       provider: "google"    },
+  "deepseek-chat":     { label: "DeepSeek V3",          provider: "deepseek"  },
 };
+
+// 评估用模型清单（compare.html 使用）
+var EVAL_MODEL_IDS = [
+  "claude-sonnet-4-5", "gpt-4o", "gemini-2.5-pro",
+  "deepseek-chat", "glm-4.6v", "qwen3.5-plus",
+];
 
 var DEFAULT_MODEL = "qwen3.5-plus";
 
