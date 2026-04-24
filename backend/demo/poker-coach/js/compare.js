@@ -2,6 +2,7 @@
 
 var HAND_ID = parseInt(new URLSearchParams(location.search).get("hand_id"), 10) || null;
 var currentModels = []; // 当前评估中的模型列表
+var currentEvalResults = []; // 实时评估收集的 result（用于 KPI 最快/最省计算）
 
 function getLingyaaiKey() {
   var s = getSettings();
@@ -116,6 +117,7 @@ async function startEval() {
   currentModels = modelIds.map(function (id) {
     return { id: id, label: MODEL_CONFIG[id] ? MODEL_CONFIG[id].label : id };
   });
+  currentEvalResults = [];
   initTable(currentModels);
 
   try {
@@ -164,11 +166,12 @@ function handleEvalEvent(evt) {
   if (evt.type === "eval_started") {
     showToast("评估开始");
   } else if (evt.type === "eval_model_done") {
+    currentEvalResults.push(evt.result);
     fillModelColumn(evt.model_id, evt.result);
   } else if (evt.type === "eval_judge_done") {
     fillJudgeRow(evt.scores);
   } else if (evt.type === "eval_completed") {
-    renderKPI(evt, null);
+    renderKPI(evt, currentEvalResults);
     showToast("评估完成");
   } else if (evt.type === "error") {
     showToast("错误: " + evt.message);
