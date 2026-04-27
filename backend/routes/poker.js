@@ -240,13 +240,21 @@ async function handleEvalRun(req, res) {
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
+    req.on("close", () => console.log(`[PokerRoute] eval SSE 连接关闭 hand=${handId}`));
+
     const modelIds = Array.isArray(req.body.model_ids) ? req.body.model_ids : null;
     for await (const event of runEvaluation({ userId, handId, modelIds, apiKey })) {
+      if (res.writableEnded) {
+        console.warn(`[PokerRoute] eval SSE 连接已结束，跳过事件 type=${event.type}`);
+        continue;
+      }
       res.write("data: " + JSON.stringify(event) + "\n\n");
     }
 
-    res.write("data: [DONE]\n\n");
-    res.end();
+    if (!res.writableEnded) {
+      res.write("data: [DONE]\n\n");
+      res.end();
+    }
   } catch (err) {
     console.error("[PokerRoute] eval 错误:", err);
     if (!res.headersSent) {

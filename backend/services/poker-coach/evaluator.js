@@ -218,11 +218,6 @@ async function* runEvaluation({ userId, handId, modelIds, apiKey }) {
   const systemPrompt = POKER_SYSTEM_PROMPT + EVAL_SYSTEM_SUFFIX;
   const handContext = buildHandContext(hand);
 
-  yield { type: "eval_started", eval_run_id: evalRunId, hand_id: handId, models };
-  for (const m of models) {
-    yield { type: "eval_model_started", eval_run_id: evalRunId, model_id: m.id };
-  }
-
   // 队列：按完成顺序 yield
   const resultQueue = [];
   const waiters = [];
@@ -240,11 +235,18 @@ async function* runEvaluation({ userId, handId, modelIds, apiKey }) {
     return new Promise((resolve) => waiters.push(resolve));
   }
 
+  // 在任何 yield 之前启动模型调用，确保 SSE 连接中断时调用已在飞行中
+  console.log(`[Eval] 启动 ${models.length} 个并发模型调用`);
   models.forEach((m) => {
     callModel(m, handContext, systemPrompt, apiKey, evalRunId, handId)
       .then((r) => enqueue(r))
       .catch((err) => enqueue({ model_id: m.id, status: "failed", error_message: err.message }));
   });
+
+  yield { type: "eval_started", eval_run_id: evalRunId, hand_id: handId, models };
+  for (const m of models) {
+    yield { type: "eval_model_started", eval_run_id: evalRunId, model_id: m.id };
+  }
 
   const allResults = [];
   for (let i = 0; i < models.length; i++) {
