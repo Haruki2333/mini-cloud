@@ -11,14 +11,14 @@ var MODEL_CONFIG = {
   "claude-sonnet-4-6-thinking":      { label: "Claude Sonnet 4.6 Thinking", provider: "anthropic" },
   "gemini-3.1-pro-preview-thinking": { label: "Gemini 3.1 Pro Thinking",    provider: "google"    },
   "deepseek-v4-pro":                 { label: "DeepSeek V4 Pro",            provider: "deepseek"  },
-  "minimax-m2.5":                    { label: "MiniMax M2.5",               provider: "lingyaai"  },
-  "kimi-k2.6-thinking":              { label: "Kimi K2.6 Thinking",         provider: "lingyaai"  },
+  "doubao-seed-2-0-pro":             { label: "Doubao Seed 2.0 Pro",        provider: "lingyaai"  },
+  "kimi-k2.6":                       { label: "Kimi K2.6",                  provider: "lingyaai"  },
 };
 
 // 评估用模型清单（compare.html 使用，须与后端 evaluator.js EVAL_MODELS 保持一致）
 var EVAL_MODEL_IDS = [
   "claude-sonnet-4-6-thinking", "gpt-5.4", "gemini-3.1-pro-preview-thinking",
-  "deepseek-v4-pro", "minimax-m2.5", "kimi-k2.6-thinking",
+  "deepseek-v4-pro", "doubao-seed-2-0-pro", "kimi-k2.6",
 ];
 
 var DEFAULT_MODEL = "gpt-5.4";

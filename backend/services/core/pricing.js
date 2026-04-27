@@ -8,8 +8,8 @@ const PRICING = {
   "gpt-5.4":                         { input:  7.50, output: 45.00 },
   "gemini-3.1-pro-preview-thinking": { input:  9.00, output: 45.00 },
   "deepseek-v4-pro":                 { input: 12.00, output: 24.00 },
-  "minimax-m2.5":                    { input:  2.10, output:  8.40 },
-  "kimi-k2.6-thinking":              { input:  6.50, output: 27.00 },
+  "doubao-seed-2-0-pro":             { input:  3.20, output: 16.00 },
+  "kimi-k2.6":                       { input:  6.50, output: 27.00 },
 };
 
 function calculateCost(modelId, usage) {
