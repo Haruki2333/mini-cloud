@@ -10,7 +10,7 @@ var MODEL_CONFIG = {
   "claude-sonnet-4-6-thinking":      { label: "Claude Sonnet 4.6 Thinking", provider: "anthropic" },
   "gpt-5.4":                         { label: "OpenAI GPT-5.4",             provider: "openai"    },
   "gemini-3.1-pro-preview-thinking": { label: "Gemini 3.1 Pro Thinking",    provider: "google"    },
-  "deepseek-v3.2-thinking":          { label: "DeepSeek V3.2 Thinking",     provider: "deepseek"  },
+  "deepseek-v4-pro":                 { label: "DeepSeek V4 Pro",            provider: "deepseek"  },
   "glm-5.1":                         { label: "智谱 GLM-5.1",               provider: "zhipu"     },
   "qwen3.6-plus":                    { label: "千问 Qwen3.6-Plus",           provider: "qwen"      },
 };
@@ -18,7 +18,7 @@ var MODEL_CONFIG = {
 // 评估用模型清单（compare.html 使用，须与后端 evaluator.js EVAL_MODELS 保持一致）
 var EVAL_MODEL_IDS = [
   "claude-sonnet-4-6-thinking", "gpt-5.4", "gemini-3.1-pro-preview-thinking",
-  "deepseek-v3.2-thinking", "glm-5.1", "qwen3.6-plus",
+  "deepseek-v4-pro", "glm-5.1", "qwen3.6-plus",
 ];
 
 var DEFAULT_MODEL = "qwen3.5-plus";
