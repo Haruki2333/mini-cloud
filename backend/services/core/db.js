@@ -47,7 +47,12 @@ async function initDB(...modelDefiners) {
     password,
     database,
     logging: false,
-    pool: { max: 5, min: 0, idle: 10000 },
+    // keepAlive 防止云环境 NAT/负载均衡静默关闭空闲 TCP 连接后池里出现死连接
+    dialectOptions: {
+      keepAlive: true,
+      connectTimeout: 30000,
+    },
+    pool: { max: 5, min: 0, idle: 10000, acquire: 30000, evict: 5000 },
     define: { charset: "utf8mb4" },
   });
 

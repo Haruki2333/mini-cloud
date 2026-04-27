@@ -51,6 +51,8 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), EVAL_TIMEOUT_MS);
 
+  console.log(`[Eval] 开始调用 ${model.id}  run=${evalRunId}`);
+
   try {
     const resp = await fetch(LINGYAAI_API_URL, {
       method: "POST",
@@ -74,6 +76,7 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
 
     if (!resp.ok) {
       const errText = await resp.text().catch(() => `HTTP ${resp.status}`);
+      console.error(`[Eval] ${model.id} HTTP ${resp.status} (${latencyMs}ms): ${errText.slice(0, 300)}`);
       const resultId = await dao.saveEvalResult(evalRunId, handId, {
         model_id: model.id, provider: model.provider,
         status: "failed", latency_ms: latencyMs, error_message: errText,
@@ -93,6 +96,12 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
       parsed = JSON.parse(cleaned);
       schemaValid = validateSchema(parsed);
     } catch (_) {}
+
+    if (!schemaValid) {
+      console.warn(`[Eval] ${model.id} schema 校验失败 (${latencyMs}ms), raw前200字: ${rawContent.slice(0, 200)}`);
+    } else {
+      console.log(`[Eval] ${model.id} 成功 (${latencyMs}ms) prompt=${usage.prompt_tokens} completion=${usage.completion_tokens}`);
+    }
 
     const resultId = await dao.saveEvalResult(evalRunId, handId, {
       model_id: model.id, provider: model.provider, status: "success",
@@ -117,6 +126,7 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
     clearTimeout(timeoutId);
     const latencyMs = Date.now() - startTime;
     const isTimeout = err.name === "AbortError";
+    console.error(`[Eval] ${model.id} ${isTimeout ? "超时" : "异常"} (${latencyMs}ms): ${err.message}`);
     const resultId = await dao.saveEvalResult(evalRunId, handId, {
       model_id: model.id, provider: model.provider,
       status: isTimeout ? "timeout" : "failed",
@@ -193,6 +203,8 @@ ${modelAnalyses}
 // ===== 评估主流程 =====
 
 async function* runEvaluation({ userId, handId, modelIds, apiKey }) {
+  console.log(`[Eval] 启动评估 hand=${handId} user=${userId} models=${modelIds || "all"}`);
+
   const hand = await dao.getHandWithAnalyses(handId, userId);
   if (!hand) throw new Error("手牌不存在");
 
@@ -202,6 +214,7 @@ async function* runEvaluation({ userId, handId, modelIds, apiKey }) {
   if (models.length === 0) throw new Error("无有效模型");
 
   const evalRunId = await dao.createEvalRun(userId, handId, models.map((m) => m.id));
+  console.log(`[Eval] evalRun 已创建 id=${evalRunId}`);
   const systemPrompt = POKER_SYSTEM_PROMPT + EVAL_SYSTEM_SUFFIX;
   const handContext = buildHandContext(hand);
 

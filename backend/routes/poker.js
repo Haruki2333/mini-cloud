@@ -223,7 +223,13 @@ async function handleEvalRun(req, res) {
     const handId = parseInt(req.body.hand_id, 10);
     if (!handId) return res.status(400).json({ error: "缺少 hand_id" });
 
-    const userId = await resolveUserId(req);
+    let userId;
+    try {
+      userId = await resolveUserId(req);
+    } catch (dbErr) {
+      console.error("[PokerRoute] eval resolveUserId DB 错误:", dbErr.message, dbErr.stack);
+      return res.status(500).json({ error: "数据库连接异常，请稍后重试" });
+    }
     if (!userId) return res.status(401).json({ error: "缺少用户标识" });
 
     const belongs = await dao.handBelongsToUser(handId, userId);
