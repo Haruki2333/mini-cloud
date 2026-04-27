@@ -256,11 +256,20 @@ var RATING_COLORS = { good: "var(--green)", acceptable: "var(--ink)", problemati
 
 function fillModelColumn(modelId, result) {
   if (result.status !== "success") {
-    // 所有街显示错误
-    STREETS.forEach(function (s) {
+    // 失败：第一格展示状态 + 原因（鼠标悬停看完整内容），其余街置灰
+    var errMsg = result.error_message || "";
+    STREETS.forEach(function (s, idx) {
       var td = document.getElementById("cell-" + s.key + "-" + modelId);
-      if (td) td.innerHTML = '<span style="color:var(--red);font-size:11px;">' +
-        escHtml(result.status) + "</span>";
+      if (!td) return;
+      if (idx === 0) {
+        td.innerHTML =
+          '<div style="color:var(--red);font-size:12px;font-weight:600;">' + escHtml(result.status) + "</div>" +
+          (errMsg
+            ? '<div style="color:var(--ink-soft);font-size:10px;margin-top:4px;line-height:1.4;text-align:left;word-break:break-all;" title="' + escHtml(errMsg) + '">' + escHtml(errMsg.slice(0, 80)) + (errMsg.length > 80 ? "…" : "") + "</div>"
+            : "");
+      } else {
+        td.innerHTML = '<span style="color:var(--ink-faint);font-size:11px;">—</span>';
+      }
     });
     fillSummaryCell("latency", modelId, result.latency_ms ? result.latency_ms + "ms" : "—");
     fillSummaryCell("tokens", modelId, "—");
@@ -270,21 +279,37 @@ function fillModelColumn(modelId, result) {
   }
 
   var analyses = result.structured_output || [];
-  analyses.forEach(function (a) {
-    var td = document.getElementById("cell-" + a.street + "-" + modelId);
-    if (!td) return;
-    var color = RATING_COLORS[a.rating] || "var(--ink)";
-    var ratingLabel = RATING_LABELS[a.rating] || a.rating;
-    td.innerHTML =
-      '<span class="rating-badge ' + a.rating + '">' + ratingLabel + "</span>" +
-      '<div class="cell-detail">' +
-        cellField("场景", a.scenario) +
-        cellField("Hero操作", a.hero_action) +
-        (a.better_action ? cellField("更优选择", a.better_action) : "") +
-        cellField("分析", a.reasoning) +
-        cellField("原则", a.principle) +
-      "</div>";
-  });
+  if (analyses.length === 0 && result.error_message) {
+    // schema 失败：status=success 但无结构化输出，也展示原因
+    var errMsg2 = result.error_message;
+    STREETS.forEach(function (s, idx) {
+      var td = document.getElementById("cell-" + s.key + "-" + modelId);
+      if (!td) return;
+      if (idx === 0) {
+        td.innerHTML =
+          '<div style="color:var(--orange,#d97706);font-size:12px;font-weight:600;">schema 失败</div>' +
+          '<div style="color:var(--ink-soft);font-size:10px;margin-top:4px;line-height:1.4;text-align:left;word-break:break-all;" title="' + escHtml(errMsg2) + '">' + escHtml(errMsg2.slice(0, 80)) + (errMsg2.length > 80 ? "…" : "") + "</div>";
+      } else {
+        td.innerHTML = '<span style="color:var(--ink-faint);font-size:11px;">—</span>';
+      }
+    });
+  } else {
+    analyses.forEach(function (a) {
+      var td = document.getElementById("cell-" + a.street + "-" + modelId);
+      if (!td) return;
+      var color = RATING_COLORS[a.rating] || "var(--ink)";
+      var ratingLabel = RATING_LABELS[a.rating] || a.rating;
+      td.innerHTML =
+        '<span class="rating-badge ' + a.rating + '">' + ratingLabel + "</span>" +
+        '<div class="cell-detail">' +
+          cellField("场景", a.scenario) +
+          cellField("Hero操作", a.hero_action) +
+          (a.better_action ? cellField("更优选择", a.better_action) : "") +
+          cellField("分析", a.reasoning) +
+          cellField("原则", a.principle) +
+        "</div>";
+    });
+  }
 
   var tokens = ((result.prompt_tokens || 0) + (result.completion_tokens || 0));
   fillSummaryCell("latency", modelId, result.latency_ms ? result.latency_ms + "ms" : "—");
