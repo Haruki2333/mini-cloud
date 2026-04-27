@@ -223,7 +223,15 @@ async function handleEvalRun(req, res) {
     const handId = parseInt(req.body.hand_id, 10);
     if (!handId) return res.status(400).json({ error: "缺少 hand_id" });
 
-    const userId = await resolveUserId(req);
+    console.log(`[PokerRoute] eval 接收 hand=${handId} apiKeyLen=${apiKey.length} models=${(req.body.model_ids || []).join(",") || "all"}`);
+
+    let userId;
+    try {
+      userId = await resolveUserId(req);
+    } catch (dbErr) {
+      console.error("[PokerRoute] eval resolveUserId DB 错误:", dbErr.message, dbErr.stack);
+      return res.status(500).json({ error: "数据库连接异常，请稍后重试" });
+    }
     if (!userId) return res.status(401).json({ error: "缺少用户标识" });
 
     const belongs = await dao.handBelongsToUser(handId, userId);
@@ -234,13 +242,21 @@ async function handleEvalRun(req, res) {
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
+    req.on("close", () => console.log(`[PokerRoute] eval SSE 连接关闭 hand=${handId}`));
+
     const modelIds = Array.isArray(req.body.model_ids) ? req.body.model_ids : null;
     for await (const event of runEvaluation({ userId, handId, modelIds, apiKey })) {
+      if (res.writableEnded) {
+        console.warn(`[PokerRoute] eval SSE 连接已结束，跳过事件 type=${event.type}`);
+        continue;
+      }
       res.write("data: " + JSON.stringify(event) + "\n\n");
     }
 
-    res.write("data: [DONE]\n\n");
-    res.end();
+    if (!res.writableEnded) {
+      res.write("data: [DONE]\n\n");
+      res.end();
+    }
   } catch (err) {
     console.error("[PokerRoute] eval 错误:", err);
     if (!res.headersSent) {

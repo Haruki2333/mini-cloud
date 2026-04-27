@@ -5,6 +5,7 @@
  * 评估调用走 lingyaai 代理（OpenAI Chat Completions 兼容），非流式。
  */
 
+const fetch = require("node-fetch");
 const { POKER_SYSTEM_PROMPT } = require("./brain-config");
 const { buildHandContext } = require("./hand-context");
 const { calculateCost } = require("../core/pricing");
@@ -18,7 +19,7 @@ const EVAL_MODELS = [
   { id: "claude-sonnet-4-6-thinking",          provider: "anthropic", label: "Claude Sonnet 4.6 Thinking"          },
   { id: "gpt-5.4",                             provider: "openai",    label: "OpenAI GPT-5.4"                      },
   { id: "gemini-3.1-pro-preview-thinking",     provider: "google",    label: "Gemini 3.1 Pro Preview Thinking"     },
-  { id: "deepseek-v3.2-thinking",              provider: "deepseek",  label: "DeepSeek V3.2 Thinking"              },
+  { id: "deepseek-v4-pro",                     provider: "deepseek",  label: "DeepSeek V4 Pro"                     },
   { id: "glm-5.1",                             provider: "zhipu",     label: "智谱 GLM-5.1"                         },
   { id: "qwen3.6-plus",                        provider: "qwen",      label: "千问 Qwen3.6-Plus"                    },
 ];
@@ -46,12 +47,22 @@ function validateSchema(parsed) {
 
 // ===== 单模型调用 =====
 
+function extractErrorMessage(rawText, status) {
+  if (!rawText) return `HTTP ${status}`;
+  try {
+    const j = JSON.parse(rawText);
+    const msg = j?.error?.message || j?.message || j?.error;
+    if (typeof msg === "string" && msg) return `HTTP ${status}: ${msg}`;
+  } catch (_) {}
+  return `HTTP ${status}: ${rawText.slice(0, 200)}`;
+}
+
 async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, handId) {
   const startTime = Date.now();
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), EVAL_TIMEOUT_MS);
+  console.log(`[Eval] 开始调用 ${model.id}  run=${evalRunId} apiKey=${apiKey ? apiKey.slice(0, 6) + "***" : "(空)"}`);
 
   try {
+    // node-fetch v2 原生支持 timeout 选项，避免依赖部署环境是否提供全局 AbortController
     const resp = await fetch(LINGYAAI_API_URL, {
       method: "POST",
       headers: {
@@ -66,19 +77,20 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
         ],
         stream: false,
       }),
-      signal: controller.signal,
+      timeout: EVAL_TIMEOUT_MS,
     });
-    clearTimeout(timeoutId);
 
     const latencyMs = Date.now() - startTime;
 
     if (!resp.ok) {
-      const errText = await resp.text().catch(() => `HTTP ${resp.status}`);
+      const errText = await resp.text().catch(() => "");
+      const cleanMsg = extractErrorMessage(errText, resp.status);
+      console.error(`[Eval] ${model.id} HTTP ${resp.status} (${latencyMs}ms): ${errText.slice(0, 300)}`);
       const resultId = await dao.saveEvalResult(evalRunId, handId, {
         model_id: model.id, provider: model.provider,
-        status: "failed", latency_ms: latencyMs, error_message: errText,
+        status: "failed", latency_ms: latencyMs, error_message: cleanMsg,
       });
-      return { model_id: model.id, status: "failed", latency_ms: latencyMs, error_message: errText, result_id: resultId };
+      return { model_id: model.id, status: "failed", latency_ms: latencyMs, error_message: cleanMsg, result_id: resultId };
     }
 
     const data = await resp.json();
@@ -94,6 +106,14 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
       schemaValid = validateSchema(parsed);
     } catch (_) {}
 
+    let schemaError = null;
+    if (!schemaValid) {
+      schemaError = `输出格式不符合 schema，原始片段：${rawContent.slice(0, 120)}`;
+      console.warn(`[Eval] ${model.id} schema 校验失败 (${latencyMs}ms), raw前200字: ${rawContent.slice(0, 200)}`);
+    } else {
+      console.log(`[Eval] ${model.id} 成功 (${latencyMs}ms) prompt=${usage.prompt_tokens} completion=${usage.completion_tokens}`);
+    }
+
     const resultId = await dao.saveEvalResult(evalRunId, handId, {
       model_id: model.id, provider: model.provider, status: "success",
       latency_ms: latencyMs,
@@ -104,6 +124,7 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
       structured_output: schemaValid ? parsed.analyses : null,
       raw_response: rawContent,
       schema_valid: schemaValid,
+      error_message: schemaError,
     });
 
     return {
@@ -111,20 +132,25 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
       prompt_tokens: usage.prompt_tokens, completion_tokens: usage.completion_tokens,
       cost_usd: cost, schema_valid: schemaValid,
       structured_output: schemaValid ? parsed.analyses : null,
+      error_message: schemaError,
       result_id: resultId,
     };
   } catch (err) {
-    clearTimeout(timeoutId);
     const latencyMs = Date.now() - startTime;
-    const isTimeout = err.name === "AbortError";
+    // node-fetch v2 超时抛 FetchError code=ETIMEDOUT
+    const isTimeout = err.type === "request-timeout" || err.code === "ETIMEDOUT" || err.name === "AbortError";
+    const msg = isTimeout
+      ? `请求超时（>${EVAL_TIMEOUT_MS / 1000}s）`
+      : err.message || String(err);
+    console.error(`[Eval] ${model.id} ${isTimeout ? "超时" : "异常"} (${latencyMs}ms): ${msg}`, err.stack || "");
     const resultId = await dao.saveEvalResult(evalRunId, handId, {
       model_id: model.id, provider: model.provider,
       status: isTimeout ? "timeout" : "failed",
-      latency_ms: latencyMs, error_message: err.message,
+      latency_ms: latencyMs, error_message: msg,
     });
     return {
       model_id: model.id, status: isTimeout ? "timeout" : "failed",
-      latency_ms: latencyMs, error_message: err.message, result_id: resultId,
+      latency_ms: latencyMs, error_message: msg, result_id: resultId,
     };
   }
 }
@@ -152,9 +178,6 @@ ${modelAnalyses}
 {"scores":[{"model_id":"...","score":4,"notes":"简短评语（一句话）"}]}
 只输出 JSON，不要其他文字。`;
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), EVAL_TIMEOUT_MS);
-
   try {
     const resp = await fetch(LINGYAAI_API_URL, {
       method: "POST",
@@ -167,11 +190,14 @@ ${modelAnalyses}
         messages: [{ role: "user", content: judgePrompt }],
         stream: false,
       }),
-      signal: controller.signal,
+      timeout: EVAL_TIMEOUT_MS,
     });
-    clearTimeout(timeoutId);
 
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => "");
+      console.error(`[Eval] 裁判 HTTP ${resp.status}: ${errText.slice(0, 200)}`);
+      return null;
+    }
 
     const data = await resp.json();
     const rawContent = data.choices?.[0]?.message?.content || "";
@@ -184,8 +210,8 @@ ${modelAnalyses}
     await dao.finalizeEvalRun(evalRunId, { judgeModelId: JUDGE_MODEL_ID });
 
     return { judge_model_id: JUDGE_MODEL_ID, scores: parsedJudge.scores };
-  } catch (_) {
-    clearTimeout(timeoutId);
+  } catch (err) {
+    console.error(`[Eval] 裁判异常: ${err.message}`);
     return null;
   }
 }
@@ -193,6 +219,8 @@ ${modelAnalyses}
 // ===== 评估主流程 =====
 
 async function* runEvaluation({ userId, handId, modelIds, apiKey }) {
+  console.log(`[Eval] 启动评估 hand=${handId} user=${userId} models=${modelIds || "all"}`);
+
   const hand = await dao.getHandWithAnalyses(handId, userId);
   if (!hand) throw new Error("手牌不存在");
 
@@ -202,13 +230,9 @@ async function* runEvaluation({ userId, handId, modelIds, apiKey }) {
   if (models.length === 0) throw new Error("无有效模型");
 
   const evalRunId = await dao.createEvalRun(userId, handId, models.map((m) => m.id));
+  console.log(`[Eval] evalRun 已创建 id=${evalRunId}`);
   const systemPrompt = POKER_SYSTEM_PROMPT + EVAL_SYSTEM_SUFFIX;
   const handContext = buildHandContext(hand);
-
-  yield { type: "eval_started", eval_run_id: evalRunId, hand_id: handId, models };
-  for (const m of models) {
-    yield { type: "eval_model_started", eval_run_id: evalRunId, model_id: m.id };
-  }
 
   // 队列：按完成顺序 yield
   const resultQueue = [];
@@ -227,11 +251,18 @@ async function* runEvaluation({ userId, handId, modelIds, apiKey }) {
     return new Promise((resolve) => waiters.push(resolve));
   }
 
+  // 在任何 yield 之前启动模型调用，确保 SSE 连接中断时调用已在飞行中
+  console.log(`[Eval] 启动 ${models.length} 个并发模型调用`);
   models.forEach((m) => {
     callModel(m, handContext, systemPrompt, apiKey, evalRunId, handId)
       .then((r) => enqueue(r))
       .catch((err) => enqueue({ model_id: m.id, status: "failed", error_message: err.message }));
   });
+
+  yield { type: "eval_started", eval_run_id: evalRunId, hand_id: handId, models };
+  for (const m of models) {
+    yield { type: "eval_model_started", eval_run_id: evalRunId, model_id: m.id };
+  }
 
   const allResults = [];
   for (let i = 0; i < models.length; i++) {

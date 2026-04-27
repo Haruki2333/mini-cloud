@@ -7,7 +7,7 @@ const PRICING = {
   "claude-sonnet-4-6-thinking":      { input: 10.00, output: 50.00 },
   "gpt-5.4":                         { input:  7.50, output: 45.00 },
   "gemini-3.1-pro-preview-thinking": { input:  9.00, output: 45.00 },
-  "deepseek-v3.2-thinking":          { input:  2.00, output:  3.00 },
+  "deepseek-v4-pro":                 { input: 12.00, output: 24.00 },
   "glm-5.1":                         { input:  8.00, output: 28.00 },
   "qwen3.6-plus":                    { input:  2.00, output: 12.00 },
 };
