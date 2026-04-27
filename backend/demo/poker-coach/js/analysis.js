@@ -75,6 +75,8 @@ async function loadHand() {
 
 function renderHandSummary(hand) {
   document.getElementById("handSummaryCard").style.display = "block";
+  var deleteBtn = document.getElementById("deleteHandBtn");
+  if (deleteBtn) deleteBtn.style.display = "";
 
   var resultText = formatResultBB(hand.result_bb) || "—";
   var resultClass = getResultClass(hand.result_bb);
@@ -614,6 +616,24 @@ function buildHandContext(hand) {
   }
 
   return lines.join("\n");
+}
+
+// ===== 删除手牌 =====
+
+async function confirmDeleteHand() {
+  if (!HAND_ID) return;
+  if (!confirm("确定要删除这手牌吗？此操作不可恢复。")) return;
+  try {
+    var resp = await fetch("/api/poker/hands/" + HAND_ID, {
+      method: "DELETE",
+      headers: buildHeaders(),
+    });
+    if (!resp.ok) throw new Error("删除失败");
+    showToast("已删除，正在返回…");
+    setTimeout(function () { window.location.href = "/poker/"; }, 1000);
+  } catch (e) {
+    showToast("删除失败，请重试");
+  }
 }
 
 // ===== 启动 =====

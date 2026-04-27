@@ -101,7 +101,7 @@ async function handleCompletions(req, res) {
     }
 
     const { messages } = req.body;
-    let model = req.body.model || "qwen3.5-plus";
+    let model = req.body.model || "gpt-5.4";
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: "消息列表不能为空" });
@@ -203,6 +203,19 @@ async function handleGetHand(req, res) {
   });
 }
 
+async function handleDeleteHand(req, res) {
+  await withUser(req, res, async (userId) => {
+    const handId = parseInt(req.params.id, 10);
+    if (!handId) return res.status(400).json({ error: "无效的手牌 ID" });
+
+    const deleted = await dao.deleteHand(handId, userId);
+    if (!deleted) return res.status(404).json({ error: "手牌不存在" });
+
+    console.log(`[PokerRoute] 手牌已删除 id=${handId} user=${userId}`);
+    res.json({ success: true });
+  });
+}
+
 async function handleGetLeaks(req, res) {
   await withUser(req, res, async (userId) => {
     const [leaks, totalHands] = await Promise.all([
@@ -295,6 +308,7 @@ pokerRouter.post("/completions", handleCompletions);
 pokerRouter.post("/hands", handleCreateHand);
 pokerRouter.get("/hands", handleListHands);
 pokerRouter.get("/hands/:id", handleGetHand);
+pokerRouter.delete("/hands/:id", handleDeleteHand);
 pokerRouter.get("/leaks", handleGetLeaks);
 pokerRouter.post("/eval/runs", handleEvalRun);
 pokerRouter.get("/eval/runs", handleListEvalRuns);

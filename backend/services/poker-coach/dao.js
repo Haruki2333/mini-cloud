@@ -69,6 +69,25 @@ async function handBelongsToUser(handId, userId) {
   return count > 0;
 }
 
+async function deleteHand(handId, userId) {
+  const count = await models.PokerHand.count({ where: { id: handId, user_id: userId } });
+  if (count === 0) return false;
+
+  // 按外键依赖顺序删除：eval_results → eval_runs → analyses → hand
+  const runs = await models.PokerEvalRun.findAll({
+    where: { hand_id: handId },
+    attributes: ["id"],
+  });
+  if (runs.length > 0) {
+    const runIds = runs.map((r) => r.id);
+    await models.PokerEvalResult.destroy({ where: { eval_run_id: runIds } });
+    await models.PokerEvalRun.destroy({ where: { id: runIds } });
+  }
+  await models.PokerAnalysis.destroy({ where: { hand_id: handId } });
+  await models.PokerHand.destroy({ where: { id: handId, user_id: userId } });
+  return true;
+}
+
 async function getHandWithAnalyses(handId, userId) {
   const hand = await models.PokerHand.findOne({
     where: { id: handId, user_id: userId },
@@ -272,6 +291,7 @@ module.exports = {
   listHands,
   countHands,
   handBelongsToUser,
+  deleteHand,
   countAnalyzedHands,
   getHandWithAnalyses,
   saveAnalyses,

@@ -66,19 +66,25 @@ function renderHands(handList, total) {
       : '<span class="analysis-dot pending" title="待分析"></span>';
 
     return (
-      '<a class="hand-item" href="/poker/analysis.html?hand_id=' + h.id + '">' +
-        '<div class="hand-cards">' + escapeHtml(h.hero_cards) + "</div>" +
-        '<div class="hand-meta">' +
-          '<div class="hand-meta-row">' +
-            '<span class="hand-tag">' + escapeHtml(h.hero_position) + "</span>" +
-            '<span class="hand-tag">' + escapeHtml(h.blind_level) + "</span>" +
-            '<span class="hand-tag">' + tableTypeLabel(h.table_type) + "</span>" +
-            dot +
+      '<div style="position:relative;">' +
+        '<a class="hand-item" href="/poker/analysis.html?hand_id=' + h.id + '" style="padding-right:36px;">' +
+          '<div class="hand-cards">' + escapeHtml(h.hero_cards) + "</div>" +
+          '<div class="hand-meta">' +
+            '<div class="hand-meta-row">' +
+              '<span class="hand-tag">' + escapeHtml(h.hero_position) + "</span>" +
+              '<span class="hand-tag">' + escapeHtml(h.blind_level) + "</span>" +
+              '<span class="hand-tag">' + tableTypeLabel(h.table_type) + "</span>" +
+              dot +
+            "</div>" +
+            '<div class="hand-date">' + (formatDate(h.played_at) || formatDate(h.created_at)) + "</div>" +
           "</div>" +
-          '<div class="hand-date">' + (formatDate(h.played_at) || formatDate(h.created_at)) + "</div>" +
-        "</div>" +
-        '<div class="hand-result ' + resultClass + '">' + (resultText || "—") + "</div>" +
-      "</a>"
+          '<div class="hand-result ' + resultClass + '">' + (resultText || "—") + "</div>" +
+        "</a>" +
+        '<button onclick="confirmDeleteHand(event,' + h.id + ')" title="删除" ' +
+          'style="position:absolute;top:50%;right:8px;transform:translateY(-50%);' +
+          'background:none;border:none;color:var(--ink-faint);font-size:15px;' +
+          'cursor:pointer;padding:6px 4px;line-height:1;z-index:1;">✕</button>' +
+      "</div>"
     );
   }).join("");
 }
@@ -95,6 +101,24 @@ function escapeHtml(str) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+async function confirmDeleteHand(event, id) {
+  event.stopPropagation();
+  event.preventDefault();
+  if (!confirm("确定要删除这手牌吗？此操作不可恢复。")) return;
+  try {
+    var resp = await fetch("/api/poker/hands/" + id, {
+      method: "DELETE",
+      headers: buildHeaders(),
+    });
+    if (!resp.ok) throw new Error("删除失败");
+    showToast("已删除");
+    hands = hands.filter(function (h) { return h.id !== id; });
+    renderHands(hands, hands.length);
+  } catch (e) {
+    showToast("删除失败，请重试");
+  }
 }
 
 loadHands();
