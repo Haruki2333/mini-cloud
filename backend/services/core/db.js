@@ -47,9 +47,11 @@ async function initDB(...modelDefiners) {
     password,
     database,
     logging: false,
-    // keepAlive 防止云环境 NAT/负载均衡静默关闭空闲 TCP 连接后池里出现死连接
+    // 防止云环境 NAT/负载均衡静默关闭空闲 TCP 连接后池里出现死连接。
+    // mysql2 用 enableKeepAlive，老版本的 keepAlive 选项会被警告并忽略
     dialectOptions: {
-      keepAlive: true,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
       connectTimeout: 30000,
     },
     pool: { max: 5, min: 0, idle: 10000, acquire: 30000, evict: 5000 },

@@ -59,12 +59,10 @@ function extractErrorMessage(rawText, status) {
 
 async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, handId) {
   const startTime = Date.now();
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), EVAL_TIMEOUT_MS);
-
   console.log(`[Eval] 开始调用 ${model.id}  run=${evalRunId} apiKey=${apiKey ? apiKey.slice(0, 6) + "***" : "(空)"}`);
 
   try {
+    // node-fetch v2 原生支持 timeout 选项，避免依赖部署环境是否提供全局 AbortController
     const resp = await fetch(LINGYAAI_API_URL, {
       method: "POST",
       headers: {
@@ -79,9 +77,8 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
         ],
         stream: false,
       }),
-      signal: controller.signal,
+      timeout: EVAL_TIMEOUT_MS,
     });
-    clearTimeout(timeoutId);
 
     const latencyMs = Date.now() - startTime;
 
@@ -139,9 +136,9 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
       result_id: resultId,
     };
   } catch (err) {
-    clearTimeout(timeoutId);
     const latencyMs = Date.now() - startTime;
-    const isTimeout = err.name === "AbortError";
+    // node-fetch v2 超时抛 FetchError code=ETIMEDOUT
+    const isTimeout = err.type === "request-timeout" || err.code === "ETIMEDOUT" || err.name === "AbortError";
     const msg = isTimeout
       ? `请求超时（>${EVAL_TIMEOUT_MS / 1000}s）`
       : err.message || String(err);
@@ -181,9 +178,6 @@ ${modelAnalyses}
 {"scores":[{"model_id":"...","score":4,"notes":"简短评语（一句话）"}]}
 只输出 JSON，不要其他文字。`;
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), EVAL_TIMEOUT_MS);
-
   try {
     const resp = await fetch(LINGYAAI_API_URL, {
       method: "POST",
@@ -196,11 +190,14 @@ ${modelAnalyses}
         messages: [{ role: "user", content: judgePrompt }],
         stream: false,
       }),
-      signal: controller.signal,
+      timeout: EVAL_TIMEOUT_MS,
     });
-    clearTimeout(timeoutId);
 
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => "");
+      console.error(`[Eval] 裁判 HTTP ${resp.status}: ${errText.slice(0, 200)}`);
+      return null;
+    }
 
     const data = await resp.json();
     const rawContent = data.choices?.[0]?.message?.content || "";
@@ -213,8 +210,8 @@ ${modelAnalyses}
     await dao.finalizeEvalRun(evalRunId, { judgeModelId: JUDGE_MODEL_ID });
 
     return { judge_model_id: JUDGE_MODEL_ID, scores: parsedJudge.scores };
-  } catch (_) {
-    clearTimeout(timeoutId);
+  } catch (err) {
+    console.error(`[Eval] 裁判异常: ${err.message}`);
     return null;
   }
 }
