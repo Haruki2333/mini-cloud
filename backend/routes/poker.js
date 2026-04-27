@@ -223,6 +223,8 @@ async function handleEvalRun(req, res) {
     const handId = parseInt(req.body.hand_id, 10);
     if (!handId) return res.status(400).json({ error: "缺少 hand_id" });
 
+    console.log(`[PokerRoute] eval 接收 hand=${handId} apiKeyLen=${apiKey.length} models=${(req.body.model_ids || []).join(",") || "all"}`);
+
     let userId;
     try {
       userId = await resolveUserId(req);

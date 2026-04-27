@@ -5,6 +5,7 @@
  * 评估调用走 lingyaai 代理（OpenAI Chat Completions 兼容），非流式。
  */
 
+const fetch = require("node-fetch");
 const { POKER_SYSTEM_PROMPT } = require("./brain-config");
 const { buildHandContext } = require("./hand-context");
 const { calculateCost } = require("../core/pricing");
@@ -46,12 +47,22 @@ function validateSchema(parsed) {
 
 // ===== 单模型调用 =====
 
+function extractErrorMessage(rawText, status) {
+  if (!rawText) return `HTTP ${status}`;
+  try {
+    const j = JSON.parse(rawText);
+    const msg = j?.error?.message || j?.message || j?.error;
+    if (typeof msg === "string" && msg) return `HTTP ${status}: ${msg}`;
+  } catch (_) {}
+  return `HTTP ${status}: ${rawText.slice(0, 200)}`;
+}
+
 async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, handId) {
   const startTime = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), EVAL_TIMEOUT_MS);
 
-  console.log(`[Eval] 开始调用 ${model.id}  run=${evalRunId}`);
+  console.log(`[Eval] 开始调用 ${model.id}  run=${evalRunId} apiKey=${apiKey ? apiKey.slice(0, 6) + "***" : "(空)"}`);
 
   try {
     const resp = await fetch(LINGYAAI_API_URL, {
@@ -75,13 +86,14 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
     const latencyMs = Date.now() - startTime;
 
     if (!resp.ok) {
-      const errText = await resp.text().catch(() => `HTTP ${resp.status}`);
+      const errText = await resp.text().catch(() => "");
+      const cleanMsg = extractErrorMessage(errText, resp.status);
       console.error(`[Eval] ${model.id} HTTP ${resp.status} (${latencyMs}ms): ${errText.slice(0, 300)}`);
       const resultId = await dao.saveEvalResult(evalRunId, handId, {
         model_id: model.id, provider: model.provider,
-        status: "failed", latency_ms: latencyMs, error_message: errText,
+        status: "failed", latency_ms: latencyMs, error_message: cleanMsg,
       });
-      return { model_id: model.id, status: "failed", latency_ms: latencyMs, error_message: errText, result_id: resultId };
+      return { model_id: model.id, status: "failed", latency_ms: latencyMs, error_message: cleanMsg, result_id: resultId };
     }
 
     const data = await resp.json();
@@ -97,7 +109,9 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
       schemaValid = validateSchema(parsed);
     } catch (_) {}
 
+    let schemaError = null;
     if (!schemaValid) {
+      schemaError = `输出格式不符合 schema，原始片段：${rawContent.slice(0, 120)}`;
       console.warn(`[Eval] ${model.id} schema 校验失败 (${latencyMs}ms), raw前200字: ${rawContent.slice(0, 200)}`);
     } else {
       console.log(`[Eval] ${model.id} 成功 (${latencyMs}ms) prompt=${usage.prompt_tokens} completion=${usage.completion_tokens}`);
@@ -113,6 +127,7 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
       structured_output: schemaValid ? parsed.analyses : null,
       raw_response: rawContent,
       schema_valid: schemaValid,
+      error_message: schemaError,
     });
 
     return {
@@ -120,21 +135,25 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
       prompt_tokens: usage.prompt_tokens, completion_tokens: usage.completion_tokens,
       cost_usd: cost, schema_valid: schemaValid,
       structured_output: schemaValid ? parsed.analyses : null,
+      error_message: schemaError,
       result_id: resultId,
     };
   } catch (err) {
     clearTimeout(timeoutId);
     const latencyMs = Date.now() - startTime;
     const isTimeout = err.name === "AbortError";
-    console.error(`[Eval] ${model.id} ${isTimeout ? "超时" : "异常"} (${latencyMs}ms): ${err.message}`);
+    const msg = isTimeout
+      ? `请求超时（>${EVAL_TIMEOUT_MS / 1000}s）`
+      : err.message || String(err);
+    console.error(`[Eval] ${model.id} ${isTimeout ? "超时" : "异常"} (${latencyMs}ms): ${msg}`, err.stack || "");
     const resultId = await dao.saveEvalResult(evalRunId, handId, {
       model_id: model.id, provider: model.provider,
       status: isTimeout ? "timeout" : "failed",
-      latency_ms: latencyMs, error_message: err.message,
+      latency_ms: latencyMs, error_message: msg,
     });
     return {
       model_id: model.id, status: isTimeout ? "timeout" : "failed",
-      latency_ms: latencyMs, error_message: err.message, result_id: resultId,
+      latency_ms: latencyMs, error_message: msg, result_id: resultId,
     };
   }
 }
