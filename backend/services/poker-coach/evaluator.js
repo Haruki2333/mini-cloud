@@ -20,8 +20,8 @@ const EVAL_MODELS = [
   { id: "gpt-5.4",                             provider: "openai",    label: "OpenAI GPT-5.4"                      },
   { id: "gemini-3.1-pro-preview-thinking",     provider: "google",    label: "Gemini 3.1 Pro Preview Thinking"     },
   { id: "deepseek-v4-pro",                     provider: "deepseek",  label: "DeepSeek V4 Pro"                     },
-  { id: "glm-5.1",                             provider: "zhipu",     label: "智谱 GLM-5.1"                         },
-  { id: "qwen3.6-plus",                        provider: "qwen",      label: "千问 Qwen3.6-Plus"                    },
+  { id: "minimax-m2.5",                        provider: "minimax",   label: "MiniMax M2.5"                        },
+  { id: "kimi-k2.6-thinking",                  provider: "moonshot",  label: "Kimi K2.6 Thinking"                  },
 ];
 
 const EVAL_SYSTEM_SUFFIX = `

@@ -2,6 +2,12 @@ const fetch = require("node-fetch");
 
 // 模型注册表
 const MODEL_REGISTRY = {
+  "gpt-5.4": {
+    provider: "lingyaai",
+    label: "OpenAI GPT-5.4",
+    endpoint: "https://api.lingyaai.cn/v1/chat/completions",
+    defaults: {},
+  },
   "glm-4.6v": {
     provider: "zhipu",
     label: "智谱 GLM-4.6V",
