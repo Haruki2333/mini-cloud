@@ -1,41 +1,11 @@
 /**
  * 扑克教练 — 工具定义与执行函数
  *
- * get_hand_detail:   获取手牌完整信息（含已有分析）
- * save_analysis:     保存决策点分析结果
- * get_user_analyses: 获取用户历史分析（供 Leak 识别）
- * save_leaks:        保存识别出的 Leak 模式
+ * save_analysis: 保存决策点分析结果（含可选的 Leak 模式更新）
+ * save_leaks:    保存识别出的 Leak 模式（Leak 专项分析模式使用）
  */
 
 const dao = require("./dao");
-
-// ===== get_hand_detail =====
-
-const getHandDetailDefinition = {
-  type: "function",
-  function: {
-    name: "get_hand_detail",
-    description: "获取指定手牌的完整结构化信息，包括每条街的行动和已有的分析结果。分析手牌前必须先调用此工具。",
-    parameters: {
-      type: "object",
-      properties: {
-        hand_id: {
-          type: "number",
-          description: "手牌 ID",
-        },
-      },
-      required: ["hand_id"],
-    },
-  },
-};
-
-async function executeGetHandDetail(args, userId) {
-  const hand = await dao.getHandWithAnalyses(args.hand_id, userId);
-  if (!hand) {
-    return { success: false, message: "手牌不存在或无权访问" };
-  }
-  return { success: true, hand };
-}
 
 // ===== save_analysis =====
 
@@ -43,7 +13,7 @@ const saveAnalysisDefinition = {
   type: "function",
   function: {
     name: "save_analysis",
-    description: "保存对一手牌的决策点分析结果。分析完成后调用此工具将结果存入数据库。",
+    description: "保存对一手牌的决策点分析结果。分析完成后调用此工具将结果存入数据库。若已识别出 Leak 模式，将 leaks 数组一并传入，无需单独调用其他工具。",
     parameters: {
       type: "object",
       properties: {
@@ -91,6 +61,29 @@ const saveAnalysisDefinition = {
             required: ["street", "scenario", "rating", "hero_action", "reasoning", "principle"],
           },
         },
+        leaks: {
+          type: "array",
+          description: "（可选）识别出的 Leak 模式数组。历史手牌不足或无明显规律时可不传。传入后会替换该用户之前的全部 Leak 记录。",
+          items: {
+            type: "object",
+            properties: {
+              pattern: {
+                type: "string",
+                description: "Leak 描述，说清楚什么场景下什么问题，以及出现频率",
+              },
+              occurrences: {
+                type: "number",
+                description: "出现次数",
+              },
+              example_hand_ids: {
+                type: "array",
+                description: "相关手牌 ID 数组",
+                items: { type: "number" },
+              },
+            },
+            required: ["pattern", "occurrences"],
+          },
+        },
       },
       required: ["hand_id", "analyses"],
     },
@@ -104,32 +97,14 @@ async function executeSaveAnalysis(args, userId) {
   }
 
   const saved = await dao.saveAnalyses(args.hand_id, args.analyses);
-  return { success: true, saved_count: saved.length };
-}
 
-// ===== get_user_analyses =====
+  let leaks_saved_count = 0;
+  if (args.leaks && args.leaks.length > 0) {
+    const savedLeaks = await dao.saveLeaks(userId, args.leaks);
+    leaks_saved_count = savedLeaks.length;
+  }
 
-const getUserAnalysesDefinition = {
-  type: "function",
-  function: {
-    name: "get_user_analyses",
-    description: "获取用户的历史决策分析记录，用于识别重复出现的 Leak 模式。",
-    parameters: {
-      type: "object",
-      properties: {
-        limit: {
-          type: "number",
-          description: "最多返回的分析条数，默认 100",
-        },
-      },
-    },
-  },
-};
-
-async function executeGetUserAnalyses(args, userId) {
-  const limit = args.limit || 100;
-  const analyses = await dao.getUserAnalyses(userId, limit);
-  return { success: true, count: analyses.length, analyses };
+  return { success: true, saved_count: saved.length, leaks_saved_count };
 }
 
 // ===== save_leaks =====
@@ -177,12 +152,8 @@ async function executeSaveLeaks(args, userId) {
 }
 
 module.exports = {
-  getHandDetailDefinition,
   saveAnalysisDefinition,
-  getUserAnalysesDefinition,
-  saveLeaksDefinition,
-  executeGetHandDetail,
   executeSaveAnalysis,
-  executeGetUserAnalyses,
+  saveLeaksDefinition,
   executeSaveLeaks,
 };

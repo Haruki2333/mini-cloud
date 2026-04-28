@@ -1,8 +1,10 @@
 /**
  * 扑克教练 — Brain 配置
  *
- * 系统提示词强调教练口吻：避免 solver 数字，用推理逻辑解释决策。
- * enhancePrompt：注入用户累计手牌数量，为 Leak 分析提供背景。
+ * 三种模式对应三个 enhancePrompt 钩子：
+ *   enhanceAnalysisPrompt — 手牌分析（注入手牌数据 + 用户历史，工具只有 save_analysis）
+ *   enhanceLeakPrompt     — Leak 专项分析（注入用户历史，工具只有 save_leaks）
+ *   enhancePrompt         — 追问/对话（无工具）
  */
 
 const POKER_SYSTEM_PROMPT = `你是一位经验丰富的德州扑克教练，专注于帮助玩家复盘和提升。
@@ -18,13 +20,43 @@ const POKER_SYSTEM_PROMPT = `你是一位经验丰富的德州扑克教练，专
 - 可以用技术术语（3bet pot、范围优势、极化等），但要配合解释
 - 不确定时主动说"这个场景我的建议仅供参考，精确 EV 需要 solver"
 - 不做精确 GTO 计算；基于德扑常识和公开原则给出"接近正确"的建议
-- 中文回复
+- 中文回复`;
 
-工具使用规则：
-- 分析具体手牌前，必须先调用 get_hand_detail 获取完整数据
-- 分析完成后，调用 save_analysis 保存结果（字段含义见工具参数定义）
-- 进行 Leak 分析前，调用 get_user_analyses 获取历史决策记录
-- 识别出 Leak 后，调用 save_leaks 保存结果`;
+function enhanceAnalysisPrompt(basePrompt, context) {
+  const parts = [basePrompt];
+
+  parts.push("\n\n分析完成后，调用 save_analysis 保存结果；若已识别出 Leak 模式，将 leaks 数组一并传入。leaks 为可选字段，历史手牌不足或无明显规律时可不传。");
+
+  if (context && context.totalHands !== undefined) {
+    parts.push(`\n用户已累计录入 ${context.totalHands} 手牌，其中 ${context.analyzedHands || 0} 手已完成分析。`);
+  }
+
+  if (context && context.hand) {
+    parts.push("\n\n待分析手牌数据：\n" + JSON.stringify(context.hand, null, 2));
+  }
+
+  if (context && context.user_recent_analyses && context.user_recent_analyses.length > 0) {
+    parts.push("\n\n用户历史决策记录（用于 Leak 识别，共 " + context.user_recent_analyses.length + " 条）：\n" + JSON.stringify(context.user_recent_analyses, null, 2));
+  }
+
+  return parts.join("");
+}
+
+function enhanceLeakPrompt(basePrompt, context) {
+  const parts = [basePrompt];
+
+  parts.push("\n\n请基于下方用户历史决策记录，识别重复出现的 Leak 模式，并调用 save_leaks 保存结果。");
+
+  if (context && context.totalHands !== undefined) {
+    parts.push(`\n用户已累计录入 ${context.totalHands} 手牌，其中 ${context.analyzedHands || 0} 手已完成分析。`);
+  }
+
+  if (context && context.user_recent_analyses && context.user_recent_analyses.length > 0) {
+    parts.push("\n\n用户历史决策记录（共 " + context.user_recent_analyses.length + " 条）：\n" + JSON.stringify(context.user_recent_analyses, null, 2));
+  }
+
+  return parts.join("");
+}
 
 function enhancePrompt(basePrompt, context) {
   const parts = [basePrompt];
@@ -36,4 +68,4 @@ function enhancePrompt(basePrompt, context) {
   return parts.join("");
 }
 
-module.exports = { POKER_SYSTEM_PROMPT, enhancePrompt };
+module.exports = { POKER_SYSTEM_PROMPT, enhancePrompt, enhanceAnalysisPrompt, enhanceLeakPrompt };

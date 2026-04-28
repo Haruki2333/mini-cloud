@@ -26,15 +26,13 @@ const { createSkillRegistry } = require("../services/core/skill-registry");
 const {
   POKER_SYSTEM_PROMPT,
   enhancePrompt,
+  enhanceAnalysisPrompt,
+  enhanceLeakPrompt,
 } = require("../services/poker-coach/brain-config");
 const {
-  getHandDetailDefinition,
   saveAnalysisDefinition,
-  getUserAnalysesDefinition,
-  saveLeaksDefinition,
-  executeGetHandDetail,
   executeSaveAnalysis,
-  executeGetUserAnalyses,
+  saveLeaksDefinition,
   executeSaveLeaks,
 } = require("../services/poker-coach/skills");
 const dao = require("../services/poker-coach/dao");
@@ -42,28 +40,34 @@ const { runEvaluation } = require("../services/poker-coach/evaluator");
 
 // ===== 组装技能集和 Brain =====
 
-const pokerSkills = createSkillRegistry({
-  get_hand_detail: {
-    definition: getHandDetailDefinition,
-    execute: executeGetHandDetail,
-  },
-  save_analysis: {
-    definition: saveAnalysisDefinition,
-    execute: executeSaveAnalysis,
-  },
-  get_user_analyses: {
-    definition: getUserAnalysesDefinition,
-    execute: executeGetUserAnalyses,
-  },
-  save_leaks: {
-    definition: saveLeaksDefinition,
-    execute: executeSaveLeaks,
-  },
+// 手牌分析模式：仅 save_analysis（含可选 leaks），数据由后端预取注入
+const analysisSkills = createSkillRegistry({
+  save_analysis: { definition: saveAnalysisDefinition, execute: executeSaveAnalysis },
 });
 
-const pokerBrain = createBrain({
+// Leak 专项分析模式：仅 save_leaks，用户历史由后端预取注入
+const leakSkills = createSkillRegistry({
+  save_leaks: { definition: saveLeaksDefinition, execute: executeSaveLeaks },
+});
+
+// 对话/追问模式：无工具
+const chatSkills = createSkillRegistry({});
+
+const pokerAnalysisBrain = createBrain({
   systemPrompt: POKER_SYSTEM_PROMPT,
-  skills: pokerSkills,
+  skills: analysisSkills,
+  enhancePrompt: enhanceAnalysisPrompt,
+});
+
+const pokerLeakBrain = createBrain({
+  systemPrompt: POKER_SYSTEM_PROMPT,
+  skills: leakSkills,
+  enhancePrompt: enhanceLeakPrompt,
+});
+
+const pokerChatBrain = createBrain({
+  systemPrompt: POKER_SYSTEM_PROMPT,
+  skills: chatSkills,
   enhancePrompt,
 });
 
@@ -103,6 +107,8 @@ async function handleCompletions(req, res) {
 
     const { messages } = req.body;
     let model = req.body.model || "gpt-5.4";
+    const handId = req.body.hand_id ? parseInt(req.body.hand_id, 10) : null;
+    const analyzeLeaks = !!req.body.analyze_leaks;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: "消息列表不能为空" });
@@ -124,12 +130,34 @@ async function handleCompletions(req, res) {
     ]);
     const context = { userId, totalHands, analyzedHands };
 
+    // 按请求类型预取数据并选择对应 Brain
+    let brain = pokerChatBrain;
+
+    if (handId) {
+      console.log("[PokerRoute] 分析模式，预取手牌数据 hand_id=%d", handId);
+      const [hand, recentAnalyses] = await Promise.all([
+        dao.getHandWithAnalyses(handId, userId),
+        dao.getUserAnalyses(userId, 50),
+      ]);
+      if (!hand) {
+        return res.status(404).json({ error: "手牌不存在或无权访问" });
+      }
+      context.hand = hand;
+      context.user_recent_analyses = recentAnalyses;
+      brain = pokerAnalysisBrain;
+    } else if (analyzeLeaks) {
+      console.log("[PokerRoute] Leak 分析模式，预取用户历史分析");
+      const recentAnalyses = await dao.getUserAnalyses(userId, 50);
+      context.user_recent_analyses = recentAnalyses;
+      brain = pokerLeakBrain;
+    }
+
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
-    for await (const event of pokerBrain.think({ messages, model, apiKey, userId, context })) {
+    for await (const event of brain.think({ messages, model, apiKey, userId, context })) {
       res.write("data: " + JSON.stringify(event) + "\n\n");
     }
 
