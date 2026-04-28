@@ -105,6 +105,8 @@ async function getHandWithAnalyses(handId, userId) {
 // ===== 分析 =====
 
 async function saveAnalyses(handId, analysesData) {
+  await models.PokerAnalysis.destroy({ where: { hand_id: handId } });
+
   const created = await models.PokerAnalysis.bulkCreate(
     analysesData.map((a) => ({
       hand_id: handId,

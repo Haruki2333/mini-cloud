@@ -140,6 +140,7 @@ function renderExistingAnalyses(analyses) {
 
   showChatArea();
   showCompareButton();
+  showReAnalyzeButton();
 }
 
 function renderAnalysisCard(a) {
@@ -194,6 +195,25 @@ function showCompareButton() {
     btn.href = "/poker/compare.html?hand_id=" + HAND_ID;
     area.style.display = "block";
   }
+}
+
+function showReAnalyzeButton() {
+  var settings = getSettings();
+  var modelLabel = (MODEL_CONFIG[settings.model] || {}).label || settings.model;
+  var btn = document.getElementById("reAnalyzeBtn");
+  if (btn) btn.textContent = "用 " + modelLabel + " 重新分析";
+  var area = document.getElementById("reAnalyzeButtonArea");
+  if (area) area.style.display = "block";
+}
+
+async function reAnalyzeHand() {
+  document.getElementById("reAnalyzeButtonArea").style.display = "none";
+  document.getElementById("compareButtonArea").style.display = "none";
+  document.getElementById("chatDivider").style.display = "none";
+  document.getElementById("chatInputBar").style.display = "none";
+  document.getElementById("chatMessages").innerHTML = "";
+  chatMessages = [];
+  await startAnalysis();
 }
 
 // ===== AI 分析 =====
