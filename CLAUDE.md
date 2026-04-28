@@ -66,6 +66,7 @@ mini-cloud/
 - `POST /api/poker/hands` — 录入新手牌（结构化表单，无 LLM）
 - `GET /api/poker/hands` — 手牌列表
 - `GET /api/poker/hands/:id` — 手牌详情 + 分析结果
+- `DELETE /api/poker/hands/:id` — 删除手牌（级联删除分析与评估记录）
 - `GET /api/poker/leaks` — 用户 Leak 模式列表
 - `POST /api/poker/eval/runs` — 触发多模型横向评估（SSE；并发调用 6 款模型，裁判打分，一致率统计）
 - `GET /api/poker/eval/runs?hand_id=:id` — 列出手牌的历史评估批次

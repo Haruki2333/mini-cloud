@@ -29,14 +29,14 @@
   "messages": [
     { "role": "user", "content": "请分析手牌 #1，找出关键决策点" }
   ],
-  "model": "qwen3.5-plus"
+  "model": "gpt-5.4"
 }
 ```
 
 | 字段       | 类型     | 必填 | 说明                                       |
 |------------|----------|------|--------------------------------------------|
 | `messages` | array    | 是   | 对话历史，OpenAI 格式                      |
-| `model`    | string   | 否   | 模型 ID，默认 `qwen3.5-plus`              |
+| `model`    | string   | 否   | 模型 ID，默认 `gpt-5.4`                   |
 
 **SSE 事件格式**
 
@@ -138,6 +138,18 @@ data: [DONE]
 
 ---
 
+### DELETE /api/poker/hands/:id
+
+删除指定手牌及其所有关联数据（分析记录、评估批次及评估结果）。
+
+**响应**
+
+```json
+{ "success": true }
+```
+
+---
+
 ### GET /api/poker/hands/:id
 
 获取单个手牌完整数据及其所有分析结果。
@@ -220,7 +232,7 @@ data: [DONE]
 ```json
 {
   "hand_id": 42,
-  "model_ids": ["gpt-4o", "deepseek-chat"]
+  "model_ids": ["gpt-5.4", "deepseek-v4-pro"]
 }
 ```
 
@@ -233,9 +245,9 @@ data: [DONE]
 
 ```
 data: {"type":"eval_started","eval_run_id":7,"hand_id":42,"models":[...]}
-data: {"type":"eval_model_started","eval_run_id":7,"model_id":"gpt-4o"}
-data: {"type":"eval_model_done","eval_run_id":7,"model_id":"gpt-4o","result":{"status":"success","latency_ms":3420,"prompt_tokens":1205,"completion_tokens":680,"cost_usd":0.009814,"schema_valid":true,"structured_output":[...]}}
-data: {"type":"eval_judge_done","eval_run_id":7,"judge_model_id":"claude-sonnet-4-6","scores":[{"model_id":"gpt-4o","score":4,"notes":"..."}]}
+data: {"type":"eval_model_started","eval_run_id":7,"model_id":"gpt-5.4"}
+data: {"type":"eval_model_done","eval_run_id":7,"model_id":"gpt-5.4","result":{"status":"success","latency_ms":3420,"prompt_tokens":1205,"completion_tokens":680,"cost_usd":0.009814,"schema_valid":true,"structured_output":[...]}}
+data: {"type":"eval_judge_done","eval_run_id":7,"judge_model_id":"claude-sonnet-4-6-thinking","scores":[{"model_id":"gpt-5.4","score":4,"notes":"..."}]}
 data: {"type":"eval_completed","eval_run_id":7,"consistency_score":66.7,"total_cost_usd":0.042318,"status":"completed"}
 data: [DONE]
 ```
@@ -249,7 +261,7 @@ data: [DONE]
 **响应**
 
 ```json
-{ "runs": [{ "id": 7, "status": "completed", "consistency_score": 66.7, "total_cost_usd": 0.042318, "requested_models": ["gpt-4o", "..."], "created_at": "..." }] }
+{ "runs": [{ "id": 7, "status": "completed", "consistency_score": 66.7, "total_cost_usd": 0.042318, "requested_models": ["gpt-5.4", "..."], "created_at": "..." }] }
 ```
 
 ---
@@ -265,7 +277,7 @@ data: [DONE]
   "id": 7, "hand_id": 42, "status": "completed",
   "consistency_score": 66.7, "total_cost_usd": 0.042318,
   "results": [
-    { "model_id": "gpt-4o", "status": "success", "latency_ms": 3420,
+    { "model_id": "gpt-5.4", "status": "success", "latency_ms": 3420,
       "prompt_tokens": 1205, "completion_tokens": 680, "cost_usd": 0.009814,
       "schema_valid": true, "structured_output": [],
       "judge_score": 4, "judge_notes": "..." }

@@ -26,22 +26,6 @@ const MODEL_REGISTRY = {
 };
 
 /**
- * 从 usage 对象中提取缓存命中信息
- * - 千问：usage.prompt_tokens_details.cached_tokens
- * - 智谱：usage.prompt_cache_hit_tokens
- */
-function getCacheInfo(usage) {
-  if (!usage || !usage.prompt_tokens) return null;
-  const cached =
-    usage.prompt_tokens_details?.cached_tokens ??
-    usage.prompt_cache_hit_tokens ??
-    null;
-  if (cached == null) return null;
-  const rate = ((cached / usage.prompt_tokens) * 100).toFixed(1);
-  return { cached, rate };
-}
-
-/**
  * 获取单个模型信息
  */
 function getModelInfo(modelId) {
