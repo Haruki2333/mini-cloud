@@ -1,6 +1,6 @@
 // ===== 向导状态 =====
 
-var STEP_TITLES = ["坐到了哪里？", "你的起手牌", "逐街还原行动", "最后结果"];
+var STEP_TITLES = ["坐到了哪里？", "你的起手牌", "逐街行动与结果"];
 var TABLE_LABEL = { "6max": "six-max", "9max": "nine-max", "hu": "heads-up" };
 
 var state = {
@@ -84,7 +84,7 @@ function getAliveForStreet(street) {
 // ===== 步骤切换 =====
 
 function gotoStep(idx) {
-  if (idx < 0 || idx > 3) return;
+  if (idx < 0 || idx > 2) return;
   state.step = idx;
 
   $$(".wizard-pane").forEach(function (el) {
@@ -96,10 +96,10 @@ function gotoStep(idx) {
     el.classList.toggle("done", i < idx);
   });
   $("stepTitle").textContent = STEP_TITLES[idx];
-  $("stepCounter").textContent = (idx + 1) + "/4";
+  $("stepCounter").textContent = (idx + 1) + "/3";
 
   $("prevBtn").disabled = (idx === 0);
-  $("nextBtn").textContent = (idx === 3) ? "保存并分析" : "下一步 →";
+  $("nextBtn").textContent = (idx === 2) ? "保存并分析" : "下一步 →";
 
   $("scrollArea").scrollTop = 0;
 
@@ -137,7 +137,7 @@ function validateStep(idx) {
 function nextStep() {
   var err = validateStep(state.step);
   if (err) { showToast(err); return; }
-  if (state.step === 3) { submit(); return; }
+  if (state.step === 2) { submit(); return; }
   gotoStep(state.step + 1);
 }
 
@@ -284,12 +284,7 @@ function renderPlayerList() {
     heroRow.className = "player-row hero";
     heroRow.innerHTML =
       '<span class="player-pos">' + state.hero_position + '</span>' +
-      '<span class="player-label">Hero</span>' +
-      '<input class="player-stack-input" type="number" min="1" step="0.5" placeholder="100" value="' + (state.hero_stack_bb || "") + '" />' +
-      '<span class="player-stack-suffix">BB</span>';
-    heroRow.querySelector("input").addEventListener("input", function (e) {
-      state.hero_stack_bb = e.target.value;
-    });
+      '<span class="player-label">Hero</span>';
     list.appendChild(heroRow);
   }
 
@@ -299,18 +294,52 @@ function renderPlayerList() {
     row.innerHTML =
       '<span class="player-pos">' + opp.position + '</span>' +
       '<span class="player-label">对手</span>' +
-      '<input class="player-stack-input" type="number" min="1" step="0.5" placeholder="100" value="' + (opp.stack_bb || "") + '" />' +
-      '<span class="player-stack-suffix">BB</span>' +
       '<button type="button" class="player-remove" data-idx="' + idx + '">✕</button>';
-    row.querySelector("input").addEventListener("input", function (e) {
-      state.opponents[idx].stack_bb = e.target.value;
-    });
     row.querySelector(".player-remove").addEventListener("click", function () {
       state.opponents.splice(idx, 1);
       renderPositionTable();
       renderPlayerList();
     });
     list.appendChild(row);
+  });
+}
+
+// ===== 步骤 1: 筹码 =====
+
+function renderStackInputs() {
+  var container = $("stackInputSection");
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (!state.hero_position) {
+    container.innerHTML = '<div class="player-list-hint">请先在第一步选择座位</div>';
+    return;
+  }
+
+  var heroRow = document.createElement("div");
+  heroRow.className = "player-row hero";
+  heroRow.innerHTML =
+    '<span class="player-pos">' + state.hero_position + '</span>' +
+    '<span class="player-label">Hero</span>' +
+    '<input class="player-stack-input" type="number" min="1" step="0.5" placeholder="100" value="' + (state.hero_stack_bb || "") + '" />' +
+    '<span class="player-stack-suffix">BB</span>';
+  heroRow.querySelector("input").addEventListener("input", function (e) {
+    state.hero_stack_bb = e.target.value;
+  });
+  container.appendChild(heroRow);
+
+  state.opponents.forEach(function (opp, idx) {
+    var row = document.createElement("div");
+    row.className = "player-row";
+    row.innerHTML =
+      '<span class="player-pos">' + opp.position + '</span>' +
+      '<span class="player-label">对手</span>' +
+      '<input class="player-stack-input" type="number" min="1" step="0.5" placeholder="100" value="' + (opp.stack_bb || "") + '" />' +
+      '<span class="player-stack-suffix">BB</span>';
+    row.querySelector("input").addEventListener("input", function (e) {
+      state.opponents[idx].stack_bb = e.target.value;
+    });
+    container.appendChild(row);
   });
 }
 
@@ -593,7 +622,34 @@ function bindStreetToggles() {
   });
 }
 
-// ===== 步骤 3: 结果 =====
+// ===== 步骤 2: 结果 =====
+
+function calcHeroResultBB() {
+  var streets = ["preflop", "flop", "turn", "river"];
+  var heroTotalInvested = 0;
+  var heroLastAction = null;
+
+  // 加入盲注（近似）
+  var pos = state.hero_position;
+  if (pos === "SB") heroTotalInvested += 0.5;
+  else if (pos === "BB") heroTotalInvested += 1;
+
+  streets.forEach(function (s) {
+    (state.actions[s] || []).forEach(function (a) {
+      if (a.position === "Hero" && a.action) {
+        heroLastAction = a.action;
+        if (a.amount != null && !isNaN(parseFloat(a.amount))) {
+          heroTotalInvested += parseFloat(a.amount);
+        }
+      }
+    });
+  });
+
+  if (heroLastAction === "fold") {
+    return -(Math.round(heroTotalInvested * 2) / 2);
+  }
+  return null;
+}
 
 function bindResultStepper() {
   $$(".result-sign").forEach(function (btn) {
@@ -616,6 +672,16 @@ function bindResultStepper() {
   $("oppClear").addEventListener("click", function () {
     state.showdown_opp_cards = [null, null];
     renderAllSlots();
+  });
+  $("autoCalcBtn").addEventListener("click", function () {
+    var estimated = calcHeroResultBB();
+    if (estimated !== null) {
+      $("resultBB").value = estimated;
+      state.result_bb = estimated.toString();
+      showToast("已估算（仅供参考）");
+    } else {
+      showToast("请手动填写结果");
+    }
   });
 }
 
@@ -836,6 +902,7 @@ function refreshAll() {
   renderTableSeg();
   renderPositionTable();
   renderPlayerList();
+  renderStackInputs();
   renderStreetVisibility();
   renderAllSlots();
   ["preflop", "flop", "turn", "river"].forEach(function (s) {

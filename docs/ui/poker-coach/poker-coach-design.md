@@ -25,17 +25,18 @@ const palette = {
 ```
 禁止引入任何蓝色、紫色、霓虹色、纯黑 `#000`、纯白 `#fff`。
 
-## 3. 字体系统（三种，各司其职）
+## 3. 字体系统（两种，各司其职）
 ```css
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Caveat:wght@400;600;700&family=Courier+Prime:ital,wght@0,400;0,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Courier+Prime:ital,wght@0,400;0,700&display=swap');
 ```
-- **衬线（正文）**：`"EB Garamond", Georgia, serif` — 所有正文、说明、段落
-- **手写（情绪/点评）**：`"Caveat", "Kalam", cursive` — 标题、verdict、Coach's read、签名、标签
+- **衬线（正文 + 标题）**：`"EB Garamond", Georgia, serif` — 所有正文、标题、标签、按钮；以字号大小和斜体区分层次
 - **等宽（数据/元信息）**：`"Courier Prime", "Courier New", monospace` — 编号、金额、频率、小字标签（常配 `letterSpacing: 1`）
 
+> 原手写字体 Caveat 因可读性问题已移除，`--font-hand` 变量现在与 `--font` 使用相同的 EB Garamond。
+
 **字号规则**：
-- 手写大标题 28–32px，手写小标题/装饰 16–22px
-- 衬线正文 14–15px，行高 1.5–1.65
+- 大标题 26–28px（`--font-hand` 用于步骤名、卡片标题等，现为衬线大号）
+- 正文 14–15px，行高 1.5–1.65
 - 等宽元信息 10–11px（全大写 + letterSpacing: 1）
 
 ## 4. 纸张质感（背景必须加）
