@@ -4,18 +4,19 @@
 
 ## 概述
 
-`backend/services/core/llm.js` 提供统一的大模型流式对话调用能力。当前支持智谱和千问两家厂商，两者均兼容 OpenAI Chat Completions API 格式，因此服务层使用统一的 HTTP 请求结构，通过模型注册表区分端点。
+`backend/services/core/llm.js` 提供统一的大模型流式对话调用能力。当前支持 lingyaai（OpenAI 代理）、智谱、千问三家厂商，均兼容 OpenAI Chat Completions API 格式，服务层使用统一的 HTTP 请求结构，通过模型注册表区分端点。
 
 ## 模型注册表
 
 | 模型 ID | 厂商 | 标签 | API 端点 |
 |---------|------|------|----------|
+| gpt-5.4 | lingyaai | OpenAI GPT-5.4 | `https://api.lingyaai.cn/v1/chat/completions` |
 | glm-4.6v | zhipu | 智谱 GLM-4.6V | `https://open.bigmodel.cn/api/paas/v4/chat/completions` |
 | qwen3.5-plus | qwen | 千问 Qwen3.5-Plus | `https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions` |
 
 认证方式统一为 `Authorization: Bearer <API_KEY>`。
 
-两个模型默认均开启思考模式（智谱用 `thinking: { type: "enabled" }`，千问用 `enable_thinking: true`）；启用 function calling（传入 `tools`）时自动关闭思考模式。
+`glm-4.6v` 和 `qwen3.5-plus` 默认开启思考模式（智谱用 `thinking: { type: "enabled" }`，千问用 `enable_thinking: true`）；`gpt-5.4` 无思考模式。启用 function calling（传入 `tools`）时自动关闭思考模式。
 
 ## 导出接口
 

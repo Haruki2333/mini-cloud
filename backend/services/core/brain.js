@@ -1,7 +1,6 @@
 /**
  * 通用 Brain — ReAct 推理循环工厂
  *
- * 参考 OpenClaw 设计理念，自实现的 Agent 推理核心。
  * 通过 createBrain 注入系统提示词和技能集，返回 { think } 对象。
  * think 是 async generator，逐步 yield 事件，供上层以 SSE 形式推送给前端。
  *

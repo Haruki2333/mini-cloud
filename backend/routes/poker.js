@@ -5,10 +5,11 @@
  *   POST /api/poker/completions
  *
  * 直接数据接口（无 LLM）：
- *   POST /api/poker/hands       — 录入新手牌
- *   GET  /api/poker/hands       — 列出手牌
- *   GET  /api/poker/hands/:id   — 手牌详情 + 分析结果
- *   GET  /api/poker/leaks       — Leak 列表
+ *   POST   /api/poker/hands       — 录入新手牌
+ *   GET    /api/poker/hands       — 列出手牌
+ *   GET    /api/poker/hands/:id   — 手牌详情 + 分析结果
+ *   DELETE /api/poker/hands/:id   — 删除手牌（级联删除分析与评估）
+ *   GET    /api/poker/leaks       — Leak 列表
  *
  * 多模型评估接口（SSE）：
  *   POST /api/poker/eval/runs       — 触发多模型并发评估
