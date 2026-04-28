@@ -228,7 +228,7 @@ async function startAnalysis() {
     section.innerHTML =
       '<div style="padding:16px;font-family:var(--font-hand);font-size:17px;color:var(--red);">分析失败，请重试。</div>';
     document.getElementById("analyzeButtonArea").style.display = "block";
-  });
+  }, { hand_id: HAND_ID });
 }
 
 // ===== 追问聊天 =====
@@ -344,7 +344,7 @@ async function startLeakAnalysis(container) {
   }, function () {
     container.innerHTML =
       '<div style="padding:16px;font-family:var(--font-hand);font-size:17px;color:var(--red);">分析失败，请重试</div>';
-  });
+  }, { analyze_leaks: true });
 }
 
 async function reAnalyzeLeaks() {
@@ -387,7 +387,7 @@ function showLeakChat() {
 
 // ===== SSE 流式通用 =====
 
-async function streamChat(messages, onDone, onError) {
+async function streamChat(messages, onDone, onError, extraBody) {
   var settings = getSettings();
   isSending = true;
   setSendBtn(false);
@@ -396,10 +396,7 @@ async function streamChat(messages, onDone, onError) {
     var resp = await fetch("/api/poker/completions", {
       method: "POST",
       headers: buildHeaders(),
-      body: JSON.stringify({
-        messages: messages,
-        model: settings.model,
-      }),
+      body: JSON.stringify(Object.assign({ messages: messages, model: settings.model }, extraBody)),
     });
 
     if (!resp.ok) {
@@ -443,7 +440,7 @@ async function streamChat(messages, onDone, onError) {
   }
 }
 
-async function streamLeakChat(messages, onDone, onError) {
+async function streamLeakChat(messages, onDone, onError, extraBody) {
   var settings = getSettings();
   isSending = true;
   setLeakSendBtn(false);
@@ -452,10 +449,7 @@ async function streamLeakChat(messages, onDone, onError) {
     var resp = await fetch("/api/poker/completions", {
       method: "POST",
       headers: buildHeaders(),
-      body: JSON.stringify({
-        messages: messages,
-        model: settings.model,
-      }),
+      body: JSON.stringify(Object.assign({ messages: messages, model: settings.model }, extraBody)),
     });
 
     if (!resp.ok) throw new Error("请求失败");

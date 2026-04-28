@@ -43,9 +43,10 @@ function createBrain({ systemPrompt, skills, enhancePrompt, enhanceToolDefs }) {
     const prompt = enhancePrompt
       ? enhancePrompt(systemPrompt, context)
       : systemPrompt;
-    const tools = enhanceToolDefs
+    const toolDefs = enhanceToolDefs
       ? enhanceToolDefs(skills.definitions, context)
       : skills.definitions;
+    const tools = toolDefs && toolDefs.length > 0 ? toolDefs : undefined;
 
     const conversationMessages = [
       { role: "system", content: prompt },
@@ -56,7 +57,7 @@ function createBrain({ systemPrompt, skills, enhancePrompt, enhanceToolDefs }) {
       // 流式调用 LLM，累积完整结果
       let doneResult = null;
 
-      for await (const streamEvent of chatStream(model, conversationMessages, apiKey, { tools })) {
+      for await (const streamEvent of chatStream(model, conversationMessages, apiKey, tools ? { tools } : {})) {
         if (streamEvent.type === "args_delta") {
           // 透传工具参数增量给路由层（路由层据此提取 narrative 等字段实时推送）
           yield streamEvent;
