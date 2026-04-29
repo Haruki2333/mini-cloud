@@ -1,3 +1,12 @@
+// 为所有日志注入毫秒级时间戳，解决云托管日志平台秒级精度导致的乱序问题
+const _origLog = console.log.bind(console);
+const _origWarn = console.warn.bind(console);
+const _origError = console.error.bind(console);
+const _ts = () => new Date().toISOString().replace("T", " ").slice(0, 23);
+console.log = (...a) => _origLog(`[${_ts()}]`, ...a);
+console.warn = (...a) => _origWarn(`[${_ts()}]`, ...a);
+console.error = (...a) => _origError(`[${_ts()}]`, ...a);
+
 const path = require("path");
 const express = require("express");
 const cors = require("cors");
