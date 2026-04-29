@@ -24,10 +24,12 @@ const { getModelInfo } = require("../services/core/llm");
 const { createBrain } = require("../services/core/brain");
 const { createSkillRegistry } = require("../services/core/skill-registry");
 const {
-  POKER_SYSTEM_PROMPT,
-  enhancePrompt,
+  ANALYSIS_SYSTEM_PROMPT,
+  LEAK_SYSTEM_PROMPT,
+  CHAT_SYSTEM_PROMPT,
   enhanceAnalysisPrompt,
   enhanceLeakPrompt,
+  enhanceChatPrompt,
 } = require("../services/poker-coach/brain-config");
 const {
   saveAnalysisDefinition,
@@ -54,21 +56,21 @@ const leakSkills = createSkillRegistry({
 const chatSkills = createSkillRegistry({});
 
 const pokerAnalysisBrain = createBrain({
-  systemPrompt: POKER_SYSTEM_PROMPT,
+  systemPrompt: ANALYSIS_SYSTEM_PROMPT,
   skills: analysisSkills,
   enhancePrompt: enhanceAnalysisPrompt,
 });
 
 const pokerLeakBrain = createBrain({
-  systemPrompt: POKER_SYSTEM_PROMPT,
+  systemPrompt: LEAK_SYSTEM_PROMPT,
   skills: leakSkills,
   enhancePrompt: enhanceLeakPrompt,
 });
 
 const pokerChatBrain = createBrain({
-  systemPrompt: POKER_SYSTEM_PROMPT,
+  systemPrompt: CHAT_SYSTEM_PROMPT,
   skills: chatSkills,
-  enhancePrompt,
+  enhancePrompt: enhanceChatPrompt,
 });
 
 // ===== 用户标识 =====
