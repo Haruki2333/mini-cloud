@@ -144,7 +144,9 @@ async function handleCompletions(req, res) {
       if (!hand) {
         return res.status(404).json({ error: "手牌不存在或无权访问" });
       }
-      context.hand = hand;
+      // 剥离已有分析：避免 LLM 看到旧结果后直接复述而不调用 save_analysis
+      const { analyses: _existingAnalyses, ...handWithoutAnalyses } = hand;
+      context.hand = handWithoutAnalyses;
       context.user_recent_analyses = recentAnalyses;
       brain = pokerAnalysisBrain;
     } else if (analyzeLeaks) {
