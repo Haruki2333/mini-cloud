@@ -20,16 +20,15 @@ mini-cloud/
 │   ├── services/                   # 业务服务模块（core/ 通用底层 + 业务专属目录）
 │   │   ├── core/                   # 底层通用模块（与具体业务无关）
 │   │   │   ├── db.js               # Sequelize 连接管理、initDB(modelDefiners)
-│   │   │   ├── llm.js              # LLM 调用封装（主对话仅接入 gpt-5.4）
-│   │   │   ├── brain.js            # 通用 ReAct 推理循环工厂（createBrain，支持钩子扩展）
-│   │   │   ├── skill-registry.js   # 通用技能注册工厂（createSkillRegistry）
+│   │   │   ├── llm.js              # LLM 调用封装（chat 非流式 + chatStream 流式，主对话仅接入 gpt-5.4）
 │   │   │   └── pricing.js          # LLM 价格表与成本计算（评估模块使用）
 │   │   └── poker-coach/            # 扑克教练 demo 专属模块
-│   │       ├── brain-config.js     # 系统提示词 + enhancePrompt 钩子（注入手牌数据/历史分析）
-│   │       ├── skills.js           # Agent 工具：save_analysis / save_leaks
+│   │       ├── prompts.js          # 三种模式（分析/Leak/追问）的系统提示词常量
+│   │       ├── agent.js            # 三种模式入口：runAnalysis / runLeak / runChat
+│   │       │                       # 分析/Leak 让 LLM 返回 JSON，校验失败重试 1 次后由后端直接落库
 │   │       ├── models.js           # 数据库模型（poker_users/hands/analyses/leaks/eval_runs/eval_results）
 │   │       ├── dao.js              # CRUD（手牌、分析、Leak、评估批次与结果）
-│   │       ├── hand-context.js     # 手牌文本化纯函数（供评估模块构建 prompt）
+│   │       ├── hand-context.js     # 手牌文本化纯函数（供 agent / 评估模块构建 prompt）
 │   │       └── evaluator.js        # 多模型横向评估核心（并发调用、schema 校验、裁判打分）
 │   ├── demo/                       # H5 Demo 页面（静态文件）
 │   │   └── poker-coach/            # 扑克教练 Demo（根路径 /，结构化表单录入 + 分析卡片 + 追问）

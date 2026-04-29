@@ -21,61 +21,9 @@
 
 const express = require("express");
 const { getModelInfo } = require("../services/core/llm");
-const { calculateCost } = require("../services/core/pricing");
-const { createBrain } = require("../services/core/brain");
-const { createSkillRegistry } = require("../services/core/skill-registry");
-const {
-  ANALYSIS_SYSTEM_PROMPT,
-  LEAK_SYSTEM_PROMPT,
-  CHAT_SYSTEM_PROMPT,
-  enhanceAnalysisPrompt,
-  enhanceLeakPrompt,
-  enhanceChatPrompt,
-} = require("../services/poker-coach/brain-config");
-const {
-  saveAnalysisDefinition,
-  executeSaveAnalysis,
-  saveLeaksDefinition,
-  executeSaveLeaks,
-} = require("../services/poker-coach/skills");
 const dao = require("../services/poker-coach/dao");
+const { runAnalysis, runLeak, runChat } = require("../services/poker-coach/agent");
 const { runEvaluation } = require("../services/poker-coach/evaluator");
-
-// ===== 组装技能集和 Brain =====
-
-// 手牌分析模式：仅 save_analysis（含可选 leaks），数据由后端预取注入
-const analysisSkills = createSkillRegistry({
-  save_analysis: { definition: saveAnalysisDefinition, execute: executeSaveAnalysis },
-});
-
-// Leak 专项分析模式：仅 save_leaks，用户历史由后端预取注入
-const leakSkills = createSkillRegistry({
-  save_leaks: { definition: saveLeaksDefinition, execute: executeSaveLeaks },
-});
-
-// 对话/追问模式：无工具
-const chatSkills = createSkillRegistry({});
-
-const pokerAnalysisBrain = createBrain({
-  systemPrompt: ANALYSIS_SYSTEM_PROMPT,
-  skills: analysisSkills,
-  enhancePrompt: enhanceAnalysisPrompt,
-  // 强制首轮调用 save_analysis：避免模型只输出大段文字而不落库
-  forceFirstTool: "save_analysis",
-});
-
-const pokerLeakBrain = createBrain({
-  systemPrompt: LEAK_SYSTEM_PROMPT,
-  skills: leakSkills,
-  enhancePrompt: enhanceLeakPrompt,
-  forceFirstTool: "save_leaks",
-});
-
-const pokerChatBrain = createBrain({
-  systemPrompt: CHAT_SYSTEM_PROMPT,
-  skills: chatSkills,
-  enhancePrompt: enhanceChatPrompt,
-});
 
 // ===== 用户标识 =====
 
@@ -112,7 +60,7 @@ async function handleCompletions(req, res) {
     }
 
     const { messages } = req.body;
-    let model = req.body.model || "gpt-5.4";
+    const model = req.body.model || "gpt-5.4";
     const handId = req.body.hand_id ? parseInt(req.body.hand_id, 10) : null;
     const analyzeLeaks = !!req.body.analyze_leaks;
 
@@ -120,8 +68,7 @@ async function handleCompletions(req, res) {
       return res.status(400).json({ error: "消息列表不能为空" });
     }
 
-    const modelInfo = getModelInfo(model);
-    if (!modelInfo) {
+    if (!getModelInfo(model)) {
       return res.status(400).json({ error: "不支持的模型: " + model });
     }
 
@@ -134,13 +81,12 @@ async function handleCompletions(req, res) {
       dao.countHands(userId),
       dao.countAnalyzedHands(userId),
     ]);
-    const context = { userId, totalHands, analyzedHands };
 
-    // 按请求类型预取数据并选择对应 Brain
-    let brain = pokerChatBrain;
+    // 按请求类型预取数据并选择对应 Agent
+    let agentIter;
 
     if (handId) {
-      console.log("[PokerRoute] 分析模式，预取手牌数据 hand_id=%d", handId);
+      console.log(`[PokerRoute] 分析模式 hand_id=${handId}`);
       const [hand, recentAnalyses] = await Promise.all([
         dao.getHandWithAnalyses(handId, userId),
         dao.getUserAnalyses(userId, 50),
@@ -148,17 +94,38 @@ async function handleCompletions(req, res) {
       if (!hand) {
         return res.status(404).json({ error: "手牌不存在或无权访问" });
       }
-      // 剥离已有分析：避免 LLM 看到旧结果后直接复述而不调用 save_analysis
+      // 剥离已有分析：避免 LLM 看到旧结果后直接复述而不重新分析
       const { analyses: _existingAnalyses, ...handWithoutAnalyses } = hand;
-      context.hand = handWithoutAnalyses;
-      // 历史分析中也要排除当前手牌，否则"重新分析"时模型会照搬旧分析
-      context.user_recent_analyses = recentAnalyses.filter((a) => a.hand_id !== handId);
-      brain = pokerAnalysisBrain;
+      agentIter = runAnalysis({
+        hand: handWithoutAnalyses,
+        // 排除当前手牌：避免"重新分析"时模型照搬旧分析
+        recentAnalyses: recentAnalyses.filter((a) => a.hand_id !== handId),
+        totalHands,
+        analyzedHands,
+        model,
+        apiKey,
+        userId,
+      });
     } else if (analyzeLeaks) {
-      console.log("[PokerRoute] Leak 分析模式，预取用户历史分析");
+      console.log("[PokerRoute] Leak 分析模式");
       const recentAnalyses = await dao.getUserAnalyses(userId, 50);
-      context.user_recent_analyses = recentAnalyses;
-      brain = pokerLeakBrain;
+      agentIter = runLeak({
+        recentAnalyses,
+        totalHands,
+        analyzedHands,
+        model,
+        apiKey,
+        userId,
+      });
+    } else {
+      console.log("[PokerRoute] 追问对话模式");
+      agentIter = runChat({
+        messages,
+        totalHands,
+        analyzedHands,
+        model,
+        apiKey,
+      });
     }
 
     res.setHeader("Content-Type", "text/event-stream");
@@ -166,46 +133,8 @@ async function handleCompletions(req, res) {
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
-    // 累计本轮分析的 token 用量，待 save_analysis 成功后回写到 poker_hands
-    let cumulativePromptTokens = 0;
-    let cumulativeCompletionTokens = 0;
-    let analysisSaved = false;
-
-    for await (const event of brain.think({ messages, model, apiKey, userId, context })) {
-      if (event.type === "llm_usage" && event.usage) {
-        cumulativePromptTokens += event.usage.prompt_tokens || 0;
-        cumulativeCompletionTokens += event.usage.completion_tokens || 0;
-      }
-      if (
-        event.type === "tool_result" &&
-        event.name === "save_analysis" &&
-        event.result &&
-        event.result.success
-      ) {
-        analysisSaved = true;
-      }
+    for await (const event of agentIter) {
       res.write("data: " + JSON.stringify(event) + "\n\n");
-    }
-
-    if (handId && analysisSaved) {
-      const cost = calculateCost(model, {
-        prompt_tokens: cumulativePromptTokens,
-        completion_tokens: cumulativeCompletionTokens,
-      });
-      console.log(
-        `[PokerRoute] 回写 hand=${handId} 分析元数据 model=${model} ` +
-          `prompt=${cumulativePromptTokens} completion=${cumulativeCompletionTokens} cost=${cost}`
-      );
-      try {
-        await dao.updateHandAnalysisMeta(handId, {
-          analysis_model_id: model,
-          analysis_prompt_tokens: cumulativePromptTokens,
-          analysis_completion_tokens: cumulativeCompletionTokens,
-          analysis_cost_usd: cost,
-        });
-      } catch (metaErr) {
-        console.error("[PokerRoute] 回写分析元数据失败:", metaErr.message);
-      }
     }
 
     res.write("data: [DONE]\n\n");
@@ -213,9 +142,10 @@ async function handleCompletions(req, res) {
   } catch (err) {
     console.error("[PokerRoute] SSE 错误:", err);
     if (!res.headersSent) {
-      res.status(500).json({ error: "服务内部错误" });
+      res.status(500).json({ error: err.message || "服务内部错误" });
     } else {
       res.write("data: " + JSON.stringify({ type: "error", message: err.message }) + "\n\n");
+      res.write("data: [DONE]\n\n");
       res.end();
     }
   }

@@ -228,7 +228,8 @@ async function startAnalysis() {
   var initMsg = "请分析手牌 #" + HAND_ID + "，找出关键决策点并给出教练反馈。";
   chatMessages = [{ role: "user", content: initMsg }];
 
-  await streamChat(chatMessages, function (answer) {
+  await streamChat(chatMessages, function () {
+    // 后端落库后从数据库重新拉一次手牌，渲染最新的分析卡片
     fetch("/api/poker/hands/" + HAND_ID, { headers: buildHeaders() })
       .then(function (r) { return r.json(); })
       .then(function (hand) {
@@ -236,28 +237,22 @@ async function startAnalysis() {
         var analyses = hand.analyses || [];
         if (analyses.length > 0) {
           renderExistingAnalyses(analyses);
-        } else if (answer) {
-          // 兜底：模型未调用 save_analysis 时，仍把文字回复展示出来，避免界面空白
-          section.innerHTML =
-            '<div class="analysis-card"><div class="analysis-card-body">' +
-              '<div class="analysis-section-label">coach 反馈</div>' +
-              '<div class="analysis-text">' + nl2br(escHtml(answer)) + "</div>" +
-            "</div></div>";
-          document.getElementById("reAnalyzeButtonArea").style.display = "block";
-          showChatArea();
+          // 为追问注入上下文：把手牌数据 + 已存分析灌给 LLM，省去工具调用
+          chatMessages = [
+            { role: "user", content: "我正在复盘以下手牌，请基于这些信息回答我的追问。\n\n" + buildHandContext(hand) },
+            { role: "assistant", content: "好的，我已了解这手牌的完整信息和分析结果，请问你想追问什么？" },
+          ];
         } else {
           section.innerHTML =
             '<div style="padding:16px;font-family:var(--font-hand);font-size:17px;color:var(--red);">分析未返回结果，请重试。</div>';
           document.getElementById("analyzeButtonArea").style.display = "block";
         }
-
-        if (answer) {
-          chatMessages.push({ role: "assistant", content: answer });
-        }
       });
-  }, function () {
+  }, function (err) {
     section.innerHTML =
-      '<div style="padding:16px;font-family:var(--font-hand);font-size:17px;color:var(--red);">分析失败，请重试。</div>';
+      '<div style="padding:16px;font-family:var(--font-hand);font-size:17px;color:var(--red);">分析失败：' +
+      escHtml(err && err.message || "请重试") +
+      "</div>";
     document.getElementById("analyzeButtonArea").style.display = "block";
   }, { hand_id: HAND_ID });
 }
@@ -357,24 +352,27 @@ async function startLeakAnalysis(container) {
   var initMsg = "请分析我的历史手牌，识别我重复出现的 Leak 模式，并给出改进建议。";
   leakChatMessages = [{ role: "user", content: initMsg }];
 
-  await streamLeakChat(leakChatMessages, function (answer) {
+  await streamLeakChat(leakChatMessages, function () {
     fetch("/api/poker/leaks", { headers: buildHeaders() })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (data.leaks && data.leaks.length > 0) {
           renderLeaks(data.leaks, container);
-        } else {
-          container.innerHTML = "";
-        }
-        if (answer) {
-          leakChatMessages.push({ role: "assistant", content: answer });
-          appendLeakBubble("assistant", answer);
           showLeakChat();
+        } else {
+          container.innerHTML =
+            '<div class="empty-state">' +
+              '<div class="empty-icon">✓</div>' +
+              '<div class="empty-title">未发现明显 Leak</div>' +
+              '<div class="empty-desc">继续录入更多手牌后再来分析</div>' +
+            "</div>";
         }
       });
-  }, function () {
+  }, function (err) {
     container.innerHTML =
-      '<div style="padding:16px;font-family:var(--font-hand);font-size:17px;color:var(--red);">分析失败，请重试</div>';
+      '<div style="padding:16px;font-family:var(--font-hand);font-size:17px;color:var(--red);">分析失败：' +
+      escHtml(err && err.message || "请重试") +
+      "</div>";
   }, { analyze_leaks: true });
 }
 
@@ -417,107 +415,79 @@ function showLeakChat() {
 }
 
 // ===== SSE 流式通用 =====
+//
+// 后端 SSE 事件类型：
+//   content_delta / answer  — 追问对话流式（追问模式才有）
+//   analysis_saved          — 分析模式落库成功
+//   leaks_saved             — Leak 模式落库成功
+//   llm_usage               — token 用量（前端忽略）
+//   error                   — 错误（带 message）
+// 流末以 "data: [DONE]" 结尾。
 
-async function streamChat(messages, onDone, onError, extraBody) {
-  var settings = getSettings();
-  isSending = true;
-  setSendBtn(false);
+function makeStreamReader(setBtn) {
+  return async function streamRequest(messages, onDone, onError, extraBody) {
+    var settings = getSettings();
+    isSending = true;
+    setBtn(false);
 
-  try {
-    var resp = await fetch("/api/poker/completions", {
-      method: "POST",
-      headers: buildHeaders(),
-      body: JSON.stringify(Object.assign({ messages: messages, model: settings.model }, extraBody)),
-    });
+    try {
+      var resp = await fetch("/api/poker/completions", {
+        method: "POST",
+        headers: buildHeaders(),
+        body: JSON.stringify(Object.assign({ messages: messages, model: settings.model }, extraBody)),
+      });
 
-    if (!resp.ok) {
-      var err = await resp.json();
-      throw new Error(err.error || "请求失败");
-    }
-
-    var reader = resp.body.getReader();
-    var decoder = new TextDecoder();
-    var buffer = "";
-    var fullAnswer = "";
-
-    while (true) {
-      var result = await reader.read();
-      if (result.done) break;
-      buffer += decoder.decode(result.value, { stream: true });
-      var lines = buffer.split("\n");
-      buffer = lines.pop();
-
-      for (var i = 0; i < lines.length; i++) {
-        var line = lines[i];
-        if (!line.startsWith("data: ")) continue;
-        var raw = line.slice(6).trim();
-        if (raw === "[DONE]") break;
-        try {
-          var evt = JSON.parse(raw);
-          if (evt.type === "answer") {
-            fullAnswer = evt.content || "";
-          }
-        } catch (_) {}
+      if (!resp.ok) {
+        var err = await resp.json().catch(function () { return { error: "请求失败" }; });
+        throw new Error(err.error || "请求失败");
       }
-    }
 
-    isSending = false;
-    setSendBtn(true);
-    onDone(fullAnswer);
-  } catch (e) {
-    isSending = false;
-    setSendBtn(true);
-    onError(e);
-  }
+      var reader = resp.body.getReader();
+      var decoder = new TextDecoder();
+      var buffer = "";
+      var fullAnswer = "";
+      var errorMessage = null;
+
+      while (true) {
+        var result = await reader.read();
+        if (result.done) break;
+        buffer += decoder.decode(result.value, { stream: true });
+        var lines = buffer.split("\n");
+        buffer = lines.pop();
+
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          if (!line.startsWith("data: ")) continue;
+          var raw = line.slice(6).trim();
+          if (raw === "[DONE]") continue;
+          try {
+            var evt = JSON.parse(raw);
+            if (evt.type === "answer") {
+              fullAnswer = evt.content || "";
+            } else if (evt.type === "error") {
+              errorMessage = evt.message || "服务异常";
+            }
+          } catch (_) {}
+        }
+      }
+
+      isSending = false;
+      setBtn(true);
+      if (errorMessage) {
+        onError(new Error(errorMessage));
+      } else {
+        onDone(fullAnswer);
+      }
+    } catch (e) {
+      isSending = false;
+      setBtn(true);
+      onError(e);
+    }
+  };
 }
 
-async function streamLeakChat(messages, onDone, onError, extraBody) {
-  var settings = getSettings();
-  isSending = true;
-  setLeakSendBtn(false);
-
-  try {
-    var resp = await fetch("/api/poker/completions", {
-      method: "POST",
-      headers: buildHeaders(),
-      body: JSON.stringify(Object.assign({ messages: messages, model: settings.model }, extraBody)),
-    });
-
-    if (!resp.ok) throw new Error("请求失败");
-
-    var reader = resp.body.getReader();
-    var decoder = new TextDecoder();
-    var buffer = "";
-    var fullAnswer = "";
-
-    while (true) {
-      var result = await reader.read();
-      if (result.done) break;
-      buffer += decoder.decode(result.value, { stream: true });
-      var lines = buffer.split("\n");
-      buffer = lines.pop();
-
-      for (var i = 0; i < lines.length; i++) {
-        var line = lines[i];
-        if (!line.startsWith("data: ")) continue;
-        var raw = line.slice(6).trim();
-        if (raw === "[DONE]") break;
-        try {
-          var evt = JSON.parse(raw);
-          if (evt.type === "answer") fullAnswer = evt.content || "";
-        } catch (_) {}
-      }
-    }
-
-    isSending = false;
-    setLeakSendBtn(true);
-    onDone(fullAnswer);
-  } catch (e) {
-    isSending = false;
-    setLeakSendBtn(true);
-    onError(e);
-  }
-}
+var streamChat = makeStreamReader(setSendBtn);
+var streamLeakChat = makeStreamReader(setLeakSendBtn);
 
 // ===== DOM 工具 =====
 
