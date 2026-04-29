@@ -296,24 +296,25 @@ function define(sequelize) {
   );
 }
 
-async function afterSync(qi) {
-  // sync({alter:true}) 在向已有数据的表追加 NOT NULL DATETIME 列时会失败（无默认值），
-  // 这里手动补齐 updated_at，已存在则忽略 Duplicate column name 错误。
+// sync 前预迁移：给已有数据的表补带默认值的列，避免 MySQL strict mode 在 sync 阶段报错
+async function beforeSync(qi) {
   const ensureUpdatedAt = async (table) => {
     try {
       await qi.sequelize.query(
         `ALTER TABLE \`${table}\` ADD COLUMN \`updated_at\` DATETIME NOT NULL ` +
           `DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`
       );
-      console.log(`[PokerModels] 已为 ${table} 补齐 updated_at 列`);
+      console.log(`[PokerModels] 已为 ${table} 预补齐 updated_at 列`);
     } catch (e) {
       if (!/Duplicate column name/i.test(e.message || "")) {
-        console.warn(`[PokerModels] 补齐 ${table}.updated_at 失败:`, e.message);
+        console.warn(`[PokerModels] 预补齐 ${table}.updated_at 失败:`, e.message);
       }
     }
   };
   await ensureUpdatedAt("poker_analyses");
+}
 
+async function afterSync(qi) {
   try {
     await qi.addIndex("poker_users", ["anon_token"], {
       name: "idx_poker_users_anon_token",
@@ -359,6 +360,7 @@ async function afterSync(qi) {
 
 module.exports = {
   define,
+  beforeSync,
   afterSync,
   get PokerUser()       { return PokerUser; },
   get PokerHand()       { return PokerHand; },

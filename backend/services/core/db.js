@@ -63,11 +63,16 @@ async function initDB(...modelDefiners) {
     m.define(sequelize);
   }
 
+  // sync 前钩子：用于预迁移（如给已有数据的表补带默认值的列，避免 strict mode 报错）
+  const qi = sequelize.getQueryInterface();
+  for (const m of modelDefiners) {
+    if (m.beforeSync) await m.beforeSync(qi);
+  }
+
   // 同步表结构（自动创建新表、为已有表补齐新列）
   await sequelize.sync({ alter: true });
 
   // 调用各业务模块的 sync 后操作（如创建索引）
-  const qi = sequelize.getQueryInterface();
   for (const m of modelDefiners) {
     if (m.afterSync) await m.afterSync(qi);
   }
