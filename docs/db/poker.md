@@ -64,6 +64,7 @@
 | `reasoning`     | TEXT              | 推理解释（教练口吻，100-200 字）                  |
 | `principle`     | TEXT              | 背后的通用德扑原则（30-60 字）                    |
 | `created_at`    | DATETIME          | 创建时间                                          |
+| `updated_at`    | DATETIME          | 更新时间（重新分析时会刷新，便于排查复写问题）    |
 
 **索引**：`idx_poker_analyses_hand (hand_id)`
 

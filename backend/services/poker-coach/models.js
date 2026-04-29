@@ -197,7 +197,7 @@ function define(sequelize) {
         comment: "背后的通用原则",
       },
     },
-    { tableName: "poker_analyses", underscored: true, updatedAt: false }
+    { tableName: "poker_analyses", underscored: true }
   );
 
   PokerLeak = sequelize.define(

@@ -147,7 +147,8 @@ async function handleCompletions(req, res) {
       // 剥离已有分析：避免 LLM 看到旧结果后直接复述而不调用 save_analysis
       const { analyses: _existingAnalyses, ...handWithoutAnalyses } = hand;
       context.hand = handWithoutAnalyses;
-      context.user_recent_analyses = recentAnalyses;
+      // 历史分析中也要排除当前手牌，否则"重新分析"时模型会照搬旧分析
+      context.user_recent_analyses = recentAnalyses.filter((a) => a.hand_id !== handId);
       brain = pokerAnalysisBrain;
     } else if (analyzeLeaks) {
       console.log("[PokerRoute] Leak 分析模式，预取用户历史分析");
