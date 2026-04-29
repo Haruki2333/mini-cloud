@@ -8,10 +8,10 @@
 
 ### POST /api/poker/completions
 
-德州扑克教练 AI 对话（SSE 流式）。支持：
-- 分析具体手牌（路由层预取手牌数据并注入上下文，LLM 分析后调用 `save_analysis` 保存）
-- 追问跟进（普通对话，LLM 凭聊天上下文回答）
-- Leak 识别（路由层预取历史分析并注入上下文，LLM 识别后调用 `save_leaks` 保存）
+德州扑克教练 AI 对话（SSE 流式）。三种模式由请求体字段决定：
+- **手牌分析**（传 `hand_id`）：路由层预取手牌数据 + 历史分析，agent.js 让 LLM 直接返回 JSON，后端校验后落库 `poker_analyses`（可附带 `leaks` 一并落库到 `poker_leaks`）。JSON 不合规自动重试 1 次。
+- **Leak 识别**（传 `analyze_leaks: true`）：路由层预取历史分析，agent.js 让 LLM 返回 JSON，后端校验后落库 `poker_leaks`。
+- **追问对话**（既无 `hand_id` 也无 `analyze_leaks`）：流式文本回复，LLM 凭聊天上下文回答，无 schema 约束。
 
 **请求头**
 
@@ -38,15 +38,27 @@
 |------------------|----------|------|------------------------------------------------------------|
 | `messages`       | array    | 是   | 对话历史，OpenAI 格式                                      |
 | `model`          | string   | 否   | 模型 ID，默认 `gpt-5.4`                                   |
-| `hand_id`        | number   | 否   | 手牌 ID；指定后进入手牌分析模式，路由层预取手牌数据注入上下文 |
-| `analyze_leaks`  | boolean  | 否   | 为 `true` 时进入 Leak 专项分析模式，路由层预取历史分析注入上下文 |
+| `hand_id`        | number   | 否   | 手牌 ID；指定后进入手牌分析模式                              |
+| `analyze_leaks`  | boolean  | 否   | 为 `true` 时进入 Leak 专项分析模式                          |
 
-**SSE 事件格式**
+**SSE 事件类型**
+
+| 事件类型           | 出现模式             | 说明                                                          |
+|--------------------|----------------------|---------------------------------------------------------------|
+| `content_delta`    | 追问对话             | 流式文本增量片段：`{"type":"content_delta","chunk":"..."}` |
+| `answer`           | 追问对话             | 完整回答文本：`{"type":"answer","content":"..."}`            |
+| `analysis_saved`   | 手牌分析             | 落库成功：`{"type":"analysis_saved","hand_id":1,"saved_count":2,"leaks_saved_count":0}` |
+| `leaks_saved`      | Leak 识别            | 落库成功：`{"type":"leaks_saved","saved_count":3}`           |
+| `llm_usage`        | 三种模式             | token 用量：`{"type":"llm_usage","usage":{...},"model":"gpt-5.4"}` |
+| `error`            | 出错                 | `{"type":"error","message":"..."}`                            |
+
+流末以 `data: [DONE]` 结尾。
+
+**手牌分析示例事件序列**
 
 ```
-data: {"type":"thinking","iteration":1,"content":"...","tool_calls":[{"name":"save_analysis","arguments":"..."}]}
-data: {"type":"tool_result","name":"save_analysis","arguments":{...},"result":{"success":true,"saved_count":2},"duration":80}
-data: {"type":"answer","content":"这手牌的翻前 3bet 是正确的，但转牌的弃牌..."}
+data: {"type":"llm_usage","usage":{"prompt_tokens":1820,"completion_tokens":640},"model":"gpt-5.4"}
+data: {"type":"analysis_saved","hand_id":1,"saved_count":2,"leaks_saved_count":0}
 data: [DONE]
 ```
 
@@ -143,7 +155,7 @@ data: [DONE]
 }
 ```
 
-`analysis_*` 字段在手牌完成 AI 分析（`save_analysis` 工具落库）后由后端自动写入；未分析的手牌为 `null`。
+`analysis_*` 字段在手牌完成 AI 分析（agent.js 解析 LLM 返回的 JSON 后落库）时由后端自动写入；未分析的手牌为 `null`。
 
 ---
 
@@ -221,14 +233,42 @@ data: [DONE]
 
 ---
 
-## LLM 工具（供 Agent 调用）
+## Agent 输出格式（结构化分析）
 
-手牌数据和历史分析均由路由层在请求入口预取并注入 LLM 上下文，Agent 无需主动获取数据，只需在分析完成后调用写入工具。
+手牌数据和历史分析由路由层在请求入口预取并注入 prompt。agent.js 让 LLM 直接返回 JSON，后端解析 + 校验 + 落库；JSON 不合规会带错误反馈追问 1 次。
 
-| 工具名          | 说明                                                      |
-|-----------------|-----------------------------------------------------------|
-| `save_analysis` | 保存决策点分析结果（每手 1-2 个），可附带 `leaks` 数组一并保存 |
-| `save_leaks`    | 保存识别出的 Leak 模式（Leak 专项分析模式使用）            |
+**手牌分析模式（`hand_id` 指定时）输出 schema：**
+
+```json
+{
+  "analyses": [
+    {
+      "street": "preflop|flop|turn|river",
+      "scenario": "...",
+      "rating": "good|acceptable|problematic",
+      "hero_action": "...",
+      "better_action": "...",
+      "reasoning": "...",
+      "principle": "..."
+    }
+  ],
+  "leaks": [
+    { "pattern": "...", "occurrences": 3, "example_hand_ids": [12, 18, 25] }
+  ]
+}
+```
+
+`leaks` 字段可选；传入后会替换该用户全部 Leak 记录。
+
+**Leak 识别模式（`analyze_leaks: true`）输出 schema：**
+
+```json
+{
+  "leaks": [
+    { "pattern": "...", "occurrences": 4, "example_hand_ids": [42, 38, 31] }
+  ]
+}
+```
 
 ---
 

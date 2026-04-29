@@ -1,11 +1,14 @@
 // 为所有日志注入毫秒级时间戳，解决云托管日志平台秒级精度导致的乱序问题
+// 注意：必须先用 util.format 把参数合并成完整字符串，否则时间戳变成首参数会让
+// 后续参数中的 %d/%s 等格式化指令失效（util.format 只对首个 string 启用 specifier）
+const util = require("util");
 const _origLog = console.log.bind(console);
 const _origWarn = console.warn.bind(console);
 const _origError = console.error.bind(console);
 const _ts = () => new Date().toISOString().replace("T", " ").slice(0, 23);
-console.log = (...a) => _origLog(`[${_ts()}]`, ...a);
-console.warn = (...a) => _origWarn(`[${_ts()}]`, ...a);
-console.error = (...a) => _origError(`[${_ts()}]`, ...a);
+console.log = (...a) => _origLog(`[${_ts()}] ${util.format(...a)}`);
+console.warn = (...a) => _origWarn(`[${_ts()}] ${util.format(...a)}`);
+console.error = (...a) => _origError(`[${_ts()}] ${util.format(...a)}`);
 
 const path = require("path");
 const express = require("express");

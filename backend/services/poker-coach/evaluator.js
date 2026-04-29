@@ -6,7 +6,7 @@
  */
 
 const fetch = require("node-fetch");
-const { POKER_SYSTEM_PROMPT } = require("./brain-config");
+const { POKER_SYSTEM_PROMPT } = require("./prompts");
 const { buildHandContext } = require("./hand-context");
 const { calculateCost } = require("../core/pricing");
 const dao = require("./dao");

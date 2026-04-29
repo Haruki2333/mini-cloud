@@ -10,6 +10,8 @@ const MODEL_REGISTRY = {
   },
 };
 
+const DEFAULT_TIMEOUT_MS = 60000;
+
 /**
  * 获取单个模型信息
  */
@@ -18,11 +20,76 @@ function getModelInfo(modelId) {
 }
 
 /**
+ * 非流式大模型对话调用（stream: false）
+ *
+ * 用于结果一次性返回的场景（如 JSON 模板输出 + 后端校验落库）。
+ *
+ * @param {string} modelId
+ * @param {Array} messages
+ * @param {string} apiKey
+ * @param {object} [options] - 透传给 OpenAI Chat Completions（如 response_format、timeout）
+ * @returns {Promise<{ content: string, usage: object|null }>}
+ */
+async function chat(modelId, messages, apiKey, options = {}) {
+  const model = MODEL_REGISTRY[modelId];
+  if (!model) throw new Error(`不支持的模型: ${modelId}`);
+
+  const { timeout, ...rest } = options;
+  const body = {
+    model: modelId,
+    messages,
+    stream: false,
+    ...model.defaults,
+    ...rest,
+  };
+
+  console.log(
+    `[LLM/chat] >>> ${model.label}` +
+      `，消息数: ${messages.length}` +
+      (rest.response_format ? `，response_format=${rest.response_format.type}` : "")
+  );
+
+  const res = await fetch(model.endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+    timeout: timeout || DEFAULT_TIMEOUT_MS,
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    let errDetail = errText;
+    try {
+      const errJson = JSON.parse(errText);
+      errDetail = errJson.error?.message || errJson.message || errText;
+    } catch (_) {}
+    throw new Error(`${model.label} 调用失败 (${res.status}): ${errDetail}`);
+  }
+
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content || "";
+  const usage = data.usage || null;
+
+  console.log(
+    `[LLM/chat] <<< ${model.label}` +
+      (usage
+        ? `，Token: 输入=${usage.prompt_tokens}, 输出=${usage.completion_tokens}`
+        : "") +
+      `，输出长度=${content.length}`
+  );
+
+  return { content, usage };
+}
+
+/**
  * 流式大模型对话调用（stream: true）
  *
  * 以 async generator 逐块 yield 事件：
- *   - { type: "args_delta", index, name, chunk }  — 工具参数增量片段
- *   - { type: "done", content, tool_calls, usage }  — 流结束，含完整累积结果
+ *   - { type: "content_delta", chunk }            — 普通文本增量
+ *   - { type: "done", content, usage }            — 流结束，含完整累积内容
  *
  * @param {string} modelId
  * @param {Array} messages
@@ -44,10 +111,7 @@ async function* chatStream(modelId, messages, apiKey, options = {}) {
 
   console.log(
     `[LLM/stream] >>> ${model.label}` +
-      `，消息数: ${messages.length}` +
-      (options.tools
-        ? `，工具: ${options.tools.map((t) => t.function.name).join(", ")}`
-        : "")
+      `，消息数: ${messages.length}`
   );
 
   const res = await fetch(model.endpoint, {
@@ -69,9 +133,7 @@ async function* chatStream(modelId, messages, apiKey, options = {}) {
     throw new Error(`${model.label} 调用失败 (${res.status}): ${errDetail}`);
   }
 
-  // 累积完整响应，用于在 done 事件中返回
   let accContent = "";
-  const accToolCallsMap = {}; // index -> { id, name, arguments }
   let usage = null;
   let sseBuffer = "";
 
@@ -101,51 +163,19 @@ async function* chatStream(modelId, messages, apiKey, options = {}) {
 
       if (delta.content) {
         accContent += delta.content;
-      }
-
-      if (delta.tool_calls) {
-        for (const tc of delta.tool_calls) {
-          const idx = tc.index ?? 0;
-          if (!accToolCallsMap[idx]) {
-            accToolCallsMap[idx] = { id: "", name: "", arguments: "" };
-          }
-          if (tc.id) accToolCallsMap[idx].id = tc.id;
-          if (tc.function?.name) accToolCallsMap[idx].name = tc.function.name;
-          if (tc.function?.arguments) {
-            accToolCallsMap[idx].arguments += tc.function.arguments;
-            yield {
-              type: "args_delta",
-              index: idx,
-              name: accToolCallsMap[idx].name,
-              chunk: tc.function.arguments,
-            };
-          }
-        }
+        yield { type: "content_delta", chunk: delta.content };
       }
     }
   }
-
-  const toolCallsArr = Object.values(accToolCallsMap);
-  const tool_calls =
-    toolCallsArr.length > 0
-      ? toolCallsArr.map((tc) => ({
-          id: tc.id,
-          type: "function",
-          function: { name: tc.name, arguments: tc.arguments },
-        }))
-      : null;
 
   console.log(
     `[LLM/stream] <<< ${model.label}` +
       (usage
         ? `，Token: 输入=${usage.prompt_tokens}, 输出=${usage.completion_tokens}`
-        : "") +
-      (tool_calls
-        ? `，工具: ${tool_calls.map((t) => t.function.name).join(", ")}`
         : "")
   );
 
-  yield { type: "done", content: accContent, tool_calls, usage };
+  yield { type: "done", content: accContent, usage };
 }
 
-module.exports = { getModelInfo, chatStream };
+module.exports = { getModelInfo, chat, chatStream };
