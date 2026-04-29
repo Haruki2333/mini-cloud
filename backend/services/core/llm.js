@@ -8,21 +8,6 @@ const MODEL_REGISTRY = {
     endpoint: "https://api.lingyaai.cn/v1/chat/completions",
     defaults: {},
   },
-  "glm-4.6v": {
-    provider: "zhipu",
-    label: "智谱 GLM-4.6V",
-    endpoint: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
-    // 默认开启思考模式
-    defaults: { thinking: { type: "enabled" } },
-  },
-  "qwen3.5-plus": {
-    provider: "qwen",
-    label: "千问 Qwen3.5-Plus",
-    endpoint:
-      "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-    // 默认开启思考模式
-    defaults: { enable_thinking: true },
-  },
 };
 
 /**
@@ -48,18 +33,12 @@ async function* chatStream(modelId, messages, apiKey, options = {}) {
   const model = MODEL_REGISTRY[modelId];
   if (!model) throw new Error(`不支持的模型: ${modelId}`);
 
-  const defaults = { ...model.defaults };
-  if (options.tools) {
-    delete defaults.enable_thinking;
-    delete defaults.thinking;
-  }
-
   const body = {
     model: modelId,
     messages,
     stream: true,
     stream_options: { include_usage: true },
-    ...defaults,
+    ...model.defaults,
     ...options,
   };
 

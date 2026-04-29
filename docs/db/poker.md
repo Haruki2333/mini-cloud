@@ -41,6 +41,10 @@
 | `opponents`           | JSON              | 对手信息 `[{position, stack_bb}]`（可为空） |
 | `actions`             | JSON              | 结构化行动 `{preflop: [{position, action, amount?}], ...}`（可为空） |
 | `is_analyzed`         | BOOLEAN           | 是否已完成 AI 分析，默认 false          |
+| `analysis_model_id`         | VARCHAR(64)   | 本次分析所用模型 ID（save_analysis 落库时写入，可空） |
+| `analysis_prompt_tokens`    | INT UNSIGNED  | 本次分析累计输入 token 数（可空）       |
+| `analysis_completion_tokens`| INT UNSIGNED  | 本次分析累计输出 token 数（可空）       |
+| `analysis_cost_usd`         | DECIMAL(10,6) | 本次分析累计成本（与 pricing.js 单位一致，CNY/1M 换算后；可空） |
 | `created_at`          | DATETIME          | 创建时间                                |
 | `updated_at`          | DATETIME          | 更新时间                                |
 
@@ -118,7 +122,7 @@ Leak 模式记录。每次 Leak 分析完成后全量替换（先 DELETE 再 INS
 | `eval_run_id` | INT UNSIGNED | FK → poker_eval_runs.id |
 | `hand_id` | INT UNSIGNED | 冗余，便于直查 |
 | `model_id` | VARCHAR(64) | 模型标识符 |
-| `provider` | VARCHAR(32) | anthropic / openai / google / deepseek / zhipu / qwen |
+| `provider` | VARCHAR(32) | anthropic / openai / google / deepseek / volcengine / moonshot |
 | `status` | ENUM | success / failed / timeout |
 | `latency_ms` | INT UNSIGNED | 响应延迟 |
 | `prompt_tokens` | INT UNSIGNED | — |

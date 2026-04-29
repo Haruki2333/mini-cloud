@@ -21,6 +21,7 @@
 
 const express = require("express");
 const { getModelInfo } = require("../services/core/llm");
+const { calculateCost } = require("../services/core/pricing");
 const { createBrain } = require("../services/core/brain");
 const { createSkillRegistry } = require("../services/core/skill-registry");
 const {
@@ -162,8 +163,46 @@ async function handleCompletions(req, res) {
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
+    // 累计本轮分析的 token 用量，待 save_analysis 成功后回写到 poker_hands
+    let cumulativePromptTokens = 0;
+    let cumulativeCompletionTokens = 0;
+    let analysisSaved = false;
+
     for await (const event of brain.think({ messages, model, apiKey, userId, context })) {
+      if (event.type === "llm_usage" && event.usage) {
+        cumulativePromptTokens += event.usage.prompt_tokens || 0;
+        cumulativeCompletionTokens += event.usage.completion_tokens || 0;
+      }
+      if (
+        event.type === "tool_result" &&
+        event.name === "save_analysis" &&
+        event.result &&
+        event.result.success
+      ) {
+        analysisSaved = true;
+      }
       res.write("data: " + JSON.stringify(event) + "\n\n");
+    }
+
+    if (handId && analysisSaved) {
+      const cost = calculateCost(model, {
+        prompt_tokens: cumulativePromptTokens,
+        completion_tokens: cumulativeCompletionTokens,
+      });
+      console.log(
+        `[PokerRoute] 回写 hand=${handId} 分析元数据 model=${model} ` +
+          `prompt=${cumulativePromptTokens} completion=${cumulativeCompletionTokens} cost=${cost}`
+      );
+      try {
+        await dao.updateHandAnalysisMeta(handId, {
+          analysis_model_id: model,
+          analysis_prompt_tokens: cumulativePromptTokens,
+          analysis_completion_tokens: cumulativeCompletionTokens,
+          analysis_cost_usd: cost,
+        });
+      } catch (metaErr) {
+        console.error("[PokerRoute] 回写分析元数据失败:", metaErr.message);
+      }
     }
 
     res.write("data: [DONE]\n\n");

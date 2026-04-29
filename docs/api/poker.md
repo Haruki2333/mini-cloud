@@ -133,11 +133,17 @@ data: [DONE]
       "result_bb": -50,
       "played_at": "2024-01-15",
       "is_analyzed": true,
-      "created_at": "2024-01-16T10:23:00.000Z"
+      "created_at": "2024-01-16T10:23:00.000Z",
+      "analysis_model_id": "gpt-5.4",
+      "analysis_prompt_tokens": 1820,
+      "analysis_completion_tokens": 640,
+      "analysis_cost_usd": "0.042450"
     }
   ]
 }
 ```
+
+`analysis_*` 字段在手牌完成 AI 分析（`save_analysis` 工具落库）后由后端自动写入；未分析的手牌为 `null`。
 
 ---
 
@@ -168,6 +174,10 @@ data: [DONE]
   "preflop_actions": "...",
   "flop_cards": "Ah 7h 2c",
   "is_analyzed": true,
+  "analysis_model_id": "gpt-5.4",
+  "analysis_prompt_tokens": 1820,
+  "analysis_completion_tokens": 640,
+  "analysis_cost_usd": "0.042450",
   "analyses": [
     {
       "id": 1,
