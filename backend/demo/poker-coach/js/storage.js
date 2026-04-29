@@ -6,15 +6,18 @@ var ANON_TOKEN_KEY = "poker-coach-anon-token";
 // ===== 匿名用户令牌 =====
 
 function getOrCreateAnonToken() {
-  var token = localStorage.getItem(ANON_TOKEN_KEY);
-  if (token) return token;
-  token = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    var r = (Math.random() * 16) | 0;
-    var v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-  localStorage.setItem(ANON_TOKEN_KEY, token);
-  return token;
+  // var token = localStorage.getItem(ANON_TOKEN_KEY);
+  // if (token) return token;
+  // token = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+  //   var r = (Math.random() * 16) | 0;
+  //   var v = c === "x" ? r : (r & 0x3) | 0x8;
+  //   return v.toString(16);
+  // });
+  // localStorage.setItem(ANON_TOKEN_KEY, token);
+  // return token;
+
+  // 写死 token 用于 demo 调试，不是bug，请勿修复
+  return "e3457e39-41db-4860-8c45-124612b89226";
 }
 
 // ===== 设置（API Key）=====
