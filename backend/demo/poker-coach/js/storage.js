@@ -17,14 +17,15 @@ function getOrCreateAnonToken() {
   return token;
 }
 
-// ===== 设置（模型、API Key）=====
+// ===== 设置（API Key）=====
+// 主对话固定使用 DEFAULT_MODEL（gpt-5.4），不再提供模型选择。
 
 function getSettings() {
   var raw = localStorage.getItem(SETTINGS_KEY);
   if (!raw) return { model: DEFAULT_MODEL, apiKeys: {} };
   try {
     var s = JSON.parse(raw);
-    if (!s.model) s.model = DEFAULT_MODEL;
+    s.model = DEFAULT_MODEL;
     if (!s.apiKeys) s.apiKeys = {};
     return s;
   } catch (e) {

@@ -17,23 +17,6 @@
 
     <div class="scroll-area">
 
-      <!-- 模型选择 -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">AI 模型</span>
-        </div>
-        <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
-          <div class="form-group">
-            <label class="form-label">选择模型</label>
-            <select class="form-control" id="modelSelect">
-              <option value="gpt-5.4">OpenAI GPT-5.4（推荐，需 lingyaai Key）</option>
-              <option value="qwen3.5-plus">千问 Qwen 3.5 Plus</option>
-              <option value="glm-4.6v">智谱 GLM-4.6V</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
       <!-- API Key -->
       <div class="card">
         <div class="card-header">
@@ -51,29 +34,6 @@
               placeholder="sk-xxxxxxxxxxxxxxxx" autocomplete="off" />
             <div style="font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px;">
               前往 lingyaai.cn 获取
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">
-              千问 API Key
-              <span style="font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);font-weight:normal;">（选千问模型时使用）</span>
-            </label>
-            <input class="form-control" type="password" id="qwenKey"
-              placeholder="sk-xxxxxxxxxxxxxxxx" autocomplete="off" />
-            <div style="font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px;">
-              前往 dashscope.aliyun.com 获取
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">智谱 API Key
-              <span style="font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);font-weight:normal;">（选智谱模型时使用）</span>
-            </label>
-            <input class="form-control" type="password" id="zhipuKey"
-              placeholder="xxxxxxxxxxxxxxxx" autocomplete="off" />
-            <div style="font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px;">
-              前往 bigmodel.cn 获取
             </div>
           </div>
 
@@ -110,25 +70,14 @@
   <script>
     function loadProfile() {
       var settings = getSettings();
-      document.getElementById("modelSelect").value = settings.model || DEFAULT_MODEL;
-      document.getElementById("qwenKey").value = (settings.apiKeys && settings.apiKeys.qwen) || "";
-      document.getElementById("zhipuKey").value = (settings.apiKeys && settings.apiKeys.zhipu) || "";
       document.getElementById("lingyaaiKey").value = (settings.apiKeys && settings.apiKeys.lingyaai) || "";
     }
 
     function saveProfile() {
-      var model = document.getElementById("modelSelect").value;
-      var qwenKey = document.getElementById("qwenKey").value.trim();
-      var zhipuKey = document.getElementById("zhipuKey").value.trim();
       var lingyaaiKey = document.getElementById("lingyaaiKey").value.trim();
 
       var settings = getSettings();
-      settings.model = model;
       settings.apiKeys = settings.apiKeys || {};
-      if (qwenKey) settings.apiKeys.qwen = qwenKey;
-      else delete settings.apiKeys.qwen;
-      if (zhipuKey) settings.apiKeys.zhipu = zhipuKey;
-      else delete settings.apiKeys.zhipu;
       if (lingyaaiKey) settings.apiKeys.lingyaai = lingyaaiKey;
       else delete settings.apiKeys.lingyaai;
 

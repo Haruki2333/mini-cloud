@@ -1,13 +1,8 @@
 // ===== 模型配置 =====
+// 主对话仅保留 gpt-5.4；其余模型仅在多模型横向评估（compare.html）展示。
 
 var MODEL_CONFIG = {
   "gpt-5.4":                         { label: "OpenAI GPT-5.4",             provider: "lingyaai"  },
-  "qwen3.5-plus":                    { label: "千问 Qwen 3.5 Plus",          provider: "qwen"      },
-  "glm-4.6v":                        { label: "智谱 GLM-4.6V",               provider: "zhipu"     },
-  "claude-sonnet-4-5":               { label: "Claude Sonnet 4.5",          provider: "anthropic" },
-  "gpt-4o":                          { label: "OpenAI GPT-4o",              provider: "openai"    },
-  "gemini-2.5-pro":                  { label: "Gemini 2.5 Pro",             provider: "google"    },
-  "deepseek-chat":                   { label: "DeepSeek V3",                provider: "deepseek"  },
   "claude-sonnet-4-6-thinking":      { label: "Claude Sonnet 4.6 Thinking", provider: "anthropic" },
   "gemini-3.1-pro-preview-thinking": { label: "Gemini 3.1 Pro Thinking",    provider: "google"    },
   "deepseek-v4-pro":                 { label: "DeepSeek V4 Pro",            provider: "deepseek"  },

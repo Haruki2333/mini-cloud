@@ -20,7 +20,7 @@ mini-cloud/
 │   ├── services/                   # 业务服务模块（core/ 通用底层 + 业务专属目录）
 │   │   ├── core/                   # 底层通用模块（与具体业务无关）
 │   │   │   ├── db.js               # Sequelize 连接管理、initDB(modelDefiners)
-│   │   │   ├── llm.js              # LLM 多厂商调用封装（gpt-5.4 / glm-4.6v / qwen3.5-plus）
+│   │   │   ├── llm.js              # LLM 调用封装（主对话仅接入 gpt-5.4）
 │   │   │   ├── brain.js            # 通用 ReAct 推理循环工厂（createBrain，支持钩子扩展）
 │   │   │   ├── skill-registry.js   # 通用技能注册工厂（createSkillRegistry）
 │   │   │   └── pricing.js          # LLM 价格表与成本计算（评估模块使用）

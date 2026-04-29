@@ -51,6 +51,8 @@ async function listHands(userId, limit = 50) {
     attributes: [
       "id", "blind_level", "table_type", "hero_position",
       "hero_cards", "result_bb", "played_at", "is_analyzed", "created_at",
+      "analysis_model_id", "analysis_prompt_tokens",
+      "analysis_completion_tokens", "analysis_cost_usd",
     ],
   });
   return hands.map((h) => h.toJSON());
@@ -126,6 +128,18 @@ async function saveAnalyses(handId, analysesData) {
   );
 
   return created.map((a) => a.toJSON());
+}
+
+async function updateHandAnalysisMeta(handId, meta) {
+  await models.PokerHand.update(
+    {
+      analysis_model_id: meta.analysis_model_id,
+      analysis_prompt_tokens: meta.analysis_prompt_tokens,
+      analysis_completion_tokens: meta.analysis_completion_tokens,
+      analysis_cost_usd: meta.analysis_cost_usd,
+    },
+    { where: { id: handId } }
+  );
 }
 
 async function getUserAnalyses(userId, limit = 100) {
@@ -297,6 +311,7 @@ module.exports = {
   countAnalyzedHands,
   getHandWithAnalyses,
   saveAnalyses,
+  updateHandAnalysisMeta,
   getUserAnalyses,
   saveLeaks,
   getLeaks,

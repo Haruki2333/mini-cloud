@@ -144,6 +144,26 @@ function define(sequelize) {
         defaultValue: false,
         comment: "是否已完成 AI 分析",
       },
+      analysis_model_id: {
+        type: DataTypes.STRING(64),
+        allowNull: true,
+        comment: "本次分析所用模型 ID（save_analysis 落库时写入）",
+      },
+      analysis_prompt_tokens: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        allowNull: true,
+        comment: "本次分析累计输入 token 数",
+      },
+      analysis_completion_tokens: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        allowNull: true,
+        comment: "本次分析累计输出 token 数",
+      },
+      analysis_cost_usd: {
+        type: DataTypes.DECIMAL(10, 6),
+        allowNull: true,
+        comment: "本次分析累计成本（与 pricing.js 单位一致）",
+      },
     },
     { tableName: "poker_hands", underscored: true }
   );
@@ -278,6 +298,23 @@ function define(sequelize) {
 }
 
 async function afterSync(qi) {
+  // sync({alter:true}) 在向已有数据的表追加 NOT NULL DATETIME 列时会失败（无默认值），
+  // 这里手动补齐 updated_at，已存在则忽略 Duplicate column name 错误。
+  const ensureUpdatedAt = async (table) => {
+    try {
+      await qi.sequelize.query(
+        `ALTER TABLE \`${table}\` ADD COLUMN \`updated_at\` DATETIME NOT NULL ` +
+          `DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`
+      );
+      console.log(`[PokerModels] 已为 ${table} 补齐 updated_at 列`);
+    } catch (e) {
+      if (!/Duplicate column name/i.test(e.message || "")) {
+        console.warn(`[PokerModels] 补齐 ${table}.updated_at 失败:`, e.message);
+      }
+    }
+  };
+  await ensureUpdatedAt("poker_analyses");
+
   try {
     await qi.addIndex("poker_hands", ["user_id", "created_at"], {
       name: "idx_poker_hands_user_time",

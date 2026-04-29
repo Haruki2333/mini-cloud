@@ -4,19 +4,15 @@
 
 ## 概述
 
-`backend/services/core/llm.js` 提供统一的大模型流式对话调用能力。当前支持 lingyaai（OpenAI 代理）、智谱、千问三家厂商，均兼容 OpenAI Chat Completions API 格式，服务层使用统一的 HTTP 请求结构，通过模型注册表区分端点。
+`backend/services/core/llm.js` 提供统一的大模型流式对话调用能力。当前仅接入 lingyaai（OpenAI 代理），兼容 OpenAI Chat Completions API 格式，通过模型注册表登记端点。
 
 ## 模型注册表
 
 | 模型 ID | 厂商 | 标签 | API 端点 |
 |---------|------|------|----------|
 | gpt-5.4 | lingyaai | OpenAI GPT-5.4 | `https://api.lingyaai.cn/v1/chat/completions` |
-| glm-4.6v | zhipu | 智谱 GLM-4.6V | `https://open.bigmodel.cn/api/paas/v4/chat/completions` |
-| qwen3.5-plus | qwen | 千问 Qwen3.5-Plus | `https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions` |
 
 认证方式统一为 `Authorization: Bearer <API_KEY>`。
-
-`glm-4.6v` 和 `qwen3.5-plus` 默认开启思考模式（智谱用 `thinking: { type: "enabled" }`，千问用 `enable_thinking: true`）；`gpt-5.4` 无思考模式。启用 function calling（传入 `tools`）时自动关闭思考模式。
 
 ## 导出接口
 
@@ -76,7 +72,7 @@
 ```js
 const { chatStream } = require("../services/core/llm");
 
-for await (const event of chatStream("qwen3.5-plus", [{ role: "user", content: "你好" }], apiKey)) {
+for await (const event of chatStream("gpt-5.4", [{ role: "user", content: "你好" }], apiKey)) {
   if (event.type === "done") {
     console.log(event.content);
   }
@@ -89,7 +85,7 @@ for await (const event of chatStream("qwen3.5-plus", [{ role: "user", content: "
 const { chatStream } = require("../services/core/llm");
 
 for await (const event of chatStream(
-  "qwen3.5-plus",
+  "gpt-5.4",
   messages,
   apiKey,
   { tools: [...toolDefinitions] }
@@ -111,6 +107,7 @@ for await (const event of chatStream(
   provider: "provider-name",
   label: "显示名称",
   endpoint: "https://api.example.com/v1/chat/completions",
+  defaults: {},
 },
 ```
 

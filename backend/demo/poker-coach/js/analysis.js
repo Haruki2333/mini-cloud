@@ -198,10 +198,6 @@ function showCompareButton() {
 }
 
 function showReAnalyzeButton() {
-  var settings = getSettings();
-  var modelLabel = (MODEL_CONFIG[settings.model] || {}).label || settings.model;
-  var btn = document.getElementById("reAnalyzeBtn");
-  if (btn) btn.textContent = "用 " + modelLabel + " 重新分析";
   var area = document.getElementById("reAnalyzeButtonArea");
   if (area) area.style.display = "block";
 }
