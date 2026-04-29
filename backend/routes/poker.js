@@ -153,36 +153,14 @@ async function handleCompletions(req, res) {
 
 // ===== REST：手牌 CRUD =====
 
-function serializeActions(actionsArr) {
-  if (!actionsArr || actionsArr.length === 0) return null;
-  return actionsArr.map((a) => {
-    let text = a.position + " " + a.action;
-    if (a.amount != null) text += " " + a.amount;
-    return text;
-  }).join("，");
-}
-
 async function handleCreateHand(req, res) {
   await withUser(req, res, async (userId) => {
-    const data = { ...req.body };
-
-    // 从 actions JSON 自动生成文本版本回填旧字段（向后兼容）
-    if (data.actions && !data.preflop_actions) {
-      data.preflop_actions = serializeActions(data.actions.preflop);
-      data.flop_actions = serializeActions(data.actions.flop) || data.flop_actions;
-      data.turn_actions = serializeActions(data.actions.turn) || data.turn_actions;
-      data.river_actions = serializeActions(data.actions.river) || data.river_actions;
-    }
-
-    // 从 opponents JSON 自动生成 opponent_notes 文本（向后兼容）
-    if (data.opponents && !data.opponent_notes) {
-      data.opponent_notes = data.opponents
-        .map((o) => o.position + (o.stack_bb ? " (" + o.stack_bb + "BB)" : ""))
-        .join("，");
-    }
-
-    const { blind_level, hero_position, hero_cards, preflop_actions } = data;
-    if (!blind_level || !hero_position || !hero_cards || !preflop_actions) {
+    const data = req.body;
+    const { blind_level, hero_position, hero_cards } = data;
+    // 接受新版 actions JSON 或旧版文本字段
+    const hasPreflopActions = data.preflop_actions ||
+      (data.actions?.preflop && data.actions.preflop.length > 0);
+    if (!blind_level || !hero_position || !hero_cards || !hasPreflopActions) {
       return res.status(400).json({ error: "缺少必填字段：blind_level / hero_position / hero_cards / preflop_actions" });
     }
     const handId = await dao.createHand(userId, data);

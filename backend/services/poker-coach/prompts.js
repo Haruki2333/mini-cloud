@@ -48,11 +48,7 @@ const CHAT_SYSTEM_PROMPT = `${COACH_PERSONA}
 - 解答扑克策略、术语、概念方面的问题
 - 引导用户主动思考，不一味给出"标准答案"`;
 
-// evaluator.js 沿用此别名作为多模型评估的基础提示词
-const POKER_SYSTEM_PROMPT = ANALYSIS_SYSTEM_PROMPT;
-
 module.exports = {
-  POKER_SYSTEM_PROMPT,
   ANALYSIS_SYSTEM_PROMPT,
   LEAK_SYSTEM_PROMPT,
   CHAT_SYSTEM_PROMPT,

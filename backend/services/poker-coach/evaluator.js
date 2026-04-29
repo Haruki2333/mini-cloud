@@ -6,7 +6,7 @@
  */
 
 const fetch = require("node-fetch");
-const { POKER_SYSTEM_PROMPT } = require("./prompts");
+const { ANALYSIS_SYSTEM_PROMPT } = require("./prompts");
 const { buildHandContext } = require("./hand-context");
 const { calculateCost } = require("../core/pricing");
 const dao = require("./dao");
@@ -32,6 +32,7 @@ const EVAL_SYSTEM_SUFFIX = `
 
 // ===== Schema 校验 =====
 
+// TODO: validateSchema 与 agent.js 的 validateAnalysisPayload 校验同一结构，应提取为公共函数（如 hand-context.js）
 function validateSchema(parsed) {
   if (!parsed || typeof parsed !== "object") return false;
   if (!Array.isArray(parsed.analyses) || parsed.analyses.length === 0) return false;
@@ -47,6 +48,8 @@ function validateSchema(parsed) {
 
 // ===== 单模型调用 =====
 
+// TODO: callModel 内部的 fetch/超时/错误处理逻辑与 llm.js 的 chat() 重复；
+//       应将 EVAL_MODELS 注册到 llm.js 的 MODEL_REGISTRY，并调用 llm.chat() 代替直接 fetch
 function extractErrorMessage(rawText, status) {
   if (!rawText) return `HTTP ${status}`;
   try {
@@ -216,6 +219,38 @@ ${modelAnalyses}
   }
 }
 
+// ===== 一致率计算（业务逻辑，不属于 DAO 层）=====
+
+async function computeConsistency(evalRunId, hand) {
+  const outputs = await dao.getValidEvalResultOutputs(evalRunId);
+  if (outputs.length === 0) return 0;
+
+  const streets = ["preflop"];
+  if (hand.flop_cards) streets.push("flop");
+  if (hand.turn_card) streets.push("turn");
+  if (hand.river_card) streets.push("river");
+
+  const streetScores = [];
+  for (const street of streets) {
+    const ratings = outputs
+      .map((arr) => {
+        if (!Array.isArray(arr)) return null;
+        const item = arr.find((a) => a.street === street);
+        return item ? item.rating : null;
+      })
+      .filter(Boolean);
+    if (ratings.length === 0) continue;
+    const counts = {};
+    for (const r of ratings) counts[r] = (counts[r] || 0) + 1;
+    const modeCount = Math.max(...Object.values(counts));
+    streetScores.push(modeCount / ratings.length);
+  }
+
+  if (streetScores.length === 0) return 0;
+  const avg = streetScores.reduce((a, b) => a + b, 0) / streetScores.length;
+  return Number((avg * 100).toFixed(1));
+}
+
 // ===== 评估主流程 =====
 
 async function* runEvaluation({ userId, handId, modelIds, apiKey }) {
@@ -231,7 +266,7 @@ async function* runEvaluation({ userId, handId, modelIds, apiKey }) {
 
   const evalRunId = await dao.createEvalRun(userId, handId, models.map((m) => m.id));
   console.log(`[Eval] evalRun 已创建 id=${evalRunId}`);
-  const systemPrompt = POKER_SYSTEM_PROMPT + EVAL_SYSTEM_SUFFIX;
+  const systemPrompt = ANALYSIS_SYSTEM_PROMPT + EVAL_SYSTEM_SUFFIX;
   const handContext = buildHandContext(hand);
 
   // 队列：按完成顺序 yield
@@ -278,7 +313,7 @@ async function* runEvaluation({ userId, handId, modelIds, apiKey }) {
   }
 
   // 汇总
-  const consistencyScore = await dao.computeConsistency(evalRunId, hand);
+  const consistencyScore = await computeConsistency(evalRunId, hand);
   const totalCostUsd = Number(
     allResults.reduce((sum, r) => sum + (r.cost_usd || 0), 0).toFixed(6)
   );
