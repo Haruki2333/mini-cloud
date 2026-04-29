@@ -23,9 +23,12 @@ const MAX_ITERATIONS = 5;
  * @param {{ definitions: Array, execute: Function }} config.skills - 技能注册表
  * @param {Function} [config.enhancePrompt] - 可选钩子：enhancePrompt(basePrompt, context) → string
  * @param {Function} [config.enhanceToolDefs] - 可选钩子：enhanceToolDefs(definitions, context) → definitions
+ * @param {string} [config.forceFirstTool] - 可选：在尚未调用过任何工具时，强制 LLM 调用此工具
+ *   （传给 LLM 的 tool_choice）。当业务必须保证某次工具调用落库时使用，
+ *   工具一旦执行过即回退到 auto，允许模型给出收尾回复。
  * @returns {{ think: AsyncGeneratorFunction }}
  */
-function createBrain({ systemPrompt, skills, enhancePrompt, enhanceToolDefs }) {
+function createBrain({ systemPrompt, skills, enhancePrompt, enhanceToolDefs, forceFirstTool }) {
   /**
    * ReAct 推理循环（流式版本）
    *
@@ -53,11 +56,22 @@ function createBrain({ systemPrompt, skills, enhancePrompt, enhanceToolDefs }) {
       ...messages,
     ];
 
+    let toolHasRun = false;
+
     for (let i = 0; i < MAX_ITERATIONS; i++) {
       // 流式调用 LLM，累积完整结果
       let doneResult = null;
 
-      for await (const streamEvent of chatStream(model, conversationMessages, apiKey, tools ? { tools } : {})) {
+      const llmOptions = tools ? { tools } : {};
+      // 仅当工具尚未被调用过时，才强制使用指定工具；否则让模型自由决定（用于收尾文字回复）
+      if (forceFirstTool && tools && !toolHasRun) {
+        llmOptions.tool_choice = {
+          type: "function",
+          function: { name: forceFirstTool },
+        };
+      }
+
+      for await (const streamEvent of chatStream(model, conversationMessages, apiKey, llmOptions)) {
         if (streamEvent.type === "args_delta") {
           // 透传工具参数增量给路由层（路由层据此提取 narrative 等字段实时推送）
           yield streamEvent;
@@ -111,6 +125,7 @@ function createBrain({ systemPrompt, skills, enhancePrompt, enhanceToolDefs }) {
         const startTime = Date.now();
         const toolResult = await skills.execute(call.function.name, args, userId);
         const duration = Date.now() - startTime;
+        toolHasRun = true;
 
         yield {
           type: "tool_result",

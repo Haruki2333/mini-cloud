@@ -233,12 +233,27 @@ async function startAnalysis() {
       .then(function (r) { return r.json(); })
       .then(function (hand) {
         section.innerHTML = "";
-        renderExistingAnalyses(hand.analyses || []);
+        var analyses = hand.analyses || [];
+        if (analyses.length > 0) {
+          renderExistingAnalyses(analyses);
+        } else if (answer) {
+          // 兜底：模型未调用 save_analysis 时，仍把文字回复展示出来，避免界面空白
+          section.innerHTML =
+            '<div class="analysis-card"><div class="analysis-card-body">' +
+              '<div class="analysis-section-label">coach 反馈</div>' +
+              '<div class="analysis-text">' + nl2br(escHtml(answer)) + "</div>" +
+            "</div></div>";
+          document.getElementById("reAnalyzeButtonArea").style.display = "block";
+          showChatArea();
+        } else {
+          section.innerHTML =
+            '<div style="padding:16px;font-family:var(--font-hand);font-size:17px;color:var(--red);">分析未返回结果，请重试。</div>';
+          document.getElementById("analyzeButtonArea").style.display = "block";
+        }
 
         if (answer) {
           chatMessages.push({ role: "assistant", content: answer });
         }
-        showChatArea();
       });
   }, function () {
     section.innerHTML =

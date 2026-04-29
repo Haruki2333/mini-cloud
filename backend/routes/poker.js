@@ -60,12 +60,15 @@ const pokerAnalysisBrain = createBrain({
   systemPrompt: ANALYSIS_SYSTEM_PROMPT,
   skills: analysisSkills,
   enhancePrompt: enhanceAnalysisPrompt,
+  // 强制首轮调用 save_analysis：避免模型只输出大段文字而不落库
+  forceFirstTool: "save_analysis",
 });
 
 const pokerLeakBrain = createBrain({
   systemPrompt: LEAK_SYSTEM_PROMPT,
   skills: leakSkills,
   enhancePrompt: enhanceLeakPrompt,
+  forceFirstTool: "save_leaks",
 });
 
 const pokerChatBrain = createBrain({
