@@ -9,9 +9,9 @@
 ### POST /api/poker/completions
 
 德州扑克教练 AI 对话（SSE 流式）。支持：
-- 分析具体手牌（LLM 调用 `get_hand_detail` → `save_analysis`）
+- 分析具体手牌（路由层预取手牌数据并注入上下文，LLM 分析后调用 `save_analysis` 保存）
 - 追问跟进（普通对话，LLM 凭聊天上下文回答）
-- Leak 识别（LLM 调用 `get_user_analyses` → `save_leaks`）
+- Leak 识别（路由层预取历史分析并注入上下文，LLM 识别后调用 `save_leaks` 保存）
 
 **请求头**
 
@@ -29,20 +29,23 @@
   "messages": [
     { "role": "user", "content": "请分析手牌 #1，找出关键决策点" }
   ],
-  "model": "gpt-5.4"
+  "model": "gpt-5.4",
+  "hand_id": 1
 }
 ```
 
-| 字段       | 类型     | 必填 | 说明                                       |
-|------------|----------|------|--------------------------------------------|
-| `messages` | array    | 是   | 对话历史，OpenAI 格式                      |
-| `model`    | string   | 否   | 模型 ID，默认 `gpt-5.4`                   |
+| 字段             | 类型     | 必填 | 说明                                                       |
+|------------------|----------|------|------------------------------------------------------------|
+| `messages`       | array    | 是   | 对话历史，OpenAI 格式                                      |
+| `model`          | string   | 否   | 模型 ID，默认 `gpt-5.4`                                   |
+| `hand_id`        | number   | 否   | 手牌 ID；指定后进入手牌分析模式，路由层预取手牌数据注入上下文 |
+| `analyze_leaks`  | boolean  | 否   | 为 `true` 时进入 Leak 专项分析模式，路由层预取历史分析注入上下文 |
 
 **SSE 事件格式**
 
 ```
-data: {"type":"thinking","iteration":1,"content":"...","tool_calls":[...]}
-data: {"type":"tool_result","name":"get_hand_detail","arguments":{...},"result":{...},"duration":150}
+data: {"type":"thinking","iteration":1,"content":"...","tool_calls":[{"name":"save_analysis","arguments":"..."}]}
+data: {"type":"tool_result","name":"save_analysis","arguments":{...},"result":{"success":true,"saved_count":2},"duration":80}
 data: {"type":"answer","content":"这手牌的翻前 3bet 是正确的，但转牌的弃牌..."}
 data: [DONE]
 ```
@@ -210,12 +213,12 @@ data: [DONE]
 
 ## LLM 工具（供 Agent 调用）
 
-| 工具名              | 说明                               |
-|---------------------|------------------------------------|
-| `get_hand_detail`   | 获取指定手牌的完整信息及已有分析   |
-| `save_analysis`     | 保存决策点分析结果（1-2 个/手）    |
-| `get_user_analyses` | 获取用户历史分析，用于 Leak 识别   |
-| `save_leaks`        | 保存识别出的 Leak 模式             |
+手牌数据和历史分析均由路由层在请求入口预取并注入 LLM 上下文，Agent 无需主动获取数据，只需在分析完成后调用写入工具。
+
+| 工具名          | 说明                                                      |
+|-----------------|-----------------------------------------------------------|
+| `save_analysis` | 保存决策点分析结果（每手 1-2 个），可附带 `leaks` 数组一并保存 |
+| `save_leaks`    | 保存识别出的 Leak 模式（Leak 专项分析模式使用）            |
 
 ---
 

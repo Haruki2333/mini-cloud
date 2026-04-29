@@ -20,21 +20,24 @@ mini-cloud/
 │   ├── services/                   # 业务服务模块（core/ 通用底层 + 业务专属目录）
 │   │   ├── core/                   # 底层通用模块（与具体业务无关）
 │   │   │   ├── db.js               # Sequelize 连接管理、initDB(modelDefiners)
-│   │   │   ├── llm.js              # LLM 多厂商调用封装
+│   │   │   ├── llm.js              # LLM 多厂商调用封装（gpt-5.4 / glm-4.6v / qwen3.5-plus）
 │   │   │   ├── brain.js            # 通用 ReAct 推理循环工厂（createBrain，支持钩子扩展）
-│   │   │   └── skill-registry.js   # 通用技能注册工厂（createSkillRegistry）
+│   │   │   ├── skill-registry.js   # 通用技能注册工厂（createSkillRegistry）
+│   │   │   └── pricing.js          # LLM 价格表与成本计算（评估模块使用）
 │   │   └── poker-coach/            # 扑克教练 demo 专属模块
-│   │       ├── brain-config.js     # 系统提示词 + enhancePrompt 钩子（注入用户手牌统计）
-│   │       ├── skills.js           # 工具：get_hand_detail/save_analysis/get_user_analyses/save_leaks
-│   │       ├── models.js           # 数据库模型（poker_users/hands/analyses/leaks）
-│   │       └── dao.js              # CRUD（手牌录入、分析保存、Leak 全量替换）
+│   │       ├── brain-config.js     # 系统提示词 + enhancePrompt 钩子（注入手牌数据/历史分析）
+│   │       ├── skills.js           # Agent 工具：save_analysis / save_leaks
+│   │       ├── models.js           # 数据库模型（poker_users/hands/analyses/leaks/eval_runs/eval_results）
+│   │       ├── dao.js              # CRUD（手牌、分析、Leak、评估批次与结果）
+│   │       ├── hand-context.js     # 手牌文本化纯函数（供评估模块构建 prompt）
+│   │       └── evaluator.js        # 多模型横向评估核心（并发调用、schema 校验、裁判打分）
 │   ├── demo/                       # H5 Demo 页面（静态文件）
 │   │   └── poker-coach/            # 扑克教练 Demo（根路径 /，结构化表单录入 + 分析卡片 + 追问）
 │   └── Dockerfile
 ├── docs/                           # 项目文档/知识库
 │   ├── api/                        # 接口文档（按业务域组织）
 │   ├── db/                         # 数据库表结构文档
-│   │   └── poker.md                # 扑克教练表结构（poker_users/hands/analyses/leaks）
+│   │   └── poker.md                # 扑克教练表结构（poker_users/hands/analyses/leaks/eval_runs/eval_results）
 │   └── ui/                         # 设计文档
 ├── miniprogs/                      # 小程序前端项目，每个子目录为一个独立小程序
 └── pnpm-workspace.yaml
