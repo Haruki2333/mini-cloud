@@ -23,7 +23,6 @@ function define(sequelize) {
       anon_token: {
         type: DataTypes.STRING(128),
         allowNull: false,
-        unique: true,
         comment: "前端生成的 UUID 匿名令牌",
       },
     },
@@ -315,6 +314,12 @@ async function afterSync(qi) {
   };
   await ensureUpdatedAt("poker_analyses");
 
+  try {
+    await qi.addIndex("poker_users", ["anon_token"], {
+      name: "idx_poker_users_anon_token",
+      unique: true,
+    });
+  } catch (_) {}
   try {
     await qi.addIndex("poker_hands", ["user_id", "created_at"], {
       name: "idx_poker_hands_user_time",
