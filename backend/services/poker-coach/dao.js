@@ -4,6 +4,17 @@
 
 const models = require("./models");
 
+// ===== 内部工具 =====
+
+function serializeActions(actionsArr) {
+  if (!actionsArr || actionsArr.length === 0) return null;
+  return actionsArr.map((a) => {
+    let text = a.position + " " + a.action;
+    if (a.amount != null) text += " " + a.amount;
+    return text;
+  }).join("，");
+}
+
 // ===== 用户 =====
 
 async function findOrCreateUser(anonToken) {
@@ -17,27 +28,44 @@ async function findOrCreateUser(anonToken) {
 // ===== 手牌 =====
 
 async function createHand(userId, data) {
+  const fields = { ...data };
+
+  // 从 actions JSON 自动生成文本版本回填旧字段（向后兼容）
+  if (fields.actions && !fields.preflop_actions) {
+    fields.preflop_actions = serializeActions(fields.actions.preflop);
+    fields.flop_actions = serializeActions(fields.actions.flop) || fields.flop_actions;
+    fields.turn_actions = serializeActions(fields.actions.turn) || fields.turn_actions;
+    fields.river_actions = serializeActions(fields.actions.river) || fields.river_actions;
+  }
+
+  // 从 opponents JSON 自动生成 opponent_notes 文本（向后兼容）
+  if (fields.opponents && !fields.opponent_notes) {
+    fields.opponent_notes = fields.opponents
+      .map((o) => o.position + (o.stack_bb ? " (" + o.stack_bb + "BB)" : ""))
+      .join("，");
+  }
+
   const hand = await models.PokerHand.create({
     user_id: userId,
-    blind_level: data.blind_level,
-    table_type: data.table_type || "6max",
-    hero_position: data.hero_position,
-    hero_cards: data.hero_cards,
-    effective_stack_bb: data.effective_stack_bb || null,
-    opponent_notes: data.opponent_notes || null,
-    preflop_actions: data.preflop_actions,
-    flop_cards: data.flop_cards || null,
-    flop_actions: data.flop_actions || null,
-    turn_card: data.turn_card || null,
-    turn_actions: data.turn_actions || null,
-    river_card: data.river_card || null,
-    river_actions: data.river_actions || null,
-    result_bb: data.result_bb !== undefined ? data.result_bb : null,
-    showdown_opp_cards: data.showdown_opp_cards || null,
-    notes: data.notes || null,
-    played_at: data.played_at || null,
-    opponents: data.opponents || null,
-    actions: data.actions || null,
+    blind_level: fields.blind_level,
+    table_type: fields.table_type || "6max",
+    hero_position: fields.hero_position,
+    hero_cards: fields.hero_cards,
+    effective_stack_bb: fields.effective_stack_bb || null,
+    opponent_notes: fields.opponent_notes || null,
+    preflop_actions: fields.preflop_actions,
+    flop_cards: fields.flop_cards || null,
+    flop_actions: fields.flop_actions || null,
+    turn_card: fields.turn_card || null,
+    turn_actions: fields.turn_actions || null,
+    river_card: fields.river_card || null,
+    river_actions: fields.river_actions || null,
+    result_bb: fields.result_bb !== undefined ? fields.result_bb : null,
+    showdown_opp_cards: fields.showdown_opp_cards || null,
+    notes: fields.notes || null,
+    played_at: fields.played_at || null,
+    opponents: fields.opponents || null,
+    actions: fields.actions || null,
     is_analyzed: false,
   });
   return hand.id;
@@ -76,17 +104,20 @@ async function deleteHand(handId, userId) {
   if (count === 0) return false;
 
   // 按外键依赖顺序删除：eval_results → eval_runs → analyses → hand
-  const runs = await models.PokerEvalRun.findAll({
-    where: { hand_id: handId },
-    attributes: ["id"],
+  await models.PokerHand.sequelize.transaction(async (t) => {
+    const runs = await models.PokerEvalRun.findAll({
+      where: { hand_id: handId },
+      attributes: ["id"],
+      transaction: t,
+    });
+    if (runs.length > 0) {
+      const runIds = runs.map((r) => r.id);
+      await models.PokerEvalResult.destroy({ where: { eval_run_id: runIds }, transaction: t });
+      await models.PokerEvalRun.destroy({ where: { id: runIds }, transaction: t });
+    }
+    await models.PokerAnalysis.destroy({ where: { hand_id: handId }, transaction: t });
+    await models.PokerHand.destroy({ where: { id: handId, user_id: userId }, transaction: t });
   });
-  if (runs.length > 0) {
-    const runIds = runs.map((r) => r.id);
-    await models.PokerEvalResult.destroy({ where: { eval_run_id: runIds } });
-    await models.PokerEvalRun.destroy({ where: { id: runIds } });
-  }
-  await models.PokerAnalysis.destroy({ where: { hand_id: handId } });
-  await models.PokerHand.destroy({ where: { id: handId, user_id: userId } });
   return true;
 }
 
@@ -227,37 +258,12 @@ async function saveEvalResult(evalRunId, handId, data) {
   return result.id;
 }
 
-async function computeConsistency(evalRunId, hand) {
+async function getValidEvalResultOutputs(evalRunId) {
   const results = await models.PokerEvalResult.findAll({
     where: { eval_run_id: evalRunId, status: "success", schema_valid: true },
+    attributes: ["structured_output"],
   });
-  if (results.length === 0) return 0;
-
-  const streets = ["preflop"];
-  if (hand.flop_cards) streets.push("flop");
-  if (hand.turn_card) streets.push("turn");
-  if (hand.river_card) streets.push("river");
-
-  const streetScores = [];
-  for (const street of streets) {
-    const ratings = results
-      .map((r) => {
-        const arr = r.structured_output;
-        if (!Array.isArray(arr)) return null;
-        const item = arr.find((a) => a.street === street);
-        return item ? item.rating : null;
-      })
-      .filter(Boolean);
-    if (ratings.length === 0) continue;
-    const counts = {};
-    for (const r of ratings) counts[r] = (counts[r] || 0) + 1;
-    const modeCount = Math.max(...Object.values(counts));
-    streetScores.push(modeCount / ratings.length);
-  }
-
-  if (streetScores.length === 0) return 0;
-  const avg = streetScores.reduce((a, b) => a + b, 0) / streetScores.length;
-  return Number((avg * 100).toFixed(1));
+  return results.map((r) => r.structured_output);
 }
 
 async function finalizeEvalRun(evalRunId, updates) {
@@ -318,7 +324,7 @@ module.exports = {
   // 评估
   createEvalRun,
   saveEvalResult,
-  computeConsistency,
+  getValidEvalResultOutputs,
   finalizeEvalRun,
   listEvalRunsByHand,
   getEvalRun,
