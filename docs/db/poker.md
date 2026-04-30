@@ -41,10 +41,10 @@
 | `opponents`           | JSON              | 对手信息 `[{position, stack_bb}]`（可为空） |
 | `actions`             | JSON              | 结构化行动 `{preflop: [{position, action, amount?}], ...}`（可为空） |
 | `is_analyzed`         | BOOLEAN           | 是否已完成 AI 分析，默认 false          |
-| `analysis_model_id`         | VARCHAR(64)   | 本次分析所用模型 ID（save_analysis 落库时写入，可空） |
+| `analysis_model_id`         | VARCHAR(64)   | 本次分析所用模型 ID（分析落库时写入，可空） |
 | `analysis_prompt_tokens`    | INT UNSIGNED  | 本次分析累计输入 token 数（可空）       |
 | `analysis_completion_tokens`| INT UNSIGNED  | 本次分析累计输出 token 数（可空）       |
-| `analysis_cost_usd`         | DECIMAL(10,6) | 本次分析累计成本（与 pricing.js 单位一致，CNY/1M 换算后；可空） |
+| `analysis_cost_usd`         | DECIMAL(10,6) | 本次分析累计成本（与 pricing.js 单位一致，可空） |
 | `created_at`          | DATETIME          | 创建时间                                |
 | `updated_at`          | DATETIME          | 更新时间                                |
 
@@ -54,7 +54,7 @@
 
 ## poker_analyses
 
-决策点分析结果。每手牌最多 1-2 条，由 Agent 调用 `save_analysis` 工具写入。
+决策点分析结果。每手牌最多 1-2 条，由后端解析 LLM 返回的 JSON 后直接落库。
 
 | 字段            | 类型              | 说明                                              |
 |-----------------|-------------------|---------------------------------------------------|

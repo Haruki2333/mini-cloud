@@ -7,7 +7,7 @@
 ## 项目概述
 
 - 这是一个微信小程序 Monorepo 项目，多个小程序前端共用一个后端服务，使用 pnpm workspaces 管理，小程序不纳入 pnpm workspace，它们由微信开发者工具独立管理。
-- 后端同时托管 H5 Demo 页面，H5 Demo 页面放在 `backend/demo/` 下，由 Express 静态文件中间件提供服务（根路径 `/` 对应 poker-coach）
+- 后端同时托管 H5 Demo 页面，H5 Demo 页面放在 `backend/demo/` 下，由 Express 静态文件中间件提供服务（`/poker` 路径对应 poker-coach，根路径 `/` 重定向至 `/poker/`）
 
 ## 项目结构
 
@@ -31,7 +31,7 @@ mini-cloud/
 │   │       ├── hand-context.js     # 手牌文本化纯函数（供 agent / 评估模块构建 prompt）
 │   │       └── evaluator.js        # 多模型横向评估核心（并发调用、schema 校验、裁判打分）
 │   ├── demo/                       # H5 Demo 页面（静态文件）
-│   │   └── poker-coach/            # 扑克教练 Demo（根路径 /，结构化表单录入 + 分析卡片 + 追问）
+│   │   └── poker-coach/            # 扑克教练 Demo（路径 /poker，结构化表单录入 + 分析卡片 + 追问）
 │   └── Dockerfile
 ├── docs/                           # 项目文档/知识库
 │   ├── api/                        # 接口文档（按业务域组织）

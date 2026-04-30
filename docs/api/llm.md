@@ -4,7 +4,7 @@
 
 ## 概述
 
-`backend/services/core/llm.js` 提供统一的大模型流式对话调用能力。当前仅接入 lingyaai（OpenAI 代理），兼容 OpenAI Chat Completions API 格式，通过模型注册表登记端点。
+`backend/services/core/llm.js` 提供统一的大模型调用能力（流式与非流式）。当前仅接入 lingyaai（OpenAI 代理），兼容 OpenAI Chat Completions API 格式，通过模型注册表登记端点。
 
 ## 模型注册表
 
@@ -27,27 +27,47 @@
 | modelId | string | 是 | 模型 ID，须存在于 `MODEL_REGISTRY` |
 | messages | Array | 是 | OpenAI Chat Completions 格式的消息数组 |
 | apiKey | string | 是 | 对应厂商的 API Key |
-| options | object | 否 | 可选参数，展开合并到请求体（如 `tools`） |
+| options | object | 否 | 可选参数，展开合并到请求体 |
 
 **Yield 事件**
 
 | 类型 | 说明 |
 |------|------|
-| `{ type: "args_delta", index, name, chunk }` | 工具参数增量片段，供上层实时提取字段（如 narrative） |
-| `{ type: "done", content, tool_calls, usage }` | 流结束，含完整累积结果 |
+| `{ type: "content_delta", chunk }` | 文本增量片段 |
+| `{ type: "done", content, usage }` | 流结束，含完整累积文本与 token 用量 |
 
 `done` 事件的字段：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| content | string | 模型返回的文本内容 |
-| tool_calls | Array \| null | 模型请求调用的工具列表（OpenAI 格式），无工具调用时为 `null` |
+| content | string | 模型返回的完整文本内容 |
 | usage | object \| null | token 用量信息（prompt_tokens / completion_tokens 等） |
 
 **错误**
 
 - 模型 ID 不在注册表中：抛出 `Error("不支持的模型: xxx")`
 - 上游 API 返回非 2xx：抛出 `Error("xxx 调用失败 (状态码): 详情")`
+
+---
+
+### `chat(modelId, messages, apiKey, options)`
+
+非流式大模型对话调用，结果一次性返回。适用于需要 JSON 模板输出并在后端校验落库的场景。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| modelId | string | 是 | 模型 ID，须存在于 `MODEL_REGISTRY` |
+| messages | Array | 是 | OpenAI Chat Completions 格式的消息数组 |
+| apiKey | string | 是 | 对应厂商的 API Key |
+| options | object | 否 | 可选参数，透传给上游 API（如 `response_format`、`timeout`） |
+
+**返回值**
+
+`Promise<{ content: string, usage: object|null }>`
+
+**错误**：同 `chatStream`。
 
 ---
 
@@ -63,39 +83,36 @@
 
 ### `MODEL_REGISTRY`（内部）
 
-模型注册表对象，key 为模型 ID，value 为 `{ provider, label, endpoint, defaults }`。其中 `defaults` 为模型默认参数（如思考模式开关），使用 function calling 时会自动关闭。仅供模块内部使用，不对外导出，外部请使用 `getModelInfo()`。
+模型注册表对象，key 为模型 ID，value 为 `{ provider, label, endpoint, defaults }`。仅供模块内部使用，不对外导出，外部请使用 `getModelInfo()`。
 
 ## 调用示例
 
-### 纯文本对话
+### 流式文本对话
 
 ```js
 const { chatStream } = require("../services/core/llm");
 
 for await (const event of chatStream("gpt-5.4", [{ role: "user", content: "你好" }], apiKey)) {
-  if (event.type === "done") {
-    console.log(event.content);
+  if (event.type === "content_delta") {
+    process.stdout.write(event.chunk);
+  } else if (event.type === "done") {
+    console.log("完整内容:", event.content);
   }
 }
 ```
 
-### 工具调用（function calling）
+### 非流式调用（JSON 输出）
 
 ```js
-const { chatStream } = require("../services/core/llm");
+const { chat } = require("../services/core/llm");
 
-for await (const event of chatStream(
+const { content, usage } = await chat(
   "gpt-5.4",
   messages,
   apiKey,
-  { tools: [...toolDefinitions] }
-)) {
-  if (event.type === "args_delta") {
-    // 实时提取工具参数片段
-  } else if (event.type === "done") {
-    const { content, tool_calls, usage } = event;
-  }
-}
+  { response_format: { type: "json_object" } }
+);
+const result = JSON.parse(content);
 ```
 
 ## 扩展新模型
