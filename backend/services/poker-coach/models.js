@@ -1,10 +1,12 @@
 /**
  * 扑克教练 — 数据库模型定义
  *
- * poker_users:    用户表（anon_token 标识匿名用户）
- * poker_hands:    手牌记录（结构化表单数据）
- * poker_analyses: 决策点分析（每手牌 1-2 个关键决策点）
- * poker_leaks:    Leak 模式记录（累积 ≥10 手后识别）
+ * poker_users:       用户表（anon_token 标识匿名用户）
+ * poker_hands:       手牌记录（结构化表单数据）
+ * poker_analyses:    决策点分析（每手牌 1-2 个关键决策点）
+ * poker_leaks:       Leak 模式记录（累积 ≥10 手后识别）
+ * poker_eval_runs:   多模型评估批次记录
+ * poker_eval_results:单模型评估结果（每批次 × 每模型一条）
  */
 
 const { DataTypes } = require("sequelize");
