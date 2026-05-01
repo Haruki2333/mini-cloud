@@ -6,7 +6,7 @@
  */
 
 const { ANALYSIS_SYSTEM_PROMPT } = require("./prompts");
-const { buildHandContext, validateAnalysisItems } = require("./hand-context");
+const { buildHandContext, validateAnalysisItems, stripJsonWrapper } = require("./hand-context");
 const { calculateCost } = require("../core/pricing");
 const { chat } = require("../core/llm");
 const dao = require("./dao");
@@ -48,8 +48,7 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
     let parsed = null;
     let schemaValid = false;
     try {
-      const cleaned = rawContent.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
-      parsed = JSON.parse(cleaned);
+      parsed = JSON.parse(stripJsonWrapper(rawContent));
       schemaValid = validateAnalysisItems(parsed?.analyses) === null;
     } catch (_) {}
 
@@ -131,8 +130,7 @@ ${modelAnalyses}
       [{ role: "user", content: judgePrompt }],
       apiKey
     );
-    const cleaned = rawContent.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
-    const parsedJudge = JSON.parse(cleaned);
+    const parsedJudge = JSON.parse(stripJsonWrapper(rawContent));
 
     if (!Array.isArray(parsedJudge.scores)) return null;
 

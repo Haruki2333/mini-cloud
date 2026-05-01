@@ -15,7 +15,7 @@
 const { chat, chatStream } = require("../core/llm");
 const { calculateCost } = require("../core/pricing");
 const dao = require("./dao");
-const { buildHandContext, validateAnalysisItems } = require("./hand-context");
+const { buildHandContext, validateAnalysisItems, stripJsonWrapper } = require("./hand-context");
 const {
   ANALYSIS_SYSTEM_PROMPT,
   LEAK_SYSTEM_PROMPT,
@@ -112,13 +112,8 @@ function validateLeakPayload(parsed) {
 
 function tryParseJson(rawContent) {
   if (!rawContent) return null;
-  // 兼容部分模型用 ```json ``` 包裹
-  const cleaned = rawContent
-    .replace(/^\s*```(?:json)?\s*/i, "")
-    .replace(/\s*```\s*$/i, "")
-    .trim();
   try {
-    return JSON.parse(cleaned);
+    return JSON.parse(stripJsonWrapper(rawContent));
   } catch (_) {
     return null;
   }

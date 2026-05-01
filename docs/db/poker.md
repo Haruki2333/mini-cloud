@@ -11,6 +11,8 @@
 | `created_at` | DATETIME         | 创建时间                      |
 | `updated_at` | DATETIME         | 更新时间                      |
 
+**索引**：`idx_poker_users_anon_token (anon_token, UNIQUE)`
+
 ---
 
 ## poker_hands

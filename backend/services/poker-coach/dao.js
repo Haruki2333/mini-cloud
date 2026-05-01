@@ -20,6 +20,8 @@ async function findOrCreateUser(anonToken) {
 async function createHand(userId, data) {
   const fields = { ...data };
 
+  // TODO: 以下数据转换逻辑属于业务层关注点，理应在调用方（路由层或专属 service）处理后再传入，
+  //       目前暂留于此以保持向后兼容。迁移时需同步调整 routes/poker.js 的 handleCreateHand。
   // 从 actions JSON 自动生成文本版本回填旧字段（向后兼容）
   if (fields.actions && !fields.preflop_actions) {
     fields.preflop_actions = serializeActions(fields.actions.preflop);

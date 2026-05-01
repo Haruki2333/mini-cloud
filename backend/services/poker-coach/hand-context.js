@@ -68,4 +68,16 @@ function validateAnalysisItems(analysesArr) {
   return null;
 }
 
-module.exports = { serializeActions, buildHandContext, validateAnalysisItems };
+/**
+ * 剥除模型可能附加的 markdown 代码块包裹（```json ... ``` 或 ``` ... ```）。
+ * agent.js 与 evaluator.js 共用，避免各自维护相似的正则。
+ */
+function stripJsonWrapper(content) {
+  if (!content) return content;
+  return content
+    .replace(/^\s*```(?:json)?\s*/i, "")
+    .replace(/\s*```\s*$/i, "")
+    .trim();
+}
+
+module.exports = { serializeActions, buildHandContext, validateAnalysisItems, stripJsonWrapper };
