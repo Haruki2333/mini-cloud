@@ -5,13 +5,12 @@
  * 评估调用走 lingyaai 代理（OpenAI Chat Completions 兼容），非流式。
  */
 
-const fetch = require("node-fetch");
 const { ANALYSIS_SYSTEM_PROMPT } = require("./prompts");
-const { buildHandContext } = require("./hand-context");
+const { buildHandContext, validateAnalysisItems } = require("./hand-context");
 const { calculateCost } = require("../core/pricing");
+const { chat } = require("../core/llm");
 const dao = require("./dao");
 
-const LINGYAAI_API_URL = "https://api.lingyaai.cn/v1/chat/completions";
 const EVAL_TIMEOUT_MS = 60000;
 const JUDGE_MODEL_ID = "claude-sonnet-4-6-thinking";
 
@@ -30,75 +29,20 @@ const EVAL_SYSTEM_SUFFIX = `
 {"analyses":[{"street":"preflop|flop|turn|river","rating":"good|acceptable|problematic","scenario":"...","hero_action":"...","better_action":"...","reasoning":"...","principle":"..."}]}
 对手牌中每条实际有行动的街各给一条分析。如果不按此 JSON 格式返回则视为无效。`;
 
-// ===== Schema 校验 =====
-
-// TODO: validateSchema 与 agent.js 的 validateAnalysisPayload 校验同一结构，应提取为公共函数（如 hand-context.js）
-function validateSchema(parsed) {
-  if (!parsed || typeof parsed !== "object") return false;
-  if (!Array.isArray(parsed.analyses) || parsed.analyses.length === 0) return false;
-  const validStreets = new Set(["preflop", "flop", "turn", "river"]);
-  const validRatings = new Set(["good", "acceptable", "problematic"]);
-  for (const a of parsed.analyses) {
-    if (!validStreets.has(a.street)) return false;
-    if (!validRatings.has(a.rating)) return false;
-    if (!a.scenario || !a.reasoning || !a.principle) return false;
-  }
-  return true;
-}
-
 // ===== 单模型调用 =====
-
-// TODO: callModel 内部的 fetch/超时/错误处理逻辑与 llm.js 的 chat() 重复；
-//       应将 EVAL_MODELS 注册到 llm.js 的 MODEL_REGISTRY，并调用 llm.chat() 代替直接 fetch
-function extractErrorMessage(rawText, status) {
-  if (!rawText) return `HTTP ${status}`;
-  try {
-    const j = JSON.parse(rawText);
-    const msg = j?.error?.message || j?.message || j?.error;
-    if (typeof msg === "string" && msg) return `HTTP ${status}: ${msg}`;
-  } catch (_) {}
-  return `HTTP ${status}: ${rawText.slice(0, 200)}`;
-}
 
 async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, handId) {
   const startTime = Date.now();
   console.log(`[Eval] 开始调用 ${model.id}  run=${evalRunId} apiKey=${apiKey ? apiKey.slice(0, 6) + "***" : "(空)"}`);
 
   try {
-    // node-fetch v2 原生支持 timeout 选项，避免依赖部署环境是否提供全局 AbortController
-    const resp = await fetch(LINGYAAI_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: model.id,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: handContext },
-        ],
-        stream: false,
-      }),
-      timeout: EVAL_TIMEOUT_MS,
-    });
-
+    const messages = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: handContext },
+    ];
+    const { content: rawContent, usage: rawUsage } = await chat(model.id, messages, apiKey);
     const latencyMs = Date.now() - startTime;
-
-    if (!resp.ok) {
-      const errText = await resp.text().catch(() => "");
-      const cleanMsg = extractErrorMessage(errText, resp.status);
-      console.error(`[Eval] ${model.id} HTTP ${resp.status} (${latencyMs}ms): ${errText.slice(0, 300)}`);
-      const resultId = await dao.saveEvalResult(evalRunId, handId, {
-        model_id: model.id, provider: model.provider,
-        status: "failed", latency_ms: latencyMs, error_message: cleanMsg,
-      });
-      return { model_id: model.id, status: "failed", latency_ms: latencyMs, error_message: cleanMsg, result_id: resultId };
-    }
-
-    const data = await resp.json();
-    const rawContent = data.choices?.[0]?.message?.content || "";
-    const usage = data.usage || {};
+    const usage = rawUsage || {};
     const cost = calculateCost(model.id, usage);
 
     let parsed = null;
@@ -106,7 +50,7 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
     try {
       const cleaned = rawContent.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
       parsed = JSON.parse(cleaned);
-      schemaValid = validateSchema(parsed);
+      schemaValid = validateAnalysisItems(parsed?.analyses) === null;
     } catch (_) {}
 
     let schemaError = null;
@@ -140,7 +84,7 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
     };
   } catch (err) {
     const latencyMs = Date.now() - startTime;
-    // node-fetch v2 超时抛 FetchError code=ETIMEDOUT
+    // node-fetch v2 超时抛 FetchError type=request-timeout / code=ETIMEDOUT
     const isTimeout = err.type === "request-timeout" || err.code === "ETIMEDOUT" || err.name === "AbortError";
     const msg = isTimeout
       ? `请求超时（>${EVAL_TIMEOUT_MS / 1000}s）`
@@ -182,28 +126,11 @@ ${modelAnalyses}
 只输出 JSON，不要其他文字。`;
 
   try {
-    const resp = await fetch(LINGYAAI_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: JUDGE_MODEL_ID,
-        messages: [{ role: "user", content: judgePrompt }],
-        stream: false,
-      }),
-      timeout: EVAL_TIMEOUT_MS,
-    });
-
-    if (!resp.ok) {
-      const errText = await resp.text().catch(() => "");
-      console.error(`[Eval] 裁判 HTTP ${resp.status}: ${errText.slice(0, 200)}`);
-      return null;
-    }
-
-    const data = await resp.json();
-    const rawContent = data.choices?.[0]?.message?.content || "";
+    const { content: rawContent } = await chat(
+      JUDGE_MODEL_ID,
+      [{ role: "user", content: judgePrompt }],
+      apiKey
+    );
     const cleaned = rawContent.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
     const parsedJudge = JSON.parse(cleaned);
 

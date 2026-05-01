@@ -3,6 +3,15 @@
  * 逻辑与前端 analysis.js 的 buildHandContext 保持一致。
  */
 
+function serializeActions(actionsArr) {
+  if (!actionsArr || actionsArr.length === 0) return null;
+  return actionsArr.map((a) => {
+    let text = a.position + " " + a.action;
+    if (a.amount != null) text += " " + a.amount;
+    return text;
+  }).join("，");
+}
+
 function buildHandContext(hand) {
   const lines = [];
   lines.push(`手牌 #${hand.id}`);
@@ -36,4 +45,27 @@ function buildHandContext(hand) {
   return lines.join("\n");
 }
 
-module.exports = { buildHandContext };
+const VALID_STREETS = new Set(["preflop", "flop", "turn", "river"]);
+const VALID_RATINGS = new Set(["good", "acceptable", "problematic"]);
+
+/**
+ * 校验 analyses 数组，返回错误描述字符串；通过则返回 null。
+ * 供 agent.js 和 evaluator.js 共用，避免重复维护同一 schema 约束。
+ */
+function validateAnalysisItems(analysesArr) {
+  if (!Array.isArray(analysesArr) || analysesArr.length === 0) {
+    return "analyses 字段缺失或为空数组";
+  }
+  for (let i = 0; i < analysesArr.length; i++) {
+    const a = analysesArr[i];
+    if (!a || typeof a !== "object") return `analyses[${i}] 不是对象`;
+    if (!VALID_STREETS.has(a.street)) return `analyses[${i}].street 非法（${a.street}）`;
+    if (!VALID_RATINGS.has(a.rating)) return `analyses[${i}].rating 非法（${a.rating}）`;
+    if (!a.scenario || !a.hero_action || !a.reasoning || !a.principle) {
+      return `analyses[${i}] 缺少必填文本字段`;
+    }
+  }
+  return null;
+}
+
+module.exports = { serializeActions, buildHandContext, validateAnalysisItems };
