@@ -15,7 +15,7 @@
 const { chat, chatStream } = require("../core/llm");
 const { calculateCost } = require("../core/pricing");
 const dao = require("./dao");
-const { buildHandContext } = require("./hand-context");
+const { buildHandContext, validateAnalysisItems } = require("./hand-context");
 const {
   ANALYSIS_SYSTEM_PROMPT,
   LEAK_SYSTEM_PROMPT,
@@ -80,23 +80,10 @@ const LEAK_FORMAT_INSTRUCTION = `
 
 // ===== Schema 校验 =====
 
-const VALID_STREETS = new Set(["preflop", "flop", "turn", "river"]);
-const VALID_RATINGS = new Set(["good", "acceptable", "problematic"]);
-
 function validateAnalysisPayload(parsed) {
   if (!parsed || typeof parsed !== "object") return "顶层不是对象";
-  if (!Array.isArray(parsed.analyses) || parsed.analyses.length === 0) {
-    return "analyses 字段缺失或为空数组";
-  }
-  for (let i = 0; i < parsed.analyses.length; i++) {
-    const a = parsed.analyses[i];
-    if (!a || typeof a !== "object") return `analyses[${i}] 不是对象`;
-    if (!VALID_STREETS.has(a.street)) return `analyses[${i}].street 非法（${a.street}）`;
-    if (!VALID_RATINGS.has(a.rating)) return `analyses[${i}].rating 非法（${a.rating}）`;
-    if (!a.scenario || !a.hero_action || !a.reasoning || !a.principle) {
-      return `analyses[${i}] 缺少必填文本字段`;
-    }
-  }
+  const analysesErr = validateAnalysisItems(parsed.analyses);
+  if (analysesErr) return analysesErr;
   if (parsed.leaks !== undefined && !Array.isArray(parsed.leaks)) {
     return "leaks 字段存在但不是数组";
   }

@@ -1,11 +1,43 @@
 const fetch = require("node-fetch");
 
-// 模型注册表
+const LINGYAAI_ENDPOINT = "https://api.lingyaai.cn/v1/chat/completions";
+
+// 模型注册表（主对话 + 多模型评估均走 lingyaai 代理）
 const MODEL_REGISTRY = {
   "gpt-5.4": {
-    provider: "lingyaai",
+    provider: "openai",
     label: "OpenAI GPT-5.4",
-    endpoint: "https://api.lingyaai.cn/v1/chat/completions",
+    endpoint: LINGYAAI_ENDPOINT,
+    defaults: {},
+  },
+  "claude-sonnet-4-6-thinking": {
+    provider: "anthropic",
+    label: "Claude Sonnet 4.6 Thinking",
+    endpoint: LINGYAAI_ENDPOINT,
+    defaults: {},
+  },
+  "gemini-3.1-pro-preview-thinking": {
+    provider: "google",
+    label: "Gemini 3.1 Pro Preview Thinking",
+    endpoint: LINGYAAI_ENDPOINT,
+    defaults: {},
+  },
+  "deepseek-v4-pro": {
+    provider: "deepseek",
+    label: "DeepSeek V4 Pro",
+    endpoint: LINGYAAI_ENDPOINT,
+    defaults: {},
+  },
+  "doubao-seed-2-0-pro": {
+    provider: "volcengine",
+    label: "Doubao Seed 2.0 Pro",
+    endpoint: LINGYAAI_ENDPOINT,
+    defaults: {},
+  },
+  "kimi-k2.6": {
+    provider: "moonshot",
+    label: "Kimi K2.6",
+    endpoint: LINGYAAI_ENDPOINT,
     defaults: {},
   },
 };
