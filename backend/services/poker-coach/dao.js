@@ -6,6 +6,8 @@ const models = require("./models");
 
 // ===== 内部工具 =====
 
+// TODO: serializeActions 是行动数组的文本序列化逻辑，属于数据展示层关切，
+//       应迁移至 hand-context.js 与其他手牌文本化函数统一维护
 function serializeActions(actionsArr) {
   if (!actionsArr || actionsArr.length === 0) return null;
   return actionsArr.map((a) => {
