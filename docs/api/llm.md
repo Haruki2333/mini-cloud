@@ -8,11 +8,18 @@
 
 ## 模型注册表
 
-| 模型 ID | 厂商 | 标签 | API 端点 |
-|---------|------|------|----------|
-| gpt-5.4 | lingyaai | OpenAI GPT-5.4 | `https://api.lingyaai.cn/v1/chat/completions` |
+所有模型均通过 lingyaai 统一代理端点 `https://api.lingyaai.cn/v1/chat/completions` 调用，认证方式统一为 `Authorization: Bearer <API_KEY>`。
 
-认证方式统一为 `Authorization: Bearer <API_KEY>`。
+| 模型 ID | 厂商 | 标签 |
+|---------|------|------|
+| `gpt-5.4` | openai | OpenAI GPT-5.4 |
+| `claude-sonnet-4-6-thinking` | anthropic | Claude Sonnet 4.6 Thinking |
+| `gemini-3.1-pro-preview-thinking` | google | Gemini 3.1 Pro Preview Thinking |
+| `deepseek-v4-pro` | deepseek | DeepSeek V4 Pro |
+| `doubao-seed-2-0-pro` | volcengine | Doubao Seed 2.0 Pro |
+| `kimi-k2.6` | moonshot | Kimi K2.6 |
+
+新增模型时需同步更新 `MODEL_REGISTRY`（`backend/services/core/llm.js`）和价格表（`backend/services/core/pricing.js`），并在本表补充一行。
 
 ## 导出接口
 
@@ -123,12 +130,12 @@ const result = JSON.parse(content);
 "new-model-id": {
   provider: "provider-name",
   label: "显示名称",
-  endpoint: "https://api.example.com/v1/chat/completions",
+  endpoint: "https://api.lingyaai.cn/v1/chat/completions",
   defaults: {},
 },
 ```
 
-同时需要更新本文档的模型注册表。
+同时需要：1）在 `pricing.js` 的 `PRICING` 表中补充该模型的费率；2）更新本文档的模型注册表。
 
 ## 实现位置
 

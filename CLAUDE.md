@@ -20,7 +20,7 @@ mini-cloud/
 │   ├── services/                   # 业务服务模块（core/ 通用底层 + 业务专属目录）
 │   │   ├── core/                   # 底层通用模块（与具体业务无关）
 │   │   │   ├── db.js               # Sequelize 连接管理、initDB(modelDefiners)
-│   │   │   ├── llm.js              # LLM 调用封装（chat 非流式 + chatStream 流式，主对话仅接入 gpt-5.4）
+│   │   │   ├── llm.js              # LLM 调用封装（chat 非流式 + chatStream 流式，MODEL_REGISTRY 注册 6 款模型）
 │   │   │   └── pricing.js          # LLM 价格表与成本计算（评估模块使用）
 │   │   └── poker-coach/            # 扑克教练 demo 专属模块
 │   │       ├── prompts.js          # 三种模式（分析/Leak/追问）的系统提示词常量

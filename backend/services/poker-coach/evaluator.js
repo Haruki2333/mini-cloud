@@ -14,6 +14,7 @@ const dao = require("./dao");
 const EVAL_TIMEOUT_MS = 60000;
 const JUDGE_MODEL_ID = "claude-sonnet-4-6-thinking";
 
+// TODO: provider/label 与 llm.js 的 MODEL_REGISTRY 存在重复，考虑改为从 getModelInfo() 派生
 const EVAL_MODELS = [
   { id: "claude-sonnet-4-6-thinking",          provider: "anthropic", label: "Claude Sonnet 4.6 Thinking"          },
   { id: "gpt-5.4",                             provider: "openai",    label: "OpenAI GPT-5.4"                      },
@@ -253,4 +254,4 @@ async function* runEvaluation({ userId, handId, modelIds, apiKey }) {
   yield { type: "eval_completed", eval_run_id: evalRunId, consistency_score: consistencyScore, total_cost_usd: totalCostUsd, status };
 }
 
-module.exports = { runEvaluation, EVAL_MODELS, JUDGE_MODEL_ID };
+module.exports = { runEvaluation };
