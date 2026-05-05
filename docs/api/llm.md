@@ -8,11 +8,16 @@
 
 ## 模型注册表
 
-| 模型 ID | 厂商 | 标签 | API 端点 |
-|---------|------|------|----------|
-| gpt-5.4 | lingyaai | OpenAI GPT-5.4 | `https://api.lingyaai.cn/v1/chat/completions` |
+所有模型均通过 lingyaai 统一代理调用，API 端点统一为 `https://api.lingyaai.cn/v1/chat/completions`，认证方式统一为 `Authorization: Bearer <API_KEY>`。
 
-认证方式统一为 `Authorization: Bearer <API_KEY>`。
+| 模型 ID | 厂商 | 标签 |
+|---------|------|------|
+| `gpt-5.4` | openai | OpenAI GPT-5.4 |
+| `claude-sonnet-4-6-thinking` | anthropic | Claude Sonnet 4.6 Thinking |
+| `gemini-3.1-pro-preview-thinking` | google | Gemini 3.1 Pro Preview Thinking |
+| `deepseek-v4-pro` | deepseek | DeepSeek V4 Pro |
+| `doubao-seed-2-0-pro` | volcengine | Doubao Seed 2.0 Pro |
+| `kimi-k2.6` | moonshot | Kimi K2.6 |
 
 ## 导出接口
 

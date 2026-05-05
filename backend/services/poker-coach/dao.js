@@ -3,7 +3,6 @@
  */
 
 const models = require("./models");
-const { serializeActions } = require("./hand-context");
 
 // ===== 用户 =====
 
@@ -19,21 +18,6 @@ async function findOrCreateUser(anonToken) {
 
 async function createHand(userId, data) {
   const fields = { ...data };
-
-  // 从 actions JSON 自动生成文本版本回填旧字段（向后兼容）
-  if (fields.actions && !fields.preflop_actions) {
-    fields.preflop_actions = serializeActions(fields.actions.preflop);
-    fields.flop_actions = serializeActions(fields.actions.flop) || fields.flop_actions;
-    fields.turn_actions = serializeActions(fields.actions.turn) || fields.turn_actions;
-    fields.river_actions = serializeActions(fields.actions.river) || fields.river_actions;
-  }
-
-  // 从 opponents JSON 自动生成 opponent_notes 文本（向后兼容）
-  if (fields.opponents && !fields.opponent_notes) {
-    fields.opponent_notes = fields.opponents
-      .map((o) => o.position + (o.stack_bb ? " (" + o.stack_bb + "BB)" : ""))
-      .join("，");
-  }
 
   const hand = await models.PokerHand.create({
     user_id: userId,
