@@ -143,6 +143,7 @@ async function saveAnalyses(handId, analysesData) {
     }))
   );
 
+  // TODO: is_analyzed 标记属于业务逻辑，应移至 agent.js（合并到 updateHandAnalysisMeta 调用中），DAO 层仅做纯 CRUD
   await models.PokerHand.update(
     { is_analyzed: true },
     { where: { id: handId } }

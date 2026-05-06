@@ -14,6 +14,8 @@ const dao = require("./dao");
 const EVAL_TIMEOUT_MS = 60000;
 const JUDGE_MODEL_ID = "claude-sonnet-4-6-thinking";
 
+// TODO: provider/label 与 llm.js MODEL_REGISTRY 重复维护；可改为从 MODEL_REGISTRY 派生，
+//       以避免新增模型时需同步修改两处。
 const EVAL_MODELS = [
   { id: "claude-sonnet-4-6-thinking",          provider: "anthropic", label: "Claude Sonnet 4.6 Thinking"          },
   { id: "gpt-5.4",                             provider: "openai",    label: "OpenAI GPT-5.4"                      },
