@@ -4,13 +4,18 @@
 
 ## 概述
 
-`backend/services/core/llm.js` 提供统一的大模型调用能力（流式与非流式）。当前仅接入 lingyaai（OpenAI 代理），兼容 OpenAI Chat Completions API 格式，通过模型注册表登记端点。
+`backend/services/core/llm.js` 提供统一的大模型调用能力（流式与非流式）。通过 lingyaai 统一代理接入 6 款主流大模型，均兼容 OpenAI Chat Completions API 格式，通过模型注册表登记端点。
 
 ## 模型注册表
 
 | 模型 ID | 厂商 | 标签 | API 端点 |
 |---------|------|------|----------|
-| gpt-5.4 | lingyaai | OpenAI GPT-5.4 | `https://api.lingyaai.cn/v1/chat/completions` |
+| `gpt-5.4` | openai | OpenAI GPT-5.4 | `https://api.lingyaai.cn/v1/chat/completions` |
+| `claude-sonnet-4-6-thinking` | anthropic | Claude Sonnet 4.6 Thinking | `https://api.lingyaai.cn/v1/chat/completions` |
+| `gemini-3.1-pro-preview-thinking` | google | Gemini 3.1 Pro Preview Thinking | `https://api.lingyaai.cn/v1/chat/completions` |
+| `deepseek-v4-pro` | deepseek | DeepSeek V4 Pro | `https://api.lingyaai.cn/v1/chat/completions` |
+| `doubao-seed-2-0-pro` | volcengine | Doubao Seed 2.0 Pro | `https://api.lingyaai.cn/v1/chat/completions` |
+| `kimi-k2.6` | moonshot | Kimi K2.6 | `https://api.lingyaai.cn/v1/chat/completions` |
 
 认证方式统一为 `Authorization: Bearer <API_KEY>`。
 
@@ -128,7 +133,7 @@ const result = JSON.parse(content);
 },
 ```
 
-同时需要更新本文档的模型注册表。
+同时需要同步更新本文档的模型注册表，以及 `backend/services/core/pricing.js` 中的费率表（如适用）。
 
 ## 实现位置
 
