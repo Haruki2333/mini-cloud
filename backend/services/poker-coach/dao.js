@@ -20,6 +20,8 @@ async function findOrCreateUser(anonToken) {
 async function createHand(userId, data) {
   const fields = { ...data };
 
+  // TODO: actions/opponents 到文本字段的转换属于业务逻辑，不应在 DAO 层处理；
+  // 应移至路由 handleCreateHand 或 hand-context.js，DAO 仅负责字段写入。
   // 从 actions JSON 自动生成文本版本回填旧字段（向后兼容）
   if (fields.actions && !fields.preflop_actions) {
     fields.preflop_actions = serializeActions(fields.actions.preflop);

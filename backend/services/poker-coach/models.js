@@ -160,10 +160,12 @@ function define(sequelize) {
         allowNull: true,
         comment: "本次分析累计输出 token 数",
       },
+      // TODO: 字段名含 _usd 为历史命名遗留，实际存储由 pricing.js 计算的 CNY 值。
+      // 修正需 ALTER TABLE 重命名列并同步更新 dao.js / agent.js / evaluator.js 及文档。
       analysis_cost_usd: {
         type: DataTypes.DECIMAL(10, 6),
         allowNull: true,
-        comment: "本次分析累计成本（与 pricing.js 单位一致）",
+        comment: "本次分析累计成本（实为 CNY，字段名含 _usd 为历史命名遗留）",
       },
     },
     { tableName: "poker_hands", underscored: true }
@@ -286,6 +288,7 @@ function define(sequelize) {
       prompt_tokens: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
       completion_tokens: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
       cached_tokens: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+      // TODO: 同上，字段名含 _usd 实为 CNY（pricing.js 以 CNY 计算）。
       cost_usd: { type: DataTypes.DECIMAL(10, 6), allowNull: true, defaultValue: 0 },
       structured_output: { type: DataTypes.JSON, allowNull: true, comment: "schema 合规时保存 analyses 数组" },
       raw_response: { type: DataTypes.TEXT, allowNull: true },
