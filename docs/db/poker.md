@@ -44,7 +44,7 @@
 | `analysis_model_id`         | VARCHAR(64)   | 本次分析所用模型 ID（分析落库时写入，可空） |
 | `analysis_prompt_tokens`    | INT UNSIGNED  | 本次分析累计输入 token 数（可空）       |
 | `analysis_completion_tokens`| INT UNSIGNED  | 本次分析累计输出 token 数（可空）       |
-| `analysis_cost_usd`         | DECIMAL(10,6) | 本次分析累计成本（单位为 **CNY**，由 pricing.js 计算；字段名含 `_usd` 为历史命名遗留，可空） |
+| `analysis_cost_cny`         | DECIMAL(10,6) | 本次分析累计成本（CNY，由 pricing.js 计算，可空） |
 | `created_at`          | DATETIME          | 创建时间                                |
 | `updated_at`          | DATETIME          | 更新时间                                |
 
@@ -103,7 +103,7 @@ Leak 模式记录。每次 Leak 分析完成后全量替换（先 DELETE 再 INS
 | `hand_id` | INT UNSIGNED | FK → poker_hands.id |
 | `requested_models` | JSON | 请求的模型 ID 数组 |
 | `status` | ENUM | running / completed / partial / failed |
-| `total_cost_usd` | DECIMAL(10,6) | 批次累计成本 |
+| `total_cost_cny` | DECIMAL(10,6) | 批次累计成本（CNY） |
 | `consistency_score` | DECIMAL(5,2) | 模型间 rating 一致率（0-100） |
 | `judge_model_id` | VARCHAR(64) | 裁判模型 ID（可空） |
 | `created_at` / `updated_at` | DATETIME | — |
@@ -128,7 +128,7 @@ Leak 模式记录。每次 Leak 分析完成后全量替换（先 DELETE 再 INS
 | `prompt_tokens` | INT UNSIGNED | — |
 | `completion_tokens` | INT UNSIGNED | — |
 | `cached_tokens` | INT UNSIGNED | 可空 |
-| `cost_usd` | DECIMAL(10,6) | 单次成本（单位为 **CNY**，由 pricing.js 计算；字段名含 `_usd` 为历史命名遗留） |
+| `cost_cny` | DECIMAL(10,6) | 单次成本（CNY，由 pricing.js 计算） |
 | `structured_output` | JSON | schema 合规时的 analyses 数组 |
 | `raw_response` | TEXT | 原始响应文本 |
 | `error_message` | TEXT | 失败原因（可空） |

@@ -3,7 +3,6 @@
  */
 
 const models = require("./models");
-const { serializeActions } = require("./hand-context");
 
 // ===== 用户 =====
 
@@ -19,23 +18,6 @@ async function findOrCreateUser(anonToken) {
 
 async function createHand(userId, data) {
   const fields = { ...data };
-
-  // TODO: actions/opponents 到文本字段的转换属于业务逻辑，不应在 DAO 层处理；
-  // 应移至路由 handleCreateHand 或 hand-context.js，DAO 仅负责字段写入。
-  // 从 actions JSON 自动生成文本版本回填旧字段（向后兼容）
-  if (fields.actions && !fields.preflop_actions) {
-    fields.preflop_actions = serializeActions(fields.actions.preflop);
-    fields.flop_actions = serializeActions(fields.actions.flop) || fields.flop_actions;
-    fields.turn_actions = serializeActions(fields.actions.turn) || fields.turn_actions;
-    fields.river_actions = serializeActions(fields.actions.river) || fields.river_actions;
-  }
-
-  // 从 opponents JSON 自动生成 opponent_notes 文本（向后兼容）
-  if (fields.opponents && !fields.opponent_notes) {
-    fields.opponent_notes = fields.opponents
-      .map((o) => o.position + (o.stack_bb ? " (" + o.stack_bb + "BB)" : ""))
-      .join("，");
-  }
 
   const hand = await models.PokerHand.create({
     user_id: userId,
@@ -72,7 +54,7 @@ async function listHands(userId, limit = 50) {
       "id", "blind_level", "table_type", "hero_position",
       "hero_cards", "result_bb", "played_at", "is_analyzed", "created_at",
       "analysis_model_id", "analysis_prompt_tokens",
-      "analysis_completion_tokens", "analysis_cost_usd",
+      "analysis_completion_tokens", "analysis_cost_cny",
     ],
   });
   return hands.map((h) => h.toJSON());
@@ -159,7 +141,7 @@ async function updateHandAnalysisMeta(handId, meta) {
       analysis_model_id: meta.analysis_model_id,
       analysis_prompt_tokens: meta.analysis_prompt_tokens,
       analysis_completion_tokens: meta.analysis_completion_tokens,
-      analysis_cost_usd: meta.analysis_cost_usd,
+      analysis_cost_cny: meta.analysis_cost_cny,
     },
     { where: { id: handId } }
   );
@@ -241,7 +223,7 @@ async function saveEvalResult(evalRunId, handId, data) {
     prompt_tokens: data.prompt_tokens || null,
     completion_tokens: data.completion_tokens || null,
     cached_tokens: data.cached_tokens || null,
-    cost_usd: data.cost_usd || 0,
+    cost_cny: data.cost_cny || 0,
     structured_output: data.structured_output || null,
     raw_response: data.raw_response || null,
     error_message: data.error_message || null,
@@ -261,7 +243,7 @@ async function getValidEvalResultOutputs(evalRunId) {
 async function finalizeEvalRun(evalRunId, updates) {
   const fields = {};
   if (updates.status != null) fields.status = updates.status;
-  if (updates.totalCostUsd != null) fields.total_cost_usd = updates.totalCostUsd;
+  if (updates.totalCostUsd != null) fields.total_cost_cny = updates.totalCostUsd;
   if (updates.consistencyScore != null) fields.consistency_score = updates.consistencyScore;
   if (updates.judgeModelId != null) fields.judge_model_id = updates.judgeModelId;
   if (Object.keys(fields).length === 0) return;

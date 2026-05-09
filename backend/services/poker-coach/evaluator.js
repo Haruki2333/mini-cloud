@@ -67,7 +67,7 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
       prompt_tokens: usage.prompt_tokens,
       completion_tokens: usage.completion_tokens,
       cached_tokens: usage.prompt_tokens_details?.cached_tokens || null,
-      cost_usd: cost,
+      cost_cny: cost,
       structured_output: schemaValid ? parsed.analyses : null,
       raw_response: rawContent,
       schema_valid: schemaValid,
@@ -77,7 +77,7 @@ async function callModel(model, handContext, systemPrompt, apiKey, evalRunId, ha
     return {
       model_id: model.id, status: "success", latency_ms: latencyMs,
       prompt_tokens: usage.prompt_tokens, completion_tokens: usage.completion_tokens,
-      cost_usd: cost, schema_valid: schemaValid,
+      cost_cny: cost, schema_valid: schemaValid,
       structured_output: schemaValid ? parsed.analyses : null,
       error_message: schemaError,
       result_id: resultId,
@@ -242,7 +242,7 @@ async function* runEvaluation({ userId, handId, modelIds, apiKey }) {
   // 汇总
   const consistencyScore = await computeConsistency(evalRunId, hand);
   const totalCostUsd = Number(
-    allResults.reduce((sum, r) => sum + (r.cost_usd || 0), 0).toFixed(6)
+    allResults.reduce((sum, r) => sum + (r.cost_cny || 0), 0).toFixed(6)
   );
   const successCount = allResults.filter((r) => r.status === "success").length;
   const status =
@@ -250,7 +250,7 @@ async function* runEvaluation({ userId, handId, modelIds, apiKey }) {
 
   await dao.finalizeEvalRun(evalRunId, { status, totalCostUsd, consistencyScore });
 
-  yield { type: "eval_completed", eval_run_id: evalRunId, consistency_score: consistencyScore, total_cost_usd: totalCostUsd, status };
+  yield { type: "eval_completed", eval_run_id: evalRunId, consistency_score: consistencyScore, total_cost_cny: totalCostUsd, status };
 }
 
 module.exports = { runEvaluation, EVAL_MODELS, JUDGE_MODEL_ID };

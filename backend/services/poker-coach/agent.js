@@ -252,7 +252,7 @@ async function* runAnalysis({ hand, recentAnalyses, totalHands, analyzedHands, m
       analysis_model_id: model,
       analysis_prompt_tokens: cumulativePromptTokens,
       analysis_completion_tokens: cumulativeCompletionTokens,
-      analysis_cost_usd: cost,
+      analysis_cost_cny: cost,
     });
   } catch (metaErr) {
     console.error("[Agent/Analysis] 写入元数据失败:", metaErr.message);

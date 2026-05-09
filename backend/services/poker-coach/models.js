@@ -160,12 +160,10 @@ function define(sequelize) {
         allowNull: true,
         comment: "本次分析累计输出 token 数",
       },
-      // TODO: 字段名含 _usd 为历史命名遗留，实际存储由 pricing.js 计算的 CNY 值。
-      // 修正需 ALTER TABLE 重命名列并同步更新 dao.js / agent.js / evaluator.js 及文档。
-      analysis_cost_usd: {
+      analysis_cost_cny: {
         type: DataTypes.DECIMAL(10, 6),
         allowNull: true,
-        comment: "本次分析累计成本（实为 CNY，字段名含 _usd 为历史命名遗留）",
+        comment: "本次分析累计成本（CNY，由 pricing.js 计算）",
       },
     },
     { tableName: "poker_hands", underscored: true }
@@ -268,7 +266,7 @@ function define(sequelize) {
         allowNull: false,
         defaultValue: "running",
       },
-      total_cost_usd: { type: DataTypes.DECIMAL(10, 6), allowNull: true },
+      total_cost_cny: { type: DataTypes.DECIMAL(10, 6), allowNull: true },
       consistency_score: { type: DataTypes.DECIMAL(5, 2), allowNull: true, comment: "模型间 rating 一致率 0-100" },
       judge_model_id: { type: DataTypes.STRING(64), allowNull: true },
     },
@@ -288,8 +286,7 @@ function define(sequelize) {
       prompt_tokens: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
       completion_tokens: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
       cached_tokens: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
-      // TODO: 同上，字段名含 _usd 实为 CNY（pricing.js 以 CNY 计算）。
-      cost_usd: { type: DataTypes.DECIMAL(10, 6), allowNull: true, defaultValue: 0 },
+      cost_cny: { type: DataTypes.DECIMAL(10, 6), allowNull: true, defaultValue: 0 },
       structured_output: { type: DataTypes.JSON, allowNull: true, comment: "schema 合规时保存 analyses 数组" },
       raw_response: { type: DataTypes.TEXT, allowNull: true },
       error_message: { type: DataTypes.TEXT, allowNull: true },
@@ -317,6 +314,24 @@ async function beforeSync(qi) {
     }
   };
   await ensureUpdatedAt("poker_analyses");
+
+  // 将历史 _usd 命名的列重命名为 _cny（实际存储值始终为 CNY）
+  const renameCol = async (table, oldCol, newCol, colDef) => {
+    try {
+      await qi.sequelize.query(
+        `ALTER TABLE \`${table}\` RENAME COLUMN \`${oldCol}\` TO \`${newCol}\``
+      );
+      console.log(`[PokerModels] 已重命名 ${table}.${oldCol} → ${newCol}`);
+    } catch (e) {
+      // 列不存在（已重命名）或新列已存在，均忽略
+      if (!/Unknown column|Duplicate column name/i.test(e.message || "")) {
+        console.warn(`[PokerModels] 重命名 ${table}.${oldCol} 失败:`, e.message);
+      }
+    }
+  };
+  await renameCol("poker_hands", "analysis_cost_usd", "analysis_cost_cny");
+  await renameCol("poker_eval_runs", "total_cost_usd", "total_cost_cny");
+  await renameCol("poker_eval_results", "cost_usd", "cost_cny");
 }
 
 async function afterSync(qi) {
