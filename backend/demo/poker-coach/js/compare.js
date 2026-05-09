@@ -99,7 +99,7 @@ async function loadHistoryRun(runId) {
     if (judgeScores.length > 0) fillJudgeRow(judgeScores);
     renderKPI({
       consistency_score: run.consistency_score,
-      total_cost_usd: run.total_cost_usd,
+      total_cost_cny: run.total_cost_cny,
     }, run.results || []);
   } catch (_) { showToast("加载失败"); }
 }
@@ -194,7 +194,7 @@ var STREETS = [
 var SUMMARY_ROWS = [
   { key: "latency",    label: "延迟(ms)" },
   { key: "tokens",     label: "Tokens" },
-  { key: "cost",       label: "费用($)" },
+  { key: "cost",       label: "费用(¥)" },
   { key: "schema",     label: "合规" },
   { key: "judge",      label: "裁判★" },
 ];
@@ -318,7 +318,7 @@ function fillModelColumn(modelId, result) {
   var tokens = ((result.prompt_tokens || 0) + (result.completion_tokens || 0));
   fillSummaryCell("latency", modelId, result.latency_ms ? result.latency_ms + "ms" : "—");
   fillSummaryCell("tokens", modelId, tokens ? tokens.toLocaleString() : "—");
-  fillSummaryCell("cost", modelId, result.cost_usd != null ? "$" + Number(result.cost_usd).toFixed(4) : "—");
+  fillSummaryCell("cost", modelId, result.cost_cny != null ? "¥" + Number(result.cost_cny).toFixed(4) : "—");
   fillSummaryCell("schema", modelId, result.schema_valid ? "✓" : "✗");
 }
 
@@ -352,14 +352,14 @@ function renderKPI(evt, results) {
     if (successful.length > 0) {
       var fModel = successful.reduce(function (a, b) { return (a.latency_ms || Infinity) < (b.latency_ms || Infinity) ? a : b; });
       fastest = (MODEL_CONFIG[fModel.model_id] || { label: fModel.model_id }).label + " (" + fModel.latency_ms + "ms)";
-      var cModel = successful.reduce(function (a, b) { return (Number(a.cost_usd) || Infinity) < (Number(b.cost_usd) || Infinity) ? a : b; });
-      cheapest = (MODEL_CONFIG[cModel.model_id] || { label: cModel.model_id }).label + " ($" + Number(cModel.cost_usd || 0).toFixed(4) + ")";
+      var cModel = successful.reduce(function (a, b) { return (Number(a.cost_cny) || Infinity) < (Number(b.cost_cny) || Infinity) ? a : b; });
+      cheapest = (MODEL_CONFIG[cModel.model_id] || { label: cModel.model_id }).label + " (¥" + Number(cModel.cost_cny || 0).toFixed(4) + ")";
     }
   }
 
   grid.innerHTML =
     kpiCard(evt.consistency_score != null ? evt.consistency_score + "%" : "—", "一致率") +
-    kpiCard(evt.total_cost_usd != null ? "$" + Number(evt.total_cost_usd).toFixed(4) : "—", "总成本") +
+    kpiCard(evt.total_cost_cny != null ? "¥" + Number(evt.total_cost_cny).toFixed(4) : "—", "总成本") +
     kpiCard(fastest, "最快模型") +
     kpiCard(cheapest, "最省模型");
 }
