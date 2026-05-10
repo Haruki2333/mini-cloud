@@ -243,7 +243,7 @@ async function getValidEvalResultOutputs(evalRunId) {
 async function finalizeEvalRun(evalRunId, updates) {
   const fields = {};
   if (updates.status != null) fields.status = updates.status;
-  if (updates.totalCostUsd != null) fields.total_cost_cny = updates.totalCostUsd;
+  if (updates.totalCostCny != null) fields.total_cost_cny = updates.totalCostCny;
   if (updates.consistencyScore != null) fields.consistency_score = updates.consistencyScore;
   if (updates.judgeModelId != null) fields.judge_model_id = updates.judgeModelId;
   if (Object.keys(fields).length === 0) return;
