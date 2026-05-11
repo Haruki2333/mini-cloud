@@ -35,12 +35,18 @@ mini-cloud/
 │   └── Dockerfile
 ├── docs/                           # 项目文档/知识库
 │   ├── api/                        # 接口文档（按业务域组织）
+│   │   ├── poker.md                # 扑克教练 API（completions / hands / leaks / eval）
+│   │   ├── llm.md                  # LLM 服务层内部 API（chat / chatStream）
+│   │   └── wechat.md               # 微信小程序 Open ID 接口
 │   ├── db/                         # 数据库表结构文档
 │   │   └── poker.md                # 扑克教练表结构（poker_users/hands/analyses/leaks/eval_runs/eval_results）
 │   ├── tasks/                      # 任务自动化工作流（backlog + plan，详见 docs/tasks/README.md）
 │   │   ├── backlog.md              # 任务清单（用户录入想法 + AI 维护状态）
 │   │   └── plans/                  # 每个任务一份独立方案文件 T<NNN>.md
 │   └── ui/                         # 设计文档
+│       ├── design-spec.md          # 跨项目强制约束与项目设计索引
+│       └── poker-coach/            # 扑克教练专属设计文档
+│           └── poker-coach-design.md  # 教练笔记本风格设计规范
 ├── miniprogs/                      # 小程序前端项目，每个子目录为一个独立小程序
 └── pnpm-workspace.yaml
 ```

@@ -20,4 +20,4 @@ function calculateCost(modelId, usage) {
   return Number((input + output).toFixed(6));
 }
 
-module.exports = { PRICING, calculateCost };
+module.exports = { calculateCost };
