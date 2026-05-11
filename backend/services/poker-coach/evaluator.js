@@ -241,16 +241,16 @@ async function* runEvaluation({ userId, handId, modelIds, apiKey }) {
 
   // 汇总
   const consistencyScore = await computeConsistency(evalRunId, hand);
-  const totalCostUsd = Number(
+  const totalCostCny = Number(
     allResults.reduce((sum, r) => sum + (r.cost_cny || 0), 0).toFixed(6)
   );
   const successCount = allResults.filter((r) => r.status === "success").length;
   const status =
     successCount === models.length ? "completed" : successCount > 0 ? "partial" : "failed";
 
-  await dao.finalizeEvalRun(evalRunId, { status, totalCostUsd, consistencyScore });
+  await dao.finalizeEvalRun(evalRunId, { status, totalCostCny, consistencyScore });
 
-  yield { type: "eval_completed", eval_run_id: evalRunId, consistency_score: consistencyScore, total_cost_cny: totalCostUsd, status };
+  yield { type: "eval_completed", eval_run_id: evalRunId, consistency_score: consistencyScore, total_cost_cny: totalCostCny, status };
 }
 
 module.exports = { runEvaluation, EVAL_MODELS, JUDGE_MODEL_ID };

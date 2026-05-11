@@ -149,7 +149,7 @@ data: [DONE]
       "analysis_model_id": "gpt-5.4",
       "analysis_prompt_tokens": 1820,
       "analysis_completion_tokens": 640,
-      "analysis_cost_usd": "0.042450"
+      "analysis_cost_cny": "0.042450"
     }
   ]
 }
@@ -189,7 +189,7 @@ data: [DONE]
   "analysis_model_id": "gpt-5.4",
   "analysis_prompt_tokens": 1820,
   "analysis_completion_tokens": 640,
-  "analysis_cost_usd": "0.042450",
+  "analysis_cost_cny": "0.042450",
   "analyses": [
     {
       "id": 1,
@@ -299,9 +299,9 @@ data: [DONE]
 ```
 data: {"type":"eval_started","eval_run_id":7,"hand_id":42,"models":[...]}
 data: {"type":"eval_model_started","eval_run_id":7,"model_id":"gpt-5.4"}
-data: {"type":"eval_model_done","eval_run_id":7,"model_id":"gpt-5.4","result":{"status":"success","latency_ms":3420,"prompt_tokens":1205,"completion_tokens":680,"cost_usd":0.009814,"schema_valid":true,"structured_output":[...]}}
+data: {"type":"eval_model_done","eval_run_id":7,"model_id":"gpt-5.4","result":{"status":"success","latency_ms":3420,"prompt_tokens":1205,"completion_tokens":680,"cost_cny":0.009814,"schema_valid":true,"structured_output":[...]}}
 data: {"type":"eval_judge_done","eval_run_id":7,"judge_model_id":"claude-sonnet-4-6-thinking","scores":[{"model_id":"gpt-5.4","score":4,"notes":"..."}]}
-data: {"type":"eval_completed","eval_run_id":7,"consistency_score":66.7,"total_cost_usd":0.042318,"status":"completed"}
+data: {"type":"eval_completed","eval_run_id":7,"consistency_score":66.7,"total_cost_cny":0.042318,"status":"completed"}
 data: [DONE]
 ```
 
@@ -314,7 +314,7 @@ data: [DONE]
 **响应**
 
 ```json
-{ "runs": [{ "id": 7, "status": "completed", "consistency_score": 66.7, "total_cost_usd": 0.042318, "requested_models": ["gpt-5.4", "..."], "created_at": "..." }] }
+{ "runs": [{ "id": 7, "status": "completed", "consistency_score": 66.7, "total_cost_cny": 0.042318, "requested_models": ["gpt-5.4", "..."], "created_at": "..." }] }
 ```
 
 ---
@@ -328,10 +328,10 @@ data: [DONE]
 ```json
 {
   "id": 7, "hand_id": 42, "status": "completed",
-  "consistency_score": 66.7, "total_cost_usd": 0.042318,
+  "consistency_score": 66.7, "total_cost_cny": 0.042318,
   "results": [
     { "model_id": "gpt-5.4", "status": "success", "latency_ms": 3420,
-      "prompt_tokens": 1205, "completion_tokens": 680, "cost_usd": 0.009814,
+      "prompt_tokens": 1205, "completion_tokens": 680, "cost_cny": 0.009814,
       "schema_valid": true, "structured_output": [],
       "judge_score": 4, "judge_notes": "..." }
   ]

@@ -164,7 +164,8 @@ async function handleCreateHand(req, res) {
     if (!blind_level || !hero_position || !hero_cards || !hasPreflopActions) {
       return res.status(400).json({ error: "缺少必填字段：blind_level / hero_position / hero_cards / preflop_actions" });
     }
-    // 从 actions JSON 生成文本字段（向后兼容旧版文本存储）
+    // TODO: actions→文本序列化和 opponents→opponent_notes 的规范化逻辑
+    // 应移至 dao.createHand 或 hand-context.js，避免业务逻辑泄漏到路由层
     if (data.actions && !data.preflop_actions) {
       data.preflop_actions = serializeActions(data.actions.preflop);
       data.flop_actions = serializeActions(data.actions.flop) || data.flop_actions;
