@@ -40,9 +40,6 @@ mini-cloud/
 │   │   └── wechat.md               # 微信小程序 Open ID 接口
 │   ├── db/                         # 数据库表结构文档
 │   │   └── poker.md                # 扑克教练表结构（poker_users/hands/analyses/leaks/eval_runs/eval_results）
-│   ├── tasks/                      # 任务自动化工作流（backlog + plan，详见 docs/tasks/README.md）
-│   │   ├── backlog.md              # 任务清单（用户录入想法 + AI 维护状态）
-│   │   └── plans/                  # 每个任务一份独立方案文件 T<NNN>.md
 │   └── ui/                         # 设计文档
 │       ├── design-spec.md          # 跨项目强制约束与项目设计索引
 │       └── poker-coach/            # 扑克教练专属设计文档
@@ -70,13 +67,6 @@ mini-cloud/
   1. **`docs/ui/design-spec.md`**（必读）：跨项目强制约束（布局、触控目标、语义色），以及各项目设计文档的索引入口
   2. **项目专属设计文档**（必读）：具体的色彩、字体、组件规格，由 design-spec.md 的索引表指向；实现时以专属文档为准，不得自行调整主题级决策
 - 新增项目时，在 `docs/ui/` 下创建对应子目录存放专属设计文档，并在 design-spec.md 的索引表中补充一行
-
-## 任务自动化工作流
-
-- 用户在 `docs/tasks/backlog.md` 中追加 `状态: idea` 的任务条目，记录想法或待优化点
-- Claude Code on the web 周期性触发 `/scan-backlog`（命令定义见 `.claude/commands/scan-backlog.md`），按状态机依次处理：`idea → planned → ok → wip → done`
-- 用户审核：把方案对应任务的 `状态: planned` 手改为 `ok` 即放行实现；想让 AI 调整方案，去 `docs/tasks/plans/<id>.md` 末尾 Feedback 区写反馈（不改状态）
-- 完整说明见 [`docs/tasks/README.md`](docs/tasks/README.md)
 
 ## 后端 API
 
