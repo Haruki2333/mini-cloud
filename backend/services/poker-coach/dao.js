@@ -40,6 +40,7 @@ async function createHand(userId, data) {
     played_at: fields.played_at || null,
     opponents: fields.opponents || null,
     actions: fields.actions || null,
+    raw_input: fields.raw_input || null,
     is_analyzed: false,
   });
   return hand.id;

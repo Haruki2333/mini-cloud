@@ -21,6 +21,17 @@
     <!-- 滚动内容 -->
     <div class="scroll-area" id="scrollArea">
 
+      <!-- 快速录入：自然语言 → LLM 解析 -->
+      <div class="quick-entry-card">
+        <label class="form-label" style="text-align:center;">讲讲刚才发生了什么</label>
+        <textarea id="quickInput" rows="4"
+          placeholder="例：1/2 九人桌 BTN AhKd 100bb，UTG 加到 3bb 一个人跟，翻牌 Ah7c2s 我下注 5bb 他跟，转牌 Kd 我再下 12bb 他全推，我弃牌"></textarea>
+        <div class="quick-entry-row">
+          <span class="quick-entry-hint" id="quickHint">少于 20 字将无法解析</span>
+          <button type="button" class="btn btn-primary" id="quickSubmit">复盘 →</button>
+        </div>
+      </div>
+
       <!-- Leak 分析入口（≥10 手时显示） -->
       <div id="leakBanner" style="display:none;">
         <a href="/poker/analysis.html?mode=leaks" class="leak-banner">
@@ -62,10 +73,10 @@
 
     </div>
 
-    <!-- 底部录入按钮 -->
+    <!-- 底部手动录入次按钮（快速录入失败的兜底入口）-->
     <div style="padding:12px 16px;background:var(--paper);border-top:1px dashed var(--ink-line);">
-      <a href="/poker/form.html" class="btn btn-primary btn-full">
-        + 录入新手牌
+      <a href="/poker/form.html" class="btn btn-secondary btn-full">
+        手动录入（按步填表）
       </a>
     </div>
 

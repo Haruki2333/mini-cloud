@@ -25,6 +25,7 @@ const dao = require("../services/poker-coach/dao");
 const { serializeActions } = require("../services/poker-coach/hand-context");
 const { runAnalysis, runLeak, runChat } = require("../services/poker-coach/agent");
 const { runEvaluation } = require("../services/poker-coach/evaluator");
+const { parseHandText } = require("../services/poker-coach/parser");
 
 // ===== 用户标识 =====
 
@@ -154,6 +155,51 @@ async function handleCompletions(req, res) {
 
 // ===== REST：手牌 CRUD =====
 
+async function handleParseHandText(req, res) {
+  try {
+    const apiKey = req.headers["x-api-key"];
+    if (!apiKey) {
+      return res.status(401).json({ error: "缺少 API Key" });
+    }
+    const { text } = req.body || {};
+    if (typeof text !== "string" || text.trim().length < 20) {
+      return res.status(400).json({ error: "text 长度需 ≥ 20 字" });
+    }
+
+    const userId = await resolveUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: "缺少用户标识" });
+    }
+
+    console.log(`[PokerRoute] /parse 接收 textLen=${text.length} user=${userId}`);
+
+    let result;
+    try {
+      result = await parseHandText(text, apiKey);
+    } catch (e) {
+      const msg = e.message || "";
+      // 形如 parse_failed:llm_error / parse_failed:llm_non_json / parse_failed:schema_invalid_all_keys
+      if (msg.startsWith("parse_failed:")) {
+        const reason = msg.slice("parse_failed:".length) || "unknown";
+        console.warn(`[PokerRoute] /parse 解析失败 reason=${reason}`);
+        return res.status(422).json({ error: "parse_failed", reason });
+      }
+      throw e;
+    }
+
+    // 原始 text 透传给前端（用于 confirm 页"原文"折叠卡 + 后续保存时写入 raw_input）
+    res.json({
+      hand: result.hand,
+      missing: result.missing,
+      warnings: result.warnings,
+      raw_input: text,
+    });
+  } catch (err) {
+    console.error("[PokerRoute] /parse 错误:", err);
+    res.status(500).json({ error: "服务内部错误" });
+  }
+}
+
 async function handleCreateHand(req, res) {
   await withUser(req, res, async (userId) => {
     const data = { ...req.body };
@@ -177,6 +223,10 @@ async function handleCreateHand(req, res) {
       data.opponent_notes = data.opponents
         .map((o) => o.position + (o.stack_bb ? " (" + o.stack_bb + "BB)" : ""))
         .join("，");
+    }
+    // raw_input 是新增的可选字段：来自快速录入通道；手动录入为 null
+    if (typeof data.raw_input !== "string" || !data.raw_input.trim()) {
+      data.raw_input = null;
     }
     const handId = await dao.createHand(userId, data);
     res.json({ hand_id: handId });
@@ -304,6 +354,7 @@ async function handleGetEvalRun(req, res) {
 const pokerRouter = express.Router();
 
 pokerRouter.post("/completions", handleCompletions);
+pokerRouter.post("/hands/parse", handleParseHandText);
 pokerRouter.post("/hands", handleCreateHand);
 pokerRouter.get("/hands", handleListHands);
 pokerRouter.get("/hands/:id", handleGetHand);

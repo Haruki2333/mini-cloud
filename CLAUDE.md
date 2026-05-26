@@ -23,15 +23,21 @@ mini-cloud/
 │   │   │   ├── llm.js              # LLM 调用封装（chat 非流式 + chatStream 流式，6 款模型均通过 lingyaai 代理）
 │   │   │   └── pricing.js          # LLM 价格表与成本计算（评估模块使用）
 │   │   └── poker-coach/            # 扑克教练 demo 专属模块
-│   │       ├── prompts.js          # 三种模式（分析/Leak/追问）的系统提示词常量
+│   │       ├── prompts.js          # 四组系统提示词（分析/Leak/追问/自然语言解析）
 │   │       ├── agent.js            # 三种模式入口：runAnalysis / runLeak / runChat
 │   │       │                       # 分析/Leak 让 LLM 返回 JSON，校验失败重试 1 次后由后端直接落库
+│   │       ├── parser.js           # 一句话自然语言 → poker_hands 结构（小模型 + 严格 schema + 1 次重试）
 │   │       ├── models.js           # 数据库模型（poker_users/hands/analyses/leaks/eval_runs/eval_results）
 │   │       ├── dao.js              # CRUD（手牌、分析、Leak、评估批次与结果）
 │   │       ├── hand-context.js     # 手牌文本化纯函数（供 agent / 评估模块构建 prompt）
 │   │       └── evaluator.js        # 多模型横向评估核心（并发调用、schema 校验、裁判打分）
 │   ├── demo/                       # H5 Demo 页面（静态文件）
-│   │   └── poker-coach/            # 扑克教练 Demo（路径 /poker，结构化表单录入 + 分析卡片 + 追问）
+│   │   └── poker-coach/            # 扑克教练 Demo（路径 /poker）
+│   │       ├── index.html          # 首页：快速录入卡片（一句话 + 复盘）+ 历史手牌列表
+│   │       ├── confirm.html        # 确认页：单屏概览 + 行内编辑（来自 /parse 的结构化预填）
+│   │       ├── form.html           # 手动录入：3 步向导（快速录入失败时降级到此）
+│   │       ├── analysis.html / profile.html / compare.html
+│   │       └── js/widgets.js       # form / confirm 共用的选牌器与 action-builder
 │   └── Dockerfile
 ├── docs/                           # 项目文档/知识库
 │   ├── api/                        # 接口文档（按业务域组织）
@@ -71,6 +77,7 @@ mini-cloud/
 ## 后端 API
 
 - `POST /api/poker/completions` — 扑克教练 AI 对话（SSE 流式；分析手牌、Leak 识别、追问）
+- `POST /api/poker/hands/parse` — 一句话自然语言 → 结构化手牌 schema（小模型 + 严格校验）
 - `POST /api/poker/hands` — 录入新手牌（结构化表单，无 LLM）
 - `GET /api/poker/hands` — 手牌列表
 - `GET /api/poker/hands/:id` — 手牌详情 + 分析结果

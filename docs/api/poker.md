@@ -117,12 +117,87 @@ data: [DONE]
 | `played_at`           | string   | 否   | 日期 `YYYY-MM-DD`              |
 | `actions`             | object   | 否   | 结构化行动（可替代文字描述）：`{ preflop: [{position, action, amount?}], flop?, turn?, river? }` |
 | `opponents`           | array    | 否   | 对手信息（可替代 opponent_notes）：`[{position, stack_bb?}]` |
+| `raw_input`           | string   | 否   | 快速录入通道的原始自然语言文本（来自 `/hands/parse`）；手动录入时为 null |
 
 **响应**
 
 ```json
 { "hand_id": 42 }
 ```
+
+---
+
+### POST /api/poker/hands/parse
+
+把一段自然语言描述（"1/2 九人桌 BTN AhKd 100bb，UTG 加到 3bb 一个人跟…"）解析为
+`poker_hands` schema 的部分填充对象，供前端 confirm.html 行内校对后保存。
+
+**请求头**：`X-Api-Key` + `X-Anon-Token`（或 `X-Wx-OpenId`），均必填。
+
+**请求体**
+
+```json
+{ "text": "1/2 九人桌 BTN AhKd 100bb，UTG 加到 3bb 一个人跟，翻牌 Ah7c2s 我下注 5bb 他跟" }
+```
+
+| 字段   | 类型   | 必填 | 说明                          |
+|--------|--------|------|-------------------------------|
+| `text` | string | 是   | 长度需 ≥ 20 字；超过 4000 字客户端应自行截断 |
+
+**响应（成功 200）**
+
+```json
+{
+  "hand": {
+    "blind_level": "1/2",
+    "table_type": "9max",
+    "hero_position": "BTN",
+    "hero_cards": "AhKd",
+    "effective_stack_bb": 100,
+    "opponents": [{"position": "UTG", "stack_bb": null}],
+    "actions": {
+      "preflop": [
+        {"position": "UTG", "action": "raise", "amount": 3},
+        {"position": "BTN", "action": "call", "amount": 3}
+      ],
+      "flop": [
+        {"position": "BTN", "action": "bet", "amount": 5},
+        {"position": "UTG", "action": "call", "amount": 5}
+      ]
+    },
+    "preflop_actions": "UTG raise 3bb · BTN call",
+    "flop_cards": "Ah7c2s",
+    "flop_actions": "...",
+    "turn_card": null,
+    "turn_actions": null,
+    "river_card": null,
+    "river_actions": null,
+    "result_bb": null,
+    "showdown_opp_cards": null,
+    "opponent_notes": null,
+    "notes": null,
+    "played_at": null
+  },
+  "missing": ["opponents[0].stack_bb", "result_bb", "effective_stack_bb"],
+  "warnings": [],
+  "raw_input": "<原始 text 透传>"
+}
+```
+
+`missing[]` 是字段路径字符串（顶层用裸 key，数组成员用 `[i].key`，子对象用 `.key`），
+前端按这些路径在 DOM 上找 `[data-field="<path>"]` 元素挂红笔波浪线。
+
+`warnings[]` 列出解析中的歧义或非法值警告。
+
+**响应（解析失败 422）**
+
+```json
+{ "error": "parse_failed", "reason": "llm_non_json" | "schema_invalid_all_keys" | "llm_error" }
+```
+
+前端收到 422 后应降级到 `form.html`，并把已解析的部分（如有）通过 sessionStorage 作为 prefill 传过去。
+
+实现：见 [`backend/services/poker-coach/parser.js`](../../backend/services/poker-coach/parser.js)（小模型 + 严格 schema 校验 + 1 次重试）。
 
 ---
 

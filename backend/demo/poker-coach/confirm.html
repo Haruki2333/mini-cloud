@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>确认手牌 — 扑克教练</title>
+  <link rel="stylesheet" href="/poker/css/style.css" />
+</head>
+<body>
+  <div class="page page-fixed">
+
+    <!-- 顶部导航 -->
+    <div class="topbar">
+      <a href="/poker/" class="btn-icon" id="confirmBack">←</a>
+      <div class="topbar-title" id="confirmTitle" style="font-size:20px;">coach is reading…</div>
+      <a href="javascript:void(0)" id="expandToForm" class="btn-icon" style="font-size:11px;letter-spacing:1px;text-decoration:underline;">全部展开</a>
+    </div>
+
+    <div class="scroll-area" id="scrollArea">
+
+      <!-- warnings 顶部提示带 -->
+      <div id="warningStrip" class="warning-strip" hidden></div>
+
+      <!-- 局况卡 -->
+      <div class="confirm-card" id="cardSituation">
+        <div class="confirm-card-title">局况</div>
+        <div class="confirm-row">
+          <span class="confirm-row-label">盲注</span>
+          <div class="chip-row" id="confirmBlindChips" data-field="blind_level"></div>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-row-label">桌型</span>
+          <div class="segmented" id="confirmTableSeg" data-field="table_type">
+            <button type="button" data-table="6max">6-Max</button>
+            <button type="button" data-table="9max">9-Max</button>
+            <button type="button" data-table="hu">HU</button>
+          </div>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-row-label">Hero</span>
+          <span class="confirm-pos-tag" id="confirmHeroPos" data-field="hero_position">—</span>
+          <span class="confirm-stack">
+            <input type="number" id="confirmHeroStack" min="1" step="0.5" placeholder="—" data-field="effective_stack_bb" />
+            <span class="confirm-stack-suffix">BB</span>
+          </span>
+        </div>
+        <div class="confirm-row" id="confirmOpponentsRow">
+          <span class="confirm-row-label">对手</span>
+          <div class="confirm-opponents" id="confirmOpponents"></div>
+        </div>
+      </div>
+
+      <!-- 起手卡 -->
+      <div class="confirm-card" id="cardHero">
+        <div class="confirm-card-title">起手</div>
+        <div class="card-slot-row" data-field="hero_cards">
+          <button type="button" class="card-slot" data-target="hero:0">
+            <span class="card-slot-placeholder">card 1</span>
+          </button>
+          <button type="button" class="card-slot" data-target="hero:1">
+            <span class="card-slot-placeholder">card 2</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 每条街 -->
+      <div class="confirm-card" id="cardPreflop" data-street="preflop">
+        <div class="confirm-card-title">翻前 Preflop</div>
+        <div class="street-summary" data-field="actions.preflop"></div>
+        <div class="street-builder" hidden></div>
+        <div class="confirm-card-edit">
+          <button type="button" class="btn-link street-edit-toggle">✎ 编辑</button>
+        </div>
+      </div>
+
+      <div class="confirm-card" id="cardFlop" data-street="flop" hidden>
+        <div class="confirm-card-title">
+          翻牌 Flop
+          <span class="board-inline" data-field="flop_cards">
+            <button type="button" class="card-slot small" data-target="flop:0"><span class="card-slot-placeholder">f1</span></button>
+            <button type="button" class="card-slot small" data-target="flop:1"><span class="card-slot-placeholder">f2</span></button>
+            <button type="button" class="card-slot small" data-target="flop:2"><span class="card-slot-placeholder">f3</span></button>
+          </span>
+        </div>
+        <div class="street-summary" data-field="actions.flop"></div>
+        <div class="street-builder" hidden></div>
+        <div class="confirm-card-edit">
+          <button type="button" class="btn-link street-edit-toggle">✎ 编辑</button>
+        </div>
+      </div>
+
+      <div class="confirm-card" id="cardTurn" data-street="turn" hidden>
+        <div class="confirm-card-title">
+          转牌 Turn
+          <span class="board-inline" data-field="turn_card">
+            <button type="button" class="card-slot small" data-target="turn:0"><span class="card-slot-placeholder">turn</span></button>
+          </span>
+        </div>
+        <div class="street-summary" data-field="actions.turn"></div>
+        <div class="street-builder" hidden></div>
+        <div class="confirm-card-edit">
+          <button type="button" class="btn-link street-edit-toggle">✎ 编辑</button>
+        </div>
+      </div>
+
+      <div class="confirm-card" id="cardRiver" data-street="river" hidden>
+        <div class="confirm-card-title">
+          河牌 River
+          <span class="board-inline" data-field="river_card">
+            <button type="button" class="card-slot small" data-target="river:0"><span class="card-slot-placeholder">river</span></button>
+          </span>
+        </div>
+        <div class="street-summary" data-field="actions.river"></div>
+        <div class="street-builder" hidden></div>
+        <div class="confirm-card-edit">
+          <button type="button" class="btn-link street-edit-toggle">✎ 编辑</button>
+        </div>
+      </div>
+
+      <!-- 结果卡 -->
+      <div class="confirm-card" id="cardResult">
+        <div class="confirm-card-title" style="color:var(--red);">结果</div>
+        <div class="confirm-row">
+          <span class="confirm-row-label">输赢</span>
+          <span class="result-stepper">
+            <button type="button" class="result-sign" data-sign="-1">−</button>
+            <input class="form-control" id="confirmResultBB" type="number" step="0.5" placeholder="0" data-field="result_bb" />
+            <button type="button" class="result-sign" data-sign="1">+</button>
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);margin-left:4px;">BB</span>
+          </span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-row-label">对手摊牌</span>
+          <span class="card-slot-row">
+            <button type="button" class="card-slot small" data-target="opp:0"><span class="card-slot-placeholder">card 1</span></button>
+            <button type="button" class="card-slot small" data-target="opp:1"><span class="card-slot-placeholder">card 2</span></button>
+            <button type="button" class="btn-link" id="confirmOppClear">清空</button>
+          </span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-row-label">备注</span>
+          <input class="form-control" id="confirmNotes" type="text" placeholder="（选填）" />
+        </div>
+      </div>
+
+      <!-- 原文卡（默认折叠）-->
+      <div class="confirm-card" id="cardRaw">
+        <div class="confirm-card-title">
+          原文
+          <button type="button" class="btn-link" id="rawToggle" style="float:right;font-size:11px;">展开 ↓</button>
+        </div>
+        <div id="rawContent" class="raw-content" hidden></div>
+      </div>
+
+    </div>
+
+    <!-- 底栏 -->
+    <div class="wizard-bottombar">
+      <button type="button" class="btn btn-secondary" id="cancelBtn">取消</button>
+      <button type="button" class="btn btn-primary" id="saveBtn" disabled>保存并复盘 →</button>
+    </div>
+
+  </div>
+
+  <!-- 选牌器（与 form.html 共用结构） -->
+  <div class="card-picker-mask" id="cardPickerMask" hidden></div>
+  <div class="card-picker-sheet" id="cardPickerSheet" hidden>
+    <div class="card-picker-header">
+      <span id="cardPickerTitle">选张牌</span>
+      <button type="button" class="btn-icon" id="cardPickerClose">✕</button>
+    </div>
+    <div class="card-picker-body">
+      <div class="picker-step">① 点数</div>
+      <div class="rank-grid" id="rankGrid"></div>
+      <div class="picker-step" style="margin-top:14px;">② 花色 <span id="pickedRank" class="picked-rank"></span></div>
+      <div class="suit-grid" id="suitGrid">
+        <button type="button" data-suit="s" class="black">♠</button>
+        <button type="button" data-suit="h" class="red">♥</button>
+        <button type="button" data-suit="d" class="red">♦</button>
+        <button type="button" data-suit="c" class="black">♣</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/poker/js/types.js"></script>
+  <script src="/poker/js/storage.js"></script>
+  <script src="/poker/js/widgets.js"></script>
+  <script src="/poker/js/confirm.js"></script>
+</body>
+</html>

@@ -121,4 +121,89 @@ async function confirmDeleteHand(event, id) {
   }
 }
 
+// ===== 快速录入 =====
+
+function bindQuickEntry() {
+  var input = document.getElementById("quickInput");
+  var btn = document.getElementById("quickSubmit");
+  var hint = document.getElementById("quickHint");
+  if (!input || !btn) return;
+
+  function updateHint() {
+    var len = input.value.trim().length;
+    if (len === 0)        hint.textContent = "少于 20 字将无法解析";
+    else if (len < 20)    hint.textContent = "还差 " + (20 - len) + " 字";
+    else if (len > 4000)  hint.textContent = "已超 4000 字，将截断";
+    else                  hint.textContent = len + " 字";
+  }
+  input.addEventListener("input", updateHint);
+  updateHint();
+
+  btn.addEventListener("click", function () { submitQuickEntry(); });
+}
+
+async function submitQuickEntry() {
+  var input = document.getElementById("quickInput");
+  var btn = document.getElementById("quickSubmit");
+  var text = input.value.trim();
+  if (text.length < 20) {
+    showToast("讲详细点：盲注、位置、起手牌、行动");
+    input.focus();
+    return;
+  }
+  if (text.length > 4000) text = text.slice(0, 4000);
+
+  var settings = getSettings();
+  var apiKey = getApiKeyForModel(settings.model);
+  if (!apiKey) {
+    showToast("请先在设置页配置 API Key");
+    setTimeout(function () { window.location.href = "/poker/profile.html"; }, 1200);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "coach is reading…";
+
+  try {
+    var resp = await fetch("/api/poker/hands/parse", {
+      method: "POST",
+      headers: buildHeaders(),
+      body: JSON.stringify({ text: text }),
+    });
+
+    if (resp.status === 422) {
+      // 解析失败：尽量带原始文本跳到 form.html 让用户手动补
+      sessionStorage.setItem("quickEntryDraft", JSON.stringify({
+        hand: {},
+        missing: [],
+        warnings: [],
+        raw_input: text,
+        parse_failed: true,
+      }));
+      showToast("解析失败，转到手动录入");
+      setTimeout(function () { window.location.href = "/poker/form.html?prefill=1"; }, 800);
+      return;
+    }
+
+    if (!resp.ok) throw new Error("请求失败 " + resp.status);
+    var data = await resp.json();
+
+    sessionStorage.setItem("quickEntryDraft", JSON.stringify({
+      hand: data.hand || {},
+      missing: data.missing || [],
+      warnings: data.warnings || [],
+      raw_input: data.raw_input || text,
+    }));
+    window.location.href = "/poker/confirm.html";
+  } catch (e) {
+    console.error("[QuickEntry]", e);
+    showToast("网络异常，转到手动录入");
+    setTimeout(function () { window.location.href = "/poker/form.html"; }, 800);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "复盘 →";
+  }
+}
+
+bindQuickEntry();
 loadHands();

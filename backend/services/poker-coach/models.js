@@ -130,6 +130,11 @@ function define(sequelize) {
         allowNull: true,
         comment: "牌局日期",
       },
+      raw_input: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: "快速录入通道的原始自然语言输入（手动录入时为 null）",
+      },
       opponents: {
         type: DataTypes.JSON,
         allowNull: true,

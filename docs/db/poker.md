@@ -40,6 +40,7 @@
 | `played_at`           | DATE              | 牌局日期（可为空）                      |
 | `opponents`           | JSON              | 对手信息 `[{position, stack_bb}]`（可为空） |
 | `actions`             | JSON              | 结构化行动 `{preflop: [{position, action, amount?}], ...}`（可为空） |
+| `raw_input`           | TEXT              | 快速录入通道（自然语言一句话）的原始文本；手动录入时为 null |
 | `is_analyzed`         | BOOLEAN           | 是否已完成 AI 分析，默认 false          |
 | `analysis_model_id`         | VARCHAR(64)   | 本次分析所用模型 ID（分析落库时写入，可空） |
 | `analysis_prompt_tokens`    | INT UNSIGNED  | 本次分析累计输入 token 数（可空）       |

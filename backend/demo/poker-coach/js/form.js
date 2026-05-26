@@ -26,9 +26,6 @@ var state = {
   notes: "",
 };
 
-var pickerTarget = null;
-var pickerRank = null;
-
 // ===== 通用工具 =====
 
 function $(id) { return document.getElementById(id); }
@@ -47,39 +44,11 @@ function targetSlot(target) {
   return { key: key, arr: arr, idx: idx };
 }
 
-function getActivePlayers(order) {
-  var heroPos = state.hero_position;
-  var oppPositions = state.opponents.map(function (o) { return o.position; });
-  var all = [];
-  if (heroPos) all.push(heroPos);
-  all = all.concat(oppPositions);
-  return order.filter(function (pos) { return all.indexOf(pos) !== -1; });
-}
-
-function getAliveAfterStreet(street) {
-  var order = street === "preflop"
-    ? getPositions(state.table_type)
-    : getPostflopOrder(state.table_type);
-  var alive = getActivePlayers(order);
-  var actions = state.actions[street] || [];
-  var folded = {};
-  actions.forEach(function (a) {
-    var pos = a.position === "Hero" ? state.hero_position : a.position;
-    if (a.action === "fold") folded[pos] = true;
-    else if (a.action) delete folded[pos];
-  });
-  return alive.filter(function (pos) { return !folded[pos]; });
-}
-
-function getAliveForStreet(street) {
-  var streets = ["preflop", "flop", "turn", "river"];
-  var idx = streets.indexOf(street);
-  if (idx <= 0) {
-    var order = getPositions(state.table_type);
-    return getActivePlayers(order);
-  }
-  return getAliveAfterStreet(streets[idx - 1]);
-}
+// 以下三个函数曾内联在本文件，现迁至 widgets.js（widgetGetActivePlayers / widgetGetAliveAfterStreet
+// / widgetGetAliveForStreet），保留同名薄包装以最小化本文件调用点改动。
+function getActivePlayers(order) { return widgetGetActivePlayers(state, order); }
+function getAliveAfterStreet(street) { return widgetGetAliveAfterStreet(state, street); }
+function getAliveForStreet(street) { return widgetGetAliveForStreet(state, street); }
 
 // ===== 步骤切换 =====
 
@@ -358,215 +327,16 @@ function renderHandTip() {
 }
 
 // ===== 步骤 2: 行动构建器 =====
+// 实现已迁至 widgets.js（widgetInitStreetActions / widgetRenderActionBuilder 等）。
+// 这里保留同名包装：initStreetActions / renderActionBuilder 提供旧 API。
 
 function initStreetActions(street) {
-  var alive;
-  if (street === "preflop") {
-    var preflopOrder = getPositions(state.table_type);
-    alive = getActivePlayers(preflopOrder);
-  } else {
-    var postflopOrder = getPostflopOrder(state.table_type);
-    alive = getAliveForStreet(street);
-    alive = postflopOrder.filter(function (pos) { return alive.indexOf(pos) !== -1; });
-  }
-
-  state.actions[street] = alive.map(function (pos) {
-    var isHero = (pos === state.hero_position);
-    return {
-      position: isHero ? "Hero" : pos,
-      action: "",
-      amount: null,
-    };
-  });
+  widgetInitStreetActions(state, street);
 }
 
 function renderActionBuilder(street) {
-  var containerId = street + "Builder";
-  var container = $(containerId);
-  if (!container) return;
-  container.innerHTML = "";
-
-  var actions = state.actions[street] || [];
-  var isPreflop = (street === "preflop");
-  var actionOptions = isPreflop ? PREFLOP_ACTIONS : POSTFLOP_ACTIONS;
-
-  actions.forEach(function (act, idx) {
-    var isHero = (act.position === "Hero");
-    var row = document.createElement("div");
-    row.className = "action-row" + (isHero ? " hero-row" : "");
-
-    var posSpan = document.createElement("span");
-    posSpan.className = "action-pos";
-    posSpan.textContent = act.position;
-    row.appendChild(posSpan);
-
-    var select = document.createElement("select");
-    select.className = "action-select";
-    var defaultOpt = document.createElement("option");
-    defaultOpt.value = "";
-    defaultOpt.textContent = "选择…";
-    select.appendChild(defaultOpt);
-    actionOptions.forEach(function (opt) {
-      var o = document.createElement("option");
-      o.value = opt;
-      o.textContent = opt;
-      if (act.action === opt) o.selected = true;
-      select.appendChild(o);
-    });
-    select.addEventListener("change", function () {
-      handleActionChange(street, idx, select.value);
-    });
-    row.appendChild(select);
-
-    var amountInput = document.createElement("input");
-    amountInput.className = "action-amount";
-    amountInput.type = "number";
-    amountInput.min = "0";
-    amountInput.step = "0.5";
-    amountInput.placeholder = "BB";
-    amountInput.value = act.amount != null ? act.amount : "";
-    amountInput.hidden = !actionNeedsAmount(act.action);
-    amountInput.addEventListener("input", function () {
-      state.actions[street][idx].amount = amountInput.value !== "" ? parseFloat(amountInput.value) : null;
-    });
-    row.appendChild(amountInput);
-
-    container.appendChild(row);
-  });
-
-  var foldedPlayers = getFoldedPlayersForStreet(street);
-  if (foldedPlayers.length > 0) {
-    var addDiv = document.createElement("div");
-    addDiv.className = "add-player-dropdown";
-    var addBtn = document.createElement("button");
-    addBtn.type = "button";
-    addBtn.className = "add-player-btn";
-    addBtn.textContent = "+ 添加玩家";
-    addBtn.addEventListener("click", function () {
-      toggleAddPlayerMenu(addDiv, street, foldedPlayers);
-    });
-    addDiv.appendChild(addBtn);
-    container.appendChild(addDiv);
-  }
-}
-
-function handleActionChange(street, idx, newAction) {
-  var actions = state.actions[street];
-  var oldAction = actions[idx].action;
-  actions[idx].action = newAction;
-  actions[idx].amount = null;
-
-  if (isAggressiveAction(newAction) && !isAggressiveAction(oldAction)) {
-    smartAppend(street, idx);
-  }
-
-  renderActionBuilder(street);
-}
-
-function smartAppend(street, raiserIdx) {
-  var actions = state.actions[street];
-  var raiserPos = actions[raiserIdx].position;
-  var isPreflop = (street === "preflop");
-  var order = isPreflop ? getPositions(state.table_type) : getPostflopOrder(state.table_type);
-
-  var activePlayers = getActivePlayers(order);
-
-  var raiserActualPos = raiserPos === "Hero" ? state.hero_position : raiserPos;
-  var raiserOrderIdx = order.indexOf(raiserActualPos);
-  if (raiserOrderIdx === -1) return;
-
-  var toAppend = [];
-  for (var i = 1; i < order.length; i++) {
-    var checkPos = order[(raiserOrderIdx + i) % order.length];
-    if (checkPos === raiserActualPos) break;
-    if (activePlayers.indexOf(checkPos) === -1) continue;
-
-    var isHero = (checkPos === state.hero_position);
-    var label = isHero ? "Hero" : checkPos;
-    var alreadyResponded = false;
-    for (var j = raiserIdx + 1; j < actions.length; j++) {
-      if (actions[j].position === label) {
-        alreadyResponded = true;
-        break;
-      }
-    }
-    if (alreadyResponded) continue;
-
-    var hasFolded = false;
-    for (var k = 0; k <= raiserIdx; k++) {
-      if (actions[k].position === label && actions[k].action === "fold") {
-        hasFolded = true;
-      }
-      if (actions[k].position === label && actions[k].action !== "fold") {
-        hasFolded = false;
-      }
-    }
-    if (hasFolded) continue;
-
-    toAppend.push({ position: label, action: "fold", amount: null });
-  }
-
-  toAppend.forEach(function (a) { actions.push(a); });
-}
-
-function getFoldedPlayersForStreet(street) {
-  var isPreflop = (street === "preflop");
-  var order = isPreflop ? getPositions(state.table_type) : getPostflopOrder(state.table_type);
-  var allActive = getActivePlayers(order);
-
-  var actions = state.actions[street] || [];
-  var foldState = {};
-  actions.forEach(function (a) {
-    var pos = a.position === "Hero" ? state.hero_position : a.position;
-    if (a.action === "fold") foldState[pos] = true;
-    else delete foldState[pos];
-  });
-
-  if (!isPreflop) {
-    var aliveBefore = getAliveForStreet(street);
-    allActive.forEach(function (pos) {
-      if (aliveBefore.indexOf(pos) === -1) {
-        foldState[pos] = true;
-      }
-    });
-  }
-
-  var folded = [];
-  Object.keys(foldState).forEach(function (pos) {
-    if (foldState[pos]) {
-      folded.push(pos === state.hero_position ? "Hero" : pos);
-    }
-  });
-
-  return folded;
-}
-
-function toggleAddPlayerMenu(container, street, foldedPlayers) {
-  var existing = container.querySelector(".add-player-menu");
-  if (existing) { existing.remove(); return; }
-
-  var menu = document.createElement("div");
-  menu.className = "add-player-menu";
-  foldedPlayers.forEach(function (label) {
-    var btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = label;
-    btn.addEventListener("click", function () {
-      state.actions[street].push({ position: label, action: "", amount: null });
-      renderActionBuilder(street);
-    });
-    menu.appendChild(btn);
-  });
-  container.appendChild(menu);
-
-  setTimeout(function () {
-    document.addEventListener("click", function handler(e) {
-      if (!container.contains(e.target)) {
-        menu.remove();
-        document.removeEventListener("click", handler);
-      }
-    });
-  }, 0);
+  var container = $(street + "Builder");
+  widgetRenderActionBuilder({ container: container, state: state, street: street, onChange: function () {} });
 }
 
 function renderStreetVisibility() {
@@ -691,19 +461,7 @@ function renderCardSlot(btn) {
   var target = btn.dataset.target;
   var slot = targetSlot(target);
   var card = slot.arr[slot.idx];
-  if (card) {
-    var rank = card[0];
-    var suit = card[1];
-    var glyph = { s: "♠", h: "♥", d: "♦", c: "♣" }[suit];
-    var redClass = (suit === "h" || suit === "d") ? " red" : " black";
-    btn.innerHTML = '<span class="card-face' + redClass + '"><span class="cf-rank">' + rank + '</span><span class="cf-suit">' + glyph + '</span></span>';
-    btn.classList.add("filled");
-  } else {
-    var ph = btn.querySelector(".card-slot-placeholder");
-    var phText = ph ? ph.textContent : "card";
-    btn.innerHTML = '<span class="card-slot-placeholder">' + phText + '</span>';
-    btn.classList.remove("filled");
-  }
+  widgetRenderCardSlot(btn, card);
 }
 
 function renderAllSlots() {
@@ -714,98 +472,13 @@ function renderAllSlots() {
 function bindCardSlots() {
   $$(".card-slot").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      openCardPicker(btn.dataset.target);
+      widgetOpenCardPicker(btn.dataset.target);
     });
   });
   $("heroClear").addEventListener("click", function () {
     state.hero_cards = [null, null];
     renderAllSlots();
   });
-}
-
-// ===== 选牌器 =====
-
-function buildRankGrid() {
-  var grid = $("rankGrid");
-  grid.innerHTML = "";
-  var ranks = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"];
-  ranks.forEach(function (r) {
-    var b = document.createElement("button");
-    b.type = "button";
-    b.textContent = r;
-    b.addEventListener("click", function () {
-      pickerRank = r;
-      $("pickedRank").textContent = "→ " + r;
-      $$("#rankGrid button").forEach(function (x) { x.classList.toggle("active", x.textContent === r); });
-    });
-    grid.appendChild(b);
-  });
-}
-
-function bindSuitGrid() {
-  $$("#suitGrid button").forEach(function (b) {
-    b.addEventListener("click", function () {
-      if (!pickerRank) { showToast("先选点数"); return; }
-      var card = pickerRank + b.dataset.suit;
-      if (!pickerTarget) return;
-      if (isCardUsed(card, pickerTarget)) {
-        showToast(card + " 已被其他位置占用");
-        return;
-      }
-      var slot = targetSlot(pickerTarget);
-      slot.arr[slot.idx] = card;
-      var prevTarget = pickerTarget;
-      closeCardPicker();
-      renderAllSlots();
-      if (prevTarget === "hero:0" && !state.hero_cards[1]) {
-        setTimeout(function () { openCardPicker("hero:1"); }, 120);
-      } else if (prevTarget === "flop:0" && !state.flop_cards[1]) {
-        setTimeout(function () { openCardPicker("flop:1"); }, 120);
-      } else if (prevTarget === "flop:1" && !state.flop_cards[2]) {
-        setTimeout(function () { openCardPicker("flop:2"); }, 120);
-      } else if (prevTarget === "opp:0" && !state.showdown_opp_cards[1]) {
-        setTimeout(function () { openCardPicker("opp:1"); }, 120);
-      }
-    });
-  });
-}
-
-function isCardUsed(card, exceptTarget) {
-  var groups = [
-    ["hero:0", state.hero_cards[0]],
-    ["hero:1", state.hero_cards[1]],
-    ["flop:0", state.flop_cards[0]],
-    ["flop:1", state.flop_cards[1]],
-    ["flop:2", state.flop_cards[2]],
-    ["turn:0", state.turn_card[0]],
-    ["river:0", state.river_card[0]],
-    ["opp:0", state.showdown_opp_cards[0]],
-    ["opp:1", state.showdown_opp_cards[1]],
-  ];
-  return groups.some(function (g) { return g[1] === card && g[0] !== exceptTarget; });
-}
-
-function openCardPicker(target) {
-  pickerTarget = target;
-  pickerRank = null;
-  var label = {
-    "hero:0": "起手牌 · 第 1 张", "hero:1": "起手牌 · 第 2 张",
-    "flop:0": "翻牌 · 第 1 张", "flop:1": "翻牌 · 第 2 张", "flop:2": "翻牌 · 第 3 张",
-    "turn:0": "转牌", "river:0": "河牌",
-    "opp:0": "对手底牌 · 第 1 张", "opp:1": "对手底牌 · 第 2 张",
-  }[target] || "选张牌";
-  $("cardPickerTitle").textContent = label;
-  $("pickedRank").textContent = "";
-  $$("#rankGrid button").forEach(function (x) { x.classList.remove("active"); });
-  $("cardPickerMask").hidden = false;
-  $("cardPickerSheet").hidden = false;
-}
-
-function closeCardPicker() {
-  pickerTarget = null;
-  pickerRank = null;
-  $("cardPickerMask").hidden = true;
-  $("cardPickerSheet").hidden = true;
 }
 
 // ===== 提交 =====
@@ -862,6 +535,7 @@ function buildPayload() {
     opponent_notes: state.opponent_notes.trim() || null,
     notes: state.notes.trim() || null,
     played_at: state.played_at || null,
+    raw_input: state._raw_input || null,
   };
 }
 
@@ -912,22 +586,101 @@ function refreshAll() {
   });
 }
 
+// ===== 从 sessionStorage 读取快速录入草稿，预填 state =====
+//
+// 触发条件：URL 带 ?prefill=1 时（home.js 在解析失败时跳转到此）。读取后清掉 sessionStorage
+// 防止刷新页面再次预填。只设置 state 字段；后续 refreshAll 会根据 state 重渲所有控件。
+
+function applyPrefillFromQuickEntry() {
+  if (!/[?&]prefill=/.test(window.location.search)) return false;
+  var raw;
+  try { raw = sessionStorage.getItem("quickEntryDraft"); } catch (_) { return false; }
+  if (!raw) return false;
+  sessionStorage.removeItem("quickEntryDraft");
+  var draft;
+  try { draft = JSON.parse(raw); } catch (_) { return false; }
+  var hand = draft.hand || {};
+
+  if (hand.blind_level) {
+    var presetBlinds = ["0.5/1", "1/2", "2/5", "5/10", "10/25", "25/50"];
+    state.blind_level = hand.blind_level;
+    state.blind_custom = presetBlinds.indexOf(hand.blind_level) === -1;
+  }
+  if (hand.table_type) state.table_type = hand.table_type;
+  if (hand.hero_position) state.hero_position = hand.hero_position;
+
+  if (typeof hand.hero_cards === "string" && hand.hero_cards.length >= 4) {
+    state.hero_cards = [hand.hero_cards.slice(0, 2), hand.hero_cards.slice(2, 4)];
+  }
+  if (hand.effective_stack_bb != null) state.hero_stack_bb = String(hand.effective_stack_bb);
+  if (Array.isArray(hand.opponents)) {
+    state.opponents = hand.opponents.map(function (o) {
+      return { position: o.position, stack_bb: o.stack_bb != null ? String(o.stack_bb) : "" };
+    });
+  }
+
+  if (hand.actions && typeof hand.actions === "object") {
+    ["preflop", "flop", "turn", "river"].forEach(function (s) {
+      if (Array.isArray(hand.actions[s])) state.actions[s] = hand.actions[s];
+    });
+  }
+
+  if (typeof hand.flop_cards === "string" && hand.flop_cards.length >= 6) {
+    state.flop_cards = [hand.flop_cards.slice(0, 2), hand.flop_cards.slice(2, 4), hand.flop_cards.slice(4, 6)];
+    state.flop_open = true;
+  }
+  if (typeof hand.turn_card === "string" && hand.turn_card.length === 2) {
+    state.turn_card = [hand.turn_card];
+    state.turn_open = true;
+  }
+  if (typeof hand.river_card === "string" && hand.river_card.length === 2) {
+    state.river_card = [hand.river_card];
+    state.river_open = true;
+  }
+
+  if (hand.result_bb != null) state.result_bb = String(hand.result_bb);
+  if (typeof hand.showdown_opp_cards === "string" && hand.showdown_opp_cards.length >= 4) {
+    state.showdown_opp_cards = [hand.showdown_opp_cards.slice(0, 2), hand.showdown_opp_cards.slice(2, 4)];
+  }
+  if (typeof hand.opponent_notes === "string") state.opponent_notes = hand.opponent_notes;
+  if (typeof hand.notes === "string") state.notes = hand.notes;
+
+  // raw_input 暂存到 state，submit 时透传
+  if (typeof draft.raw_input === "string") state._raw_input = draft.raw_input;
+
+  return true;
+}
+
 (function init() {
   var today = new Date().toISOString().slice(0, 10);
   $("playedAt").value = today;
   state.played_at = today;
   $("playedAt").addEventListener("input", function (e) { state.played_at = e.target.value; });
 
+  applyPrefillFromQuickEntry();
+
   bindBlindChips();
   bindTableSeg();
   bindStreetToggles();
   bindResultStepper();
   bindCardSlots();
-  buildRankGrid();
-  bindSuitGrid();
 
-  $("cardPickerClose").addEventListener("click", closeCardPicker);
-  $("cardPickerMask").addEventListener("click", closeCardPicker);
+  // 选牌弹层：把选中的牌写回 state，自动追打开同组下一张
+  widgetInitCardPicker({
+    state: state,
+    onPick: function (target, card) {
+      var slot = targetSlot(target);
+      slot.arr[slot.idx] = card;
+      renderAllSlots();
+    },
+    autoAdvance: function (prevTarget) {
+      if (prevTarget === "hero:0" && !state.hero_cards[1]) return "hero:1";
+      if (prevTarget === "flop:0" && !state.flop_cards[1]) return "flop:1";
+      if (prevTarget === "flop:1" && !state.flop_cards[2]) return "flop:2";
+      if (prevTarget === "opp:0"  && !state.showdown_opp_cards[1]) return "opp:1";
+      return null;
+    },
+  });
 
   $("prevBtn").addEventListener("click", prevStep);
   $("nextBtn").addEventListener("click", nextStep);
